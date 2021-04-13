@@ -1,5 +1,5 @@
 <?php
-namespace MajaxWP;
+namespace CustomAjaxFilters\Majax\MajaxWP;
 
 class MajaxForm {   
     private $postType;

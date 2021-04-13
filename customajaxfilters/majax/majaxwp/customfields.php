@@ -1,5 +1,5 @@
 <?php
-namespace MajaxWP;
+namespace CustomAjaxFilters\Majax\MajaxWP;
 
 class CustomFields {
   public $fieldsList=array();
@@ -90,7 +90,7 @@ class CustomFields {
 
   public function loadFromSQL() {
 	global $wpdb;
-	$query = "SELECT * FROM `".$wpdb->prefix.$this->customPostType."_majax_fields` WHERE `filterorder`>'0' OR `displayorder`>'0' ORDER BY `filterorder`";
+	$query = "SELECT * FROM `".$wpdb->prefix.TAB_PREFIX_FRONTEND.$this->customPostType."_fields` WHERE `filterorder`>'0' OR `displayorder`>'0' ORDER BY `filterorder`";
 	$load=false;
 	foreach( $wpdb->get_results($query) as $key => $row) {	
 		$this->fieldsRows[] = $row;	

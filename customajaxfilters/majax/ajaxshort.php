@@ -2,7 +2,7 @@
 /*
  this feeds ajax from wordpress with minimal loading
 */
-namespace MajaxWP;
+namespace CustomAjaxFilters\Majax;
 
 define('SHORTINIT', true);
 define('DOING_AJAX', true);
@@ -23,7 +23,7 @@ require_once(plugin_dir_path( __FILE__ ) . '/MajaxWP/majaxhandlershort.php');
 require_once(plugin_dir_path( __FILE__ ) . '/MajaxWP/customfields.php');
 require_once(plugin_dir_path( __FILE__ ) . '/MajaxWP/customfield.php');
 require_once(plugin_dir_path( __FILE__ ) . '/MajaxWP/majaxitem.php');
-$renderer = new MajaxRender(false);
+$renderer = new MajaxWP\MajaxRender(false);
 
 $checkNonce=false;
 if ($checkNonce) {
@@ -35,7 +35,7 @@ if ($checkNonce) {
     require_once( ABSPATH . WPINC . '/class-wp-session-tokens.php' );
     require_once( ABSPATH . WPINC . '/class-wp-user-meta-session-tokens.php' );
     require_once( ABSPATH . WPINC . '/pluggable.php' );
-    check_ajax_referer(MajaxHandlerShort::NONCE,'security');    
+    check_ajax_referer(MajaxWP\MajaxHandlerShort::NONCE,'security');    
 }
 
 $action=$_POST["action"];

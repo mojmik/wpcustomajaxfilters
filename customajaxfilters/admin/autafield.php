@@ -1,12 +1,12 @@
 <?php
-namespace AutaWP;
+namespace CustomAjaxFilters\Admin;
 
 class AutaField {
  //private $thisPostCustom;
  public function __construct($name,$type="",$title="",$options="",$postType="",$compare="",$filterorder="",$displayorder="",$icon="",$fieldformat="") {
 	  $this->name=$name;	 
 	  $this->type=$type;	
-	  $this->id=AutaPlugin::$prefix.$name;
+	  $this->id=TAB_PREFIX_BACKEND.$name;
 	  $this->title=__($title);	 
 	  $this->options=$options;	  
 	  $this->customPostType=$postType;		 
@@ -61,7 +61,7 @@ class AutaField {
  public function printFieldEdit() {
 	 ?>
 	
-	 <form action='<?= remove_query_arg( 'do')?>' method='post' class='editFieldRow'>	 	 	 
+	 <form action='<?= remove_query_arg( 'do')?>' method='post' class='caf-editFieldRow'>	 	 	 
 			<div><div><label>name</label></div><input type='text' readonly='true' name='name' value='<?= $this->name?>' /></div>
 			<div><div><label>type</label></div><input type='text' name='type' value='<?= $this->type?>' /></div>
 			<div><div><label>compare</label></div><input type='text' name='compare' value='<?= $this->compare?>' /></div>

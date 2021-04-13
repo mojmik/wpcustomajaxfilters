@@ -1,5 +1,5 @@
 <?php
-namespace MajaxWP;
+namespace CustomAjaxFilters\Majax\MajaxWP;
 
 Class MajaxHandler {	
 	const ACTION = 'majax';
@@ -14,8 +14,13 @@ Class MajaxHandler {
 	public function register()  {		
 
 		$this->ajaxRender=new MajaxRender();
+	
+		add_shortcode('majaxfilter', [$this,'printFilters'] );
+		add_shortcode('majaxcontent', [$this,'printContent'] );
+		add_shortcode('majaxstaticcontent', [$this,'showStaticContent'] );
+		add_shortcode('majaxstaticform', [$this,'showStaticForm'] );
+		add_action('wp_loaded', [$this, 'register_script']);
 		
-		$this->ajaxRender->regShortCodes();
 		
 		add_action('wp_ajax_filter_rows', [$this,'handleShow'] );
 		add_action('wp_ajax_nopriv_filter_rows', [$this,'handleShow'] );
@@ -54,7 +59,37 @@ Class MajaxHandler {
         
         die();
 	}
-	
+	function setAtts($atts = []) {
+		$atts = array_change_key_case( (array) $atts, CASE_LOWER );		
+		return $atts;	
+	}
+	function initRender($atts) {		
+		$this->ajaxRender=new MajaxRender(false,$atts);		
+	}
+	function printFilters($atts = []) {			
+		ob_start();					
+		$this->initRender($this->setAtts($atts));
+		$this->ajaxRender->printFilters();
+		return ob_get_clean();
+	}
+	function printContent($atts = []) {	
+		ob_start();	
+		$this->initRender($this->setAtts($atts));
+		$this->ajaxRender->printContent();
+		return ob_get_clean();
+	}
+	function showStaticContent($atts = []) {	
+		ob_start();	
+		$this->initRender($this->setAtts($atts));
+		$this->ajaxRender->showStaticContent();
+		return ob_get_clean();
+	}
+	function showStaticForm($atts = []) {	
+		ob_start();	
+		$this->initRender($this->setAtts($atts));
+		$this->ajaxRender->showStaticForm();
+		return ob_get_clean();
+	}
 	
 	function logWrite($val) {
 	 file_put_contents(plugin_dir_path( __FILE__ ) . "log.txt",date("d-m-Y h:i:s")." ".$val."\n",FILE_APPEND | LOCK_EX);

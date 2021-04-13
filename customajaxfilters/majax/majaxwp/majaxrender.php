@@ -1,5 +1,5 @@
 <?php
-namespace MajaxWP;
+namespace CustomAjaxFilters\Majax\MajaxWP;
 
 use stdClass;
 
@@ -78,7 +78,7 @@ Class MajaxRender {
 		echo json_encode($mForm->processForm($miscAction,$title,$this->getPostType())).PHP_EOL;
 	}
 	
-	function printFilters($atts = []) {
+	function printFilters($atts = []) {		
 		 $this->loadFields();
 		//prints filter, run by shortcode majaxfilter					
 		 $this->htmlElements->showFilters($this->postType,$this->fields->getFieldsFiltered());		 		 

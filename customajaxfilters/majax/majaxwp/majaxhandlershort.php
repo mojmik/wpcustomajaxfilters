@@ -1,5 +1,5 @@
 <?php
-namespace MajaxWP;
+namespace CustomAjaxFilters\Majax\MajaxWP;
 
 Class MajaxHandlerShort {	
 	const ACTION = 'majax';

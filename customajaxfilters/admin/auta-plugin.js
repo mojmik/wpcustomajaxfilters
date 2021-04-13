@@ -12,6 +12,26 @@ function saveAndAdd() {
 
 jQuery(function($){
 
+	jQuery("form.createCPT").submit(function() {	
+		var singular = $("input[name='singular']").val();		
+		var plural = $("input[name='plural']").val();		
+		var cafAction = $("input[name='cafAction']").val();	
+		jQuery.ajax({
+			   type: "POST",
+			   url: ajaxurl,
+			   data: {
+				action: "createCPT",
+				singular: singular,
+				cafAction: cafAction,
+				plural: plural,
+			  },
+			success: function( data ) {
+				window.location.reload();
+			 }
+	   });
+	   return false;
+	 });
+
 // on upload button click
 $('body').on( 'click', '.icon-upl', function(e){
  
@@ -48,7 +68,5 @@ $('body').on( 'click', '.icon-upl', function(e){
 		button.parent().children('input[name="icon"]').val('');		
 		button.parent().children('.icon-upl').html('Upload image');	
 		button.hide();	
-		//button.prev().val(''); // emptying the hidden field
-		//button.hide().prev().prev().html('Upload image');
 	});
 });

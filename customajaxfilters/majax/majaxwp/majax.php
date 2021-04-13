@@ -1,5 +1,5 @@
 <?php
-namespace MajaxWP;
+namespace CustomAjaxFilters\Majax\MajaxWP;
    
 Class Majax {
 	public $thisPluginName="majax";	
@@ -86,7 +86,7 @@ Class Majax {
 			wp_schedule_event( time(), 'daily', 'majaxcronhook' );
 		}
 		foreach ($this->postTypeName as $cpt) {
-			$table_name = $wpdb->prefix . $cpt ."_majax_fields"; 	
+			$table_name = $wpdb->prefix . TAB_PREFIX_FRONTEND . $cpt ."_fields"; 	
 			$charset_collate = $wpdb->get_charset_collate();
 	
 			$query = "DROP TABLE `$table_name`";   	

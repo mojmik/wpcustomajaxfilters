@@ -2,7 +2,7 @@
 /*
  this feeds ajax from wordpress with minimal loading
 */
-namespace MajaxWP;
+namespace CustomAjaxFilters\Majax;
 
 
 header('Content-Type: text/html');
@@ -14,7 +14,7 @@ define('SHORTINIT', true);
 define('DOING_AJAX', true);
 
 
-require_once( '../../../wp-config.php' );
+require_once( '../../../../../wp-config.php' );
 
 
 
@@ -31,12 +31,12 @@ require_once(plugin_dir_path( __FILE__ ) . '/majaxwp/imagecache.php');
 
 $action=$_POST["action"];
 if ($action=="contact_filled") {
-	$renderer = new MajaxRender(true); //use false pro preloading hardcoded fields (save one sql query)
-	MikDb::connect(DB_HOST,DB_USER,DB_PASSWORD,DB_NAME);		
+	$renderer = new MajaxWP\MajaxRender(true); //use false pro preloading hardcoded fields (save one sql query)
+	MajaxWP\MikDb::connect(DB_HOST,DB_USER,DB_PASSWORD,DB_NAME);		
 	if (isset($_POST["category"])) {
 		$postId=$_POST["category"];	
 		$query=$renderer->buildSingle($postId);
-		$rows=Caching::getCachedRows($query);
+		$rows=MajaxWP\Caching::getCachedRows($query);
 		$renderer->showRows($rows,0,"single",9,0,"contactFilled");		
 	}    
 	else {
@@ -46,16 +46,16 @@ if ($action=="contact_filled") {
 	exit;
 }
 if ($action=="single_row") {
-	$renderer = new MajaxRender(true); //use false pro preloading hardcoded fields (save one sql query)
-	MikDb::connect(DB_HOST,DB_USER,DB_PASSWORD,DB_NAME);		
+	$renderer = new MajaxWP\MajaxRender(true); //use false pro preloading hardcoded fields (save one sql query)
+	MajaxWP\MikDb::connect(DB_HOST,DB_USER,DB_PASSWORD,DB_NAME);		
     $query=$renderer->buildSingle($_POST["category"]);
-	$rows=Caching::getCachedRows($query);
+	$rows=MajaxWP\Caching::getCachedRows($query);
 	$renderer->showRows($rows,0,"single",9,0,"action");		
 	exit;
 }
 if ($action=="filter_rows") {
-	$renderer = new MajaxRender(true); //use false pro preloading hardcoded fields (save one sql query)
-	MikDb::connect(DB_HOST,DB_USER,DB_PASSWORD,DB_NAME);	
+	$renderer = new MajaxWP\MajaxRender(true); //use false pro preloading hardcoded fields (save one sql query)
+	MajaxWP\MikDb::connect(DB_HOST,DB_USER,DB_PASSWORD,DB_NAME);	
 	/*
 	$query=$renderer->buildQueryCount();
     $rows=Db::getRows($query);
@@ -65,11 +65,11 @@ if ($action=="filter_rows") {
 	//u selectu je potreba to filtrovani delat az dodatecne
 
     $query=$renderer->buildQuerySQL();
-	$rows=Caching::getCachedRows($query);
-	$countsJson=Caching::getCachedJson("json_$query");
+	$rows=MajaxWP\Caching::getCachedRows($query);
+	$countsJson=MajaxWP\Caching::getCachedJson("json_$query");
 	$countsRows=$renderer->buildCounts($rows,$countsJson);	
 	if (!$countsJson) {
-		Caching::addCache("json_$query",$countsRows);
+		MajaxWP\Caching::addCache("json_$query",$countsRows);
 	}
 	$renderer->showRows($countsRows,0,"majaxcounts",0);
 	$page=intval($_POST["aktPage"]);

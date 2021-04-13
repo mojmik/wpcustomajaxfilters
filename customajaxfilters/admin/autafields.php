@@ -1,5 +1,5 @@
 <?php
-namespace AutaWP;
+namespace CustomAjaxFilters\Admin;
 
 class AutaFields {
 	public $fieldsList=array();
@@ -8,18 +8,8 @@ class AutaFields {
 	public function __construct($postType) {					
 		add_action( 'add_meta_boxes_'.$postType, [$this,'mauta_metaboxes'] );		
 		add_action( 'save_post_'.$postType, [$this,'mauta_save_post'] ); 
-		$this->customPostType=$postType;
-		$forcePrepopulate=false; //set to true for premade custom fields
-		if ($forcePrepopulate) {
-			$this->fieldsList[] = $this->createField(AutaPlugin::$prefix."razeni","text","=","Razeni");
-			$this->fieldsList[] = $this->createField(AutaPlugin::$prefix."pohon","text","=","Pohon");
-			$this->fieldsList[] = $this->createField(AutaPlugin::$prefix."skupina","text","=","Skupina");
-			$this->fieldsList[] = $this->createField(AutaPlugin::$prefix."znacka","select","=","znacka",["---","Skoda","VW","Mercedes"]);
-			$this->fieldsList[] = $this->createField(AutaPlugin::$prefix."cenaden","text","<","Cena - den");
-			$this->fieldsList[] = $this->createField(AutaPlugin::$prefix."cenamesic","text","<","Cena - mesic");
-			$this->fieldsList[] = $this->createField(AutaPlugin::$prefix."cenarok","text","<","Cena - rok");
-		}
-		else $this->loadFromSQL();
+		$this->customPostType=$postType;		
+		$this->loadFromSQL();
 	}
 	public function loadFromSQL($tabName="fields") {
 		global $wpdb;		
@@ -29,7 +19,7 @@ class AutaFields {
 			$this->fieldsList[] = $this->createField($row->name,$row->type,$row->compare,$row->title,$row->value,$row->filterorder,$row->displayorder,$row->icon,$row->fieldformat);
 			$load=true;
 		}	
-		return $load;
+		return true;
 	}
 	public function procEdit() {
 		//edit field
@@ -63,7 +53,7 @@ class AutaFields {
 		//new field
 		if (isset($_POST["newField"])) {			
 				//create table if not exists
-			 	$newName=AutaPlugin::$prefix.sanitize_title($title);
+			 	$newName=TAB_PREFIX_BACKEND.sanitize_title($title);
 				$f = $this->createField($newName,$type,$compare,$title,$options,$filterorder,$displayorder,$icon,$fieldformat);
 				$this->fieldsList[] = $f;
 				$f->saveToSQL();				
@@ -102,7 +92,7 @@ class AutaFields {
 	public function printNewField() {
 	 ?>
 	 <h2>New field</h2>
-	 <form class='editFieldRow' method='post'>
+	 <form class='caf-editFieldRow' method='post'>
 		<div><div><label>name</label></div><input disabled type='text' name='name' value='' /></div>
 		<div><div><label>title</label></div><input type='text' name='title' value='' /></div>	
 		<div><div><label>type</label></div><input type='text' name='type' value='' /></div>

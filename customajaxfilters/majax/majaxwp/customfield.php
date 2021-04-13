@@ -1,5 +1,5 @@
 <?php
-namespace MajaxWP;
+namespace CustomAjaxFilters\Majax\MajaxWP;
 
 class CustomField {
 
@@ -208,30 +208,21 @@ class CustomField {
 			//single value
 			return "`{$this->name}` {$this->compare} '{$val}'";			
 		}
-}
-public function loadPostedValue() {
-	$val=$_POST[$this->name];	
-	$val=filter_var($val, FILTER_SANITIZE_STRING);
-	$this->postedValue=$val;
-}
-public function isInSelect($rowVal) {	
-	if (!$this->typeIs("select")) return true;		
-	$val=$this->postedValue;	
-	if (!$val) return true;
-	$vals=explode("|",$val);
-	if (in_array($rowVal,$vals)) return true;
-	
-	//if ($rowVal==$val) return true;
-	return false;
-}
-	public function save() {
-	  global $wpdb;
-	  $query = "DELETE FROM `".$wpdb->prefix."majax_fields` WHERE `name` like '{$this->name}';";   
-	  $result = $wpdb->get_results($query);	 
-	  
-	  $query = "INSERT INTO `".$wpdb->prefix."majax_fields` ( `name`, `value`, `type`, `title`, `compare`, `valMin`, `valMax`, `postType`, `fitlerorder`, `displayorder`, `icon`, `fieldformat` ) 
-	   VALUES ('{$this->name}', '{$this->value}', '{$this->type}', '{$this->title}', '{$this->compare}', '{$this->valMin}', '{$this->valMax}', '{$this->postType}', '{$this->filterorder}', '{$this->displayorder}', '{$this->icon}'), '{$this->fieldformat}';";   
-	  $wpdb->get_results($query);	 
-	  return "<br />{$this->name} saved $query";
 	}
-   }
+	public function loadPostedValue() {
+		$val=$_POST[$this->name];	
+		$val=filter_var($val, FILTER_SANITIZE_STRING);
+		$this->postedValue=$val;
+	}
+	public function isInSelect($rowVal) {	
+		if (!$this->typeIs("select")) return true;		
+		$val=$this->postedValue;	
+		if (!$val) return true;
+		$vals=explode("|",$val);
+		if (in_array($rowVal,$vals)) return true;
+		
+		//if ($rowVal==$val) return true;
+		return false;
+	}
+
+}

@@ -1,10 +1,14 @@
 <?php
-namespace AutaWP;
+namespace CustomAjaxFilters\Admin;
 
 class AutaCustomPost {	
 	public $autaFields;
 	public $customPostType;
-	 public function __construct($postType="") {		 	
+	public $singular;
+	public $plural;
+	 public function __construct($postType="",$singular="",$plural="") {		 	
+		 $this->singular=$singular;
+		 $this->plural=$plural;
 		 $this->customPostType=$postType;
 		 add_action( 'init', [$this,'custom_post_type'] , 0 );
 		 
@@ -13,8 +17,7 @@ class AutaCustomPost {
 		 
 		 //init custom fields
 		 $this->autaFields = new AutaFields($this->customPostType);		 		 
-
-		 add_action( 'admin_menu', [$this,'mauta_post_actions_menu'] ); 
+		 
 		 add_action( 'save_post_'.$postType, [$this,'saveCPT'] ); 
 		 
 	 }
@@ -22,14 +25,6 @@ class AutaCustomPost {
 	 public function saveCPT() {			
 		AutaCustomPost::sendMessageToMajax("deletecache");		
 	 }
-	 
-	 public function getPostTitle() {
-		return "Auta - ".$this->customPostType;
-	 }
-	 public function getPostName() {
-		return $this->customPostType;
-	 }
-	 
 	 	
 	/*
 	* Creating a function to create our CPT
@@ -38,35 +33,28 @@ class AutaCustomPost {
 	 $textDomain=AutaPlugin::$textDomain; //for If your theme is translation ready, and you want your custom post types to be translated, then you will need to mention text domain used by your theme.
 	// Set UI labels for Custom Post Type
 		$labels = array(
-			'name'                => _x( $this->getPostName(), 'Post Type General Name', $textDomain ),
-			'singular_name'       => _x( 'Auto', 'Post Type Singular Name', $textDomain ),
-			'menu_name'           => __( $this->getPostTitle(), $textDomain ),
-			'parent_item_colon'   => __( 'Nadřazené auto', $textDomain ),
-			'all_items'           => __( 'Všechny', $textDomain ),
-			'view_item'           => __( 'Zobrazit auto', $textDomain ),
-			'add_new_item'        => __( 'Přidat auto', $textDomain ),
-			'add_new'             => __( 'Přidat nové', $textDomain ),
-			'edit_item'           => __( 'Upravovat auto', $textDomain ),
-			'update_item'         => __( 'Aktualizovat auto', $textDomain ),
-			'search_items'        => __( 'Hledat auto', $textDomain ),
-			'not_found'           => __( 'Nenalezeno', $textDomain ),
-			'not_found_in_trash'  => __( 'Nenalezeno v koši', $textDomain ),
+			'name'                => _x( $this->customPostType, 'Post Type General Name', $textDomain ),
+			'singular_name'       => _x( $this->singular, 'Post Type Singular Name', $textDomain ),
+			'menu_name'           => __( CAF_SHORT_TITLE." - ".$this->customPostType, $textDomain ),
+			'parent_item_colon'   => __( 'Parent', $textDomain)." ".$this->singular,
+			'all_items'           => __( 'All', $textDomain)." ".$this->plural,
+			'view_item'           => __( 'Show', $textDomain )." ".$this->singular,
+			'add_new_item'        => __( 'Add', $textDomain )." ".$this->singular,
+			'add_new'             => __( 'Add', $textDomain ),
+			'edit_item'           => __( 'Edit', $textDomain )." ".$this->singular,
+			'update_item'         => __( 'Update', $textDomain )." ".$this->singular,
+			'search_items'        => __( 'Find', $textDomain )." ".$this->singular,
+			'not_found'           => __( 'Not found', $textDomain ),
+			'not_found_in_trash'  => __( 'Not found in trash', $textDomain ),
 		);
 		 
 	// Set other options for Custom Post Type
 		 
 		$args = array(
-			'label'               => __( 'auta', $textDomain ),
-			'description'         => __( 'Auta v nabídce', $textDomain ),
-			'labels'              => $labels,
-			// Features this CPT supports in Post Editor
-			'supports'            => array( 'title', 'editor', 'excerpt', 'author', 'thumbnail', 'comments', 'revisions', 'custom-fields', ),
-			// You can associate this CPT with a taxonomy or custom taxonomy. 
-			'taxonomies'          => array( 'skupiny' ),
-			/* A hierarchical CPT is like Pages and can have
-			* Parent and child items. A non-hierarchical CPT
-			* is like Posts.
-			*/ 
+			'label'               =>  $this->plural,
+			'description'         => $this->plural." ".__( 'in stock', $textDomain ),
+			'labels'              => $labels,			
+			'supports'            => array( 'title', 'editor', 'excerpt', 'author', 'thumbnail', 'comments', 'revisions', 'custom-fields', ),			
 			'hierarchical'        => false,
 			'public'              => true,
 			'show_ui'             => true,
@@ -125,14 +113,25 @@ class AutaCustomPost {
 	}
 
 	 function add_to_admin_menu() {
-		//add_submenu_page( string $parent_slug, string $page_title, string $menu_title, string $capability, string $menu_slug, callable $function = '', int $position = null )
+		//add import to cpt
 		$parent_slug='edit.php?post_type='.$this->customPostType;
-		$page_title='Auta admin';		
+		$page_title=CAF_SHORT_TITLE.' admin';		
 		$capability='edit_posts';
 		$menu_slug=basename(__FILE__);
 		$function = [$this,'csvMenu'];
 		$menu_title='Import';
 		add_submenu_page($parent_slug, $page_title, $menu_title, $capability, $menu_slug, $function);
+
+		//adds menu item
+		$page_title = CAF_SHORT_TITLE.' - settings';   
+		$menu_title = CAF_SHORT_TITLE.' - '.$this->customPostType;   
+		$capability = 'manage_options';   
+		$menu_slug  = $this->customPostType.'-plugin-settings';   
+		$function   =  [$this,'mauta_plugin_actions_page'];   
+		$icon_url   = 'dashicons-media-code';   
+		$position   = 5;    
+		//add_menu_page( $page_title, $menu_title, $capability, $menu_slug, $function, $icon_url, $position ); 		
+		add_submenu_page(AutaPlugin::$menuSlug, $page_title, $menu_title, $capability, $menu_slug, $function);
 	} 
 	static function sendMessageToMajax($message) {
 		$fn=wp_upload_dir()["basedir"]."/$message.txt";				
@@ -140,17 +139,6 @@ class AutaCustomPost {
 			AutaPlugin::logWrite($fn);
 			file_put_contents($fn,$message,FILE_APPEND | LOCK_EX);
 		}
-	}
-	function mauta_post_actions_menu() {    
-		//adds menu item
-		$page_title = AutaPlugin::$pluginName.' - settings';   
-		$menu_title = AutaPlugin::$pluginName.' - '.$this->customPostType;   
-		$capability = 'manage_options';   
-		$menu_slug  = $this->customPostType.'-plugin-settings';   
-		$function   =  [$this,'mauta_plugin_actions_page'];   
-		$icon_url   = 'dashicons-media-code';   
-		$position   = 5;    
-		add_menu_page( $page_title, $menu_title, $capability, $menu_slug, $function, $icon_url, $position ); 
 	}
 
 	function mauta_plugin_actions_page() {

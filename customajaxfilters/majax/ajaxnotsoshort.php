@@ -2,7 +2,7 @@
 /*
  this feeds ajax from wordpress with minimal loading
 */
-namespace MajaxWP;
+namespace CustomAjaxFilters\Majax;
 
 define('SHORTINIT', true);
 define('DOING_AJAX', true);
@@ -66,8 +66,8 @@ require_once(plugin_dir_path( __FILE__ ) . '/MajaxWP/majaxrender.php');
 require_once(plugin_dir_path( __FILE__ ) . '/MajaxWP/majaxhandlershort.php');
 require_once(plugin_dir_path( __FILE__ ) . '/MajaxWP/customfields.php');
 require_once(plugin_dir_path( __FILE__ ) . '/MajaxWP/customfield.php');
-$renderer = new MajaxWPRender(false);
-check_ajax_referer(MajaxHandlerShort::NONCE,'security');
+$renderer = new MajaxWP\MajaxWPRender(false);
+check_ajax_referer(MajaxWP\MajaxHandlerShort::NONCE,'security');
 $action=$_POST["action"];
 $renderer->filter_rows_continuous();
 

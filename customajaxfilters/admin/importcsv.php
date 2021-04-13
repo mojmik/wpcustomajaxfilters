@@ -1,5 +1,5 @@
 <?php
-namespace AutaWP;
+namespace CustomAjaxFilters\Admin;
 
 class ImportCSV {
 	public $fieldsList=array();
