@@ -53,7 +53,7 @@ class AutaFields {
 		//new field
 		if (isset($_POST["newField"])) {			
 				//create table if not exists
-			 	$newName=CAF_TAB_PREFIX_BACKEND.sanitize_title($title);
+			 	$newName=CAF_TAB_PREFIX.sanitize_title($title);
 				$f = $this->createField($newName,$type,$compare,$title,$options,$filterorder,$displayorder,$icon,$fieldformat);
 				$this->fieldsList[] = $f;
 				$f->saveToSQL();				
@@ -146,14 +146,15 @@ class AutaFields {
 		  $f->saveToSQL($destinationTab);	
 		}			
 	}   
-	function makeTable($tabName="fields",$drop=false) {
+	function makeTable($tabName="fields",$rebuild=false,$dropOnly=false) {
 		global $wpdb;
 		$tableName=AutaPlugin::getTable($tabName,$this->customPostType);
-		if(!$drop && $wpdb->get_var("SHOW TABLES LIKE '$tableName'") == $tableName) {
-		 //table exists and not drop
+		if(!$rebuild && $wpdb->get_var("SHOW TABLES LIKE '$tableName'") == $tableName) {
+		 //table exists and not rebuild
 		 return true;
 		}		
 		$wpdb->query( "DROP TABLE IF EXISTS {$tableName}");
+		if ($dropOnly) return true;
 		$charset_collate = $wpdb->get_charset_collate();
 		$sql = "CREATE TABLE {$tableName} (
 		  id mediumint(9) NOT NULL AUTO_INCREMENT,	
@@ -175,7 +176,7 @@ class AutaFields {
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 		maybe_create_table($tableName, $sql );
 		$wpdb->query("TRUNCATE TABLE `{$tableName}`");		
-	}
+	}	
 	function initMinMax() {		
 		foreach ($this->fieldsList as $f) {
 		 echo "<br />".$f->name." min:".$f->getValMin();

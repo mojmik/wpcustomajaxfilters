@@ -1,6 +1,6 @@
-/autawp/csvin.txt
-/autawp/log.txt
-/autawp/recsout.txt
+/customajaxfilters/admin/csvin.txt
+/customajaxfilters/admin/log.txt
+/customajaxfilters/admin/recsout.txt
 log.txt
-/majax/majaxwp/cache
-/majax/majaxwp/secret
+/customajaxfilters/majax/majaxwp/cache
+/customajaxfilters/majax/majaxwp/secret

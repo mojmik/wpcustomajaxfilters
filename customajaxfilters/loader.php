@@ -5,7 +5,7 @@ class Loader {
 
     public function __construct() {	
         spl_autoload_register([$this,"mLoadClass"]);
-        define('CAF_TAB_PREFIX_BACKEND','mauta_');
+        define('CAF_TAB_PREFIX','mauta_');
     }
     public function initAdmin() {
         $mautawp=new Admin\AutaPlugin(); 

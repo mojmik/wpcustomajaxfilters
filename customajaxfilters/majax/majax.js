@@ -6,11 +6,6 @@ var onReCaptchaLoad = function () {
 
 var majaxModule=(function (my) {
 
-const captchaLoaded= {
-	tellme: () => {
-		console.log("ok");
-	}
-};
 
 const mStrings = {
 	mReplaceAll: (mStr,from,to) => {

@@ -65,13 +65,7 @@ Class MajaxHandlerShort {
 	public function register_script()    {	      		
 		//recaptcha
 		add_filter('clean_url', [$this,'add_async_forscript'], 11, 1);
-		//wp_register_script('majaxrecaptcha','https://www.google.com/recaptcha/api.js?render=explicit');	
-		//wp_register_script('majaxrecaptcha','https://www.google.com/recaptcha/api.js?render=explicit&neco=1#asyncload');			
-		//wp_enqueue_script('majaxrecaptcha','https://www.google.com/recaptcha/api.js?render=explicit',[],null);
-		//wp_enqueue_script('majaxrecaptcha','https://www.google.com/recaptcha/api.js',[],null);
-		
 		wp_enqueue_script('majaxrecaptcha','https://www.google.com/recaptcha/api.js?render=explicit&onload=onReCaptchaLoad',[],null);
-		//wp_register_script('majaxrecaptcha','https://www.google.com/recaptcha/api.js?render=explicit#asyncload',[],null);	
 		wp_enqueue_script('majaxrecaptcha');
 
 		wp_register_script('majaxelements', CAF_MAJAX_PLUGIN_URL . 'majaxelements.js', array( 'jquery' ) );	

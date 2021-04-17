@@ -46,8 +46,9 @@ class AutaPlugin {
 
 	public static function getTable($tab,$cpt="") {
 	  global $wpdb;	
-	  if ($tab=="main") return $wpdb->prefix.CAF_TAB_PREFIX_BACKEND."plugin_main";
-	  if ($tab=="fields") return $wpdb->prefix.CAF_TAB_PREFIX_BACKEND.$cpt."_fields";
+	  if ($tab=="main") return $wpdb->prefix.CAF_TAB_PREFIX."plugin_main";
+	  if ($tab=="settings") return $wpdb->prefix.CAF_TAB_PREFIX."plugin_settings";
+	  if ($tab=="fields") return $wpdb->prefix.CAF_TAB_PREFIX.$cpt."_fields";
 	}
 
 	function caf_plugin_install() {
@@ -66,6 +67,16 @@ class AutaPlugin {
 
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 		dbDelta( $sql );
+
+		$table_name = AutaPlugin::getTable("settings"); 
+		$sql = "CREATE TABLE $table_name (
+			id mediumint(9) NOT NULL AUTO_INCREMENT,	
+			opt text NOT NULL,
+			val text NOT NULL,
+			PRIMARY KEY  (id)
+		  ) $charset_collate;";  
+		  require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+		  dbDelta( $sql );
 		
 		add_action('caf_cronhook',[$this,'caf_cron_job']);
 		if ( ! wp_next_scheduled( 'caf_cronhook' ) ) {
@@ -85,11 +96,40 @@ class AutaPlugin {
 		$menu_title = CAF_SHORT_TITLE.' - settings';   
 		$capability = 'manage_options';   
 		$menu_slug  = AutaPlugin::$menuSlug;   
-		$function   =  [$this,'plugin_settings_page'];   
+		$function   =  [$this,'mainSettings'];   
 		$icon_url   = 'dashicons-media-code';   
 		$position   = 5;    
 		add_menu_page( $page_title, $menu_title, $capability, $menu_slug, $function, $icon_url, $position ); 
+
+		$parent_slug=$menu_slug;
+		$page_title=CAF_SHORT_TITLE.' - custom types';		
+		$menu_slug=basename(__FILE__);
+		$function = [$this,'customposts_settings_page'];
+		$menu_title=CAF_SHORT_TITLE.' - custom types';
+		add_submenu_page($parent_slug, $page_title, $menu_title, $capability, $menu_slug, $function);
 		
+	}
+	function mainSettings() {
+		global $wpdb;
+		$query = "SELECT * FROM `".AutaPlugin::getTable("settings")."`";	
+		$settings=[];
+		$settingsMap=["captchasecret","from","sitekey"];		
+		foreach( $wpdb->get_results($query) as $key => $row) {								
+			$settings[$row->opt]=$row->val;
+		}	
+
+		?>
+		<form method='post' class='caf-editFieldRow editSettings'>		
+		<?php
+		foreach ($settingsMap as $s) {
+			?>
+				<div><div><label><?= $s?></label></div><input type='text' name='<?= $s?>' value='<?= ($settings[$s] == "" ? "" : $settings[$s])?>' /></div>	
+			<?php
+		}
+		?>			
+				<div><input name='cafActionEdit' type='submit' value='Edit' /></div>
+			</form>
+		<?php
 	}
 	function createCPTproc() {
 		global $wpdb;
@@ -121,7 +161,6 @@ class AutaPlugin {
 		$plural=filter_input( INPUT_POST, "plural", FILTER_SANITIZE_STRING );  						 				
 		$slug=filter_input( INPUT_POST, "slug", FILTER_SANITIZE_STRING );  
 		if (isset($_POST["cafActionEdit"])) {
-			$mess="updated!";
 			$wpdb->update(AutaPlugin::getTable("main"), array('singular' => $singular, 'plural' => $plural), array('slug' => $slug));
 			foreach ($this->customPost as $cpt ) {
 				if ($cpt->customPostType==$slug) {
@@ -131,21 +170,19 @@ class AutaPlugin {
 			}
 		}
 		if (isset($_POST["cafActionRemove"])) {
-			$mess="removed!";
-			$wpdb->delete( AutaPlugin::getTable("main"), array( 'slug' => $slug ) );
+			$wpdb->delete( AutaPlugin::getTable("main"), array( 'slug' => $slug ) );			
 			foreach ($this->customPost as $key=>$cpt ) {
 				if ($cpt->customPostType==$slug) {
 					$keyDel=$key;	
+					$cpt->autaFields->makeTable("fields",true,true);
 				}
 			}
 			if (isset($keyDel)) array_splice($this->customPost,$key,1);
 		}
 	
 	}
-	function plugin_settings_page() {  
+	function customposts_settings_page() {  
 		global $wpdb;
-		//$mess=$this->createCPTproc();
-		//$mess=$this->editCPTproc();
 		?>
 		<div>
 		Custom posts definition

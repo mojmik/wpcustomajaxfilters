@@ -28,7 +28,6 @@ class MajaxForm {
         }
     }
     function printForm($id,$title) {     
-        //<div class="g-recaptcha" data-sitekey="6LdBeIYaAAAAAKca7Xx8-xEHujjD6XbdIj3Q5mUb"></div>   
         ?>
         <div class="mpagination">
             <div class="row frameGray">
@@ -131,20 +130,10 @@ class MajaxForm {
             
             $to = $this->loadSecret("emailydefault",true);            
             $subject = 'objednavka z hertz-autopujcovna.cz';
-            $body = "<h1>Objednavka z webu</h1> <h3>Typ: $type</h3> <br /><br />$outHtml";
-            $altBody=strip_tags($outTxt);
-            $from="objednavky@hertz-autopujcovna.cz";
-            $fromName="objednavky";			
-            require_once "vendor/mmail.php";
-            mSendMail($subject,$body,$altBody,$to,$from,$fromName,$replyTo);			
+            $body = "<h1>Objednavka z webu</h1> <h3>Typ: $type</h3> <br /><br />$outHtml";      	
+            $headers = array('Content-Type: text/html; charset=UTF-8');	
+            wp_mail($to,$subject,$body,$headers);			
             $this->logWrite("".$outTxt." replyto $replyTo.","filledform.txt");
-            /*
-            
-            $headers = 'From: objednavky@hertz-autopujcovna.cz' . "\r\n" .
-                'Reply-To: objednavky@hertz-autopujcovna.cz' . "\r\n" .
-                'X-Mailer: PHP/' . phpversion();
-            mail($to, $subject, $message, $headers);
-            */
             $row["title"]="action";
             $row["content"]="Díky za odeslání. Budeme vás brzy kontaktovat.";
         }
