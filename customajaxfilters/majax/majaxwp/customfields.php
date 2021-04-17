@@ -5,7 +5,7 @@ class CustomFields {
   public $fieldsList=array();
   public $fieldsRows=array();
   private $customPostType;
-  public function prepare($cpt="mauta") {
+  public function prepare($cpt) {
 	//recreate fields json		
 	$this->customPostType=$cpt;	
 	$fieldRows=Caching::cacheRead("fieldsrows".$this->customPostType);	
@@ -88,9 +88,9 @@ class CustomFields {
 	  return $this->fieldsList;
   }
 
-  public function loadFromSQL() {
+  private function loadFromSQL() {
 	global $wpdb;
-	$query = "SELECT * FROM `".$wpdb->prefix.TAB_PREFIX_FRONTEND.$this->customPostType."_fields` WHERE `filterorder`>'0' OR `displayorder`>'0' ORDER BY `filterorder`";
+	$query = "SELECT * FROM `".$wpdb->prefix.CAF_TAB_PREFIX_BACKEND.$this->customPostType."_fields` WHERE `filterorder`>'0' OR `displayorder`>'0' ORDER BY `filterorder`";
 	$load=false;
 	foreach( $wpdb->get_results($query) as $key => $row) {	
 		$this->fieldsRows[] = $row;	

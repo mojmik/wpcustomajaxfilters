@@ -11,7 +11,7 @@ class AutaFields {
 		$this->customPostType=$postType;		
 		$this->loadFromSQL();
 	}
-	public function loadFromSQL($tabName="fields") {
+	private function loadFromSQL($tabName="fields") {
 		global $wpdb;		
 		$tableName=AutaPlugin::getTable($tabName,$this->customPostType);
 		$query = "SELECT * FROM `{$tableName}` ORDER BY `filterorder`";	
@@ -53,7 +53,7 @@ class AutaFields {
 		//new field
 		if (isset($_POST["newField"])) {			
 				//create table if not exists
-			 	$newName=TAB_PREFIX_BACKEND.sanitize_title($title);
+			 	$newName=CAF_TAB_PREFIX_BACKEND.sanitize_title($title);
 				$f = $this->createField($newName,$type,$compare,$title,$options,$filterorder,$displayorder,$icon,$fieldformat);
 				$this->fieldsList[] = $f;
 				$f->saveToSQL();				

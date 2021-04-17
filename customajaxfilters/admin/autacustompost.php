@@ -149,7 +149,6 @@ class AutaCustomPost {
 	  $setUrl = [
 					["recreate",add_query_arg( 'do', 'recreate'),"remove all"],
 					["refresh",add_query_arg( 'do', 'refresh'),"not implemented"],				
-					["ajax frontend",add_query_arg( 'do', 'ajax'),"populate fields for ajax frontend filtering"]
 				];
 	  ?>
 	  <ul>

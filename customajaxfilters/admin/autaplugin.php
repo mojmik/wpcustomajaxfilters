@@ -3,7 +3,6 @@ namespace CustomAjaxFilters\Admin;
 
 class AutaPlugin {		
 	private $customPost=[];
-	//public static $customPostType=["mauta","mauta2", "mycka"];
 	public static $textDomain="mauta-plugin";		
 	public static $menuSlug="caf-main-settings";
        
@@ -11,7 +10,8 @@ class AutaPlugin {
 	
 	public function __construct() {			
         
-		register_activation_hook( PLUGIN_FILE_URL_MAUTAWP, [$this,'auta_plugin_install'] );
+		register_activation_hook( CAF_PLUGIN_FILE_URL, [$this,'caf_plugin_install'] );
+		register_deactivation_hook( CAF_PLUGIN_FILE_URL, [$this,'caf_plugin_uninstall'] );
 		add_action('admin_menu' , [$this,'pluginSettingsMenu']); 			
 		add_action( 'wp_ajax_createCPT', [$this,'createCPTproc'] );
 		add_action( 'wp_ajax_editCPT', [$this,'editCPTproc'] );
@@ -23,7 +23,8 @@ class AutaPlugin {
 		global $wpdb;
 		$query = "SELECT * FROM `".AutaPlugin::getTable("main")."`";	
 		foreach( $wpdb->get_results($query) as $key => $row) {					
-			$this->customPost[]=new AutaCustomPost($row->slug,$row->singular,$row->plural); 											
+			$this->customPost[]=new AutaCustomPost($row->slug,$row->singular,$row->plural); 
+			\CustomAjaxFilters\Majax\MajaxWP\Caching::checkPruneCacheNeeded($row->slug);											
 		}	
 	}
 	function initWP() {
@@ -45,11 +46,11 @@ class AutaPlugin {
 
 	public static function getTable($tab,$cpt="") {
 	  global $wpdb;	
-	  if ($tab=="main") return $wpdb->prefix.TAB_PREFIX_BACKEND."plugin_main";
-	  if ($tab=="fields") return $wpdb->prefix.TAB_PREFIX_BACKEND.$cpt."_fields";
-	  if ($tab=="ajax") return $wpdb->prefix.TAB_PREFIX_FRONTEND.$cpt."_fields";
+	  if ($tab=="main") return $wpdb->prefix.CAF_TAB_PREFIX_BACKEND."plugin_main";
+	  if ($tab=="fields") return $wpdb->prefix.CAF_TAB_PREFIX_BACKEND.$cpt."_fields";
 	}
-	function auta_plugin_install() {
+
+	function caf_plugin_install() {
 		global $wpdb;			
 		$table_name = AutaPlugin::getTable("main"); 
 		
@@ -65,7 +66,17 @@ class AutaPlugin {
 
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 		dbDelta( $sql );
-
+		
+		add_action('caf_cronhook',[$this,'caf_cron_job']);
+		if ( ! wp_next_scheduled( 'caf_cronhook' ) ) {
+			wp_schedule_event( time(), 'daily', 'caf_cronhook' );
+		}
+	}
+	function caf_plugin_uninstall() {
+		wp_clear_scheduled_hook( 'caf_cronhook' );
+	}
+	function caf_cron_job() {		
+		\CustomAjaxFilters\Majax\MajaxWP\Caching::pruneCache();		
 	}
 	 
 	function pluginSettingsMenu() {    

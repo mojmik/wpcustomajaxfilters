@@ -5,19 +5,15 @@ class Loader {
 
     public function __construct() {	
         spl_autoload_register([$this,"mLoadClass"]);
-        define('TAB_PREFIX_BACKEND','mauta_');
-        define('TAB_PREFIX_FRONTEND','majax_');
+        define('CAF_TAB_PREFIX_BACKEND','mauta_');
     }
     public function initAdmin() {
         $mautawp=new Admin\AutaPlugin(); 
         $mautawp->initWP();
     }
     public function initFrontend() {
-        define('MAJAX_PLUGIN_PREFIX','majax-');
-        define('PLUGIN_FILE_URL', __FILE__);
-        define( 'MAJAX_PLUGIN_PATH', plugin_dir_path( __FILE__ ) . "majax/" );
-        define( 'MAJAX_PLUGIN_URL', plugin_dir_url( __FILE__ ) . "majax/");
-        define('MAJAX_FAST',4); 
+        define( 'CAF_MAJAX_PLUGIN_URL', plugin_dir_url( __FILE__ ) . "majax/");
+        define('CAF_MAJAX_FAST',4); 
         /* from slow to fast
             1. majaxhandler + admin-ajax.php (all wp functionality)
             2. ajaxhandlernotsoshort (custom ajaxhandler, wp_query functionality)
@@ -71,7 +67,7 @@ class Loader {
     }
     function mLoadClass($class) {	
 		if (strpos($class,"CustomAjaxFilters")!==0) return;
-		$path=MAUTA_PLUGIN_PATH.str_replace("\\","/",strtolower("$class.php"));		
+		$path=CAF_PLUGIN_PATH.str_replace("\\","/",strtolower("$class.php"));		
         require($path);
     }
 

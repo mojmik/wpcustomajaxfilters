@@ -89,19 +89,16 @@ Class Caching {
     }
     static function getCachedRows($query) {
        global $wpdb;
-       $with="used mikdb";
        $fnName=Caching::getCachedFn($query);
        if ($fnName == false) {
         if ($wpdb) {
             $rows=$wpdb->get_results($query,ARRAY_A);
-            $with="used wpdb";
         }
         else $rows=MikDb::getRows($query);
         Caching::addCache($query,$rows);
         if (is_array(Caching::$cacheMap)) {
-          $with.=" cachemap cnt: ".count(Caching::$cacheMap);
         }
-        Caching::logWrite("$query added to cache $with");
+        Caching::logWrite("$query added to cache");
         return $rows;
        }
        Caching::logWrite("$query loaded from cache");

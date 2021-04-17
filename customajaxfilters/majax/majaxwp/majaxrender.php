@@ -93,8 +93,6 @@ Class MajaxRender {
 		return $str;
 	}
 	function produceSQL($id="") {
-		$limit=" LIMIT 10";		
-		$limit=""; //need all rows for counts
 		$mType = $this->getPostType();
 		$col="";
 		$filters="";
@@ -138,7 +136,6 @@ Class MajaxRender {
 			) AS pm1
 			$filters
 			ORDER BY $orderBy $orderDir
-			$limit
 		";
 		return $query;
 	}

@@ -4,7 +4,7 @@ namespace CustomAjaxFilters\Majax\MajaxWP;
 use stdClass;
 
 Class ImageCache {
-    public static $imageCache;    
+    private static $imageCache;    
     public static function loadImageCache($postType) {
         ImageCache::$imageCache=array();
         ImageCache::$imageCache=Caching::getCachedJson("allimages".$postType);
@@ -23,17 +23,8 @@ Class ImageCache {
     }
     public static function loadFromSQL($postType) {   
         global $wpdb;  
-        $load=false;   
         $rows=array();        
 
-        //all posts
-        /*
-        $query = "
-        SELECT wpm.meta_value as thumbId,wpm2.meta_value as thumbPath 
-        FROM `".$wpdb->prefix."postmeta` wpm 
-        INNER JOIN ".$wpdb->prefix."postmeta wpm2
-            ON (wpm.meta_value=wpm2.post_id AND wpm2.meta_key = '_wp_attached_file' AND wpm.meta_key = '_thumbnail_id')";  
-        */  
         $wpPrefix=$wpdb->prefix;
         $query = "
         SELECT wp.id,post_type,wpm.meta_value as thumbId,wpm2.meta_value as thumbPath 
@@ -46,7 +37,6 @@ Class ImageCache {
 
         foreach( $wpdb->get_results($query) as $key => $row) {	
             $rows[] = ["thumbId" => $row->thumbId, "thumbPath" => "/wp-content/uploads/".$row->thumbPath];
-            $load=true;
         }	
         return $rows;                
       }

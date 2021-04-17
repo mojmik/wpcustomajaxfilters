@@ -11,12 +11,12 @@
    */
    
 // Include the core class.
-define( 'MAUTA_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
-define('PLUGIN_FILE_URL_MAUTAWP', __FILE__);
-define( 'CAF_SHORT_TITLE', 'CAF' );
+define('CAF_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
+define('CAF_PLUGIN_FILE_URL', __FILE__);
+define('CAF_SHORT_TITLE', 'CAF' );
 
 
-require_once MAUTA_PLUGIN_PATH . '/customajaxfilters/loader.php';
+require_once CAF_PLUGIN_PATH . '/customajaxfilters/loader.php';
 $loader=new CustomAjaxFilters\Loader();
 if (is_admin()) $loader->initAdmin();
 else $loader->initFrontend();

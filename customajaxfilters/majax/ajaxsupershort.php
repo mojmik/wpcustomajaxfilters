@@ -56,13 +56,6 @@ if ($action=="single_row") {
 if ($action=="filter_rows") {
 	$renderer = new MajaxWP\MajaxRender(true); //use false pro preloading hardcoded fields (save one sql query)
 	MajaxWP\MikDb::connect(DB_HOST,DB_USER,DB_PASSWORD,DB_NAME);	
-	/*
-	$query=$renderer->buildQueryCount();
-    $rows=Db::getRows($query);
-    $renderer->showRows($rows,0,"majaxcounts");
-	*/
-	
-	//u selectu je potreba to filtrovani delat az dodatecne
 
     $query=$renderer->buildQuerySQL();
 	$rows=MajaxWP\Caching::getCachedRows($query);

@@ -32,7 +32,7 @@ Class MajaxHandler {
 	}
 	
 	public function register_script()    {	
-        wp_register_script('majax-script', MAJAX_PLUGIN_URL . 'majax.js',array('jquery'));
+        wp_register_script('majax-script', CAF_MAJAX_PLUGIN_URL . 'majax.js',array('jquery'));
         wp_localize_script('majax-script', 'majax', $this->get_ajax_data());
         wp_enqueue_script('majax-script');
 	}
