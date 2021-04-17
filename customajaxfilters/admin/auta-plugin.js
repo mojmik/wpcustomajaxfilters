@@ -32,6 +32,59 @@ jQuery(function($){
 	   return false;
 	 });
 
+	 jQuery("form.editCPT").submit(function() {	
+		var thisForm=$(this);
+		var formData={};
+		thisForm.find( '[name]' ).each( function( i , v ){
+			let input = $( this ); // resolves to current input element.
+			let name = input.attr( 'name' );
+			let value = input.val();
+			formData[name] = value;
+		});
+
+		jQuery.ajax({
+			   type: "POST",
+			   url: ajaxurl,
+			   data: {
+				action: "editCPT",
+				singular: formData["singular"],
+				cafAction: formData["cafAction"],
+				slug: formData["slug"],
+				plural: formData["plural"],
+				cafActionEdit: formData["cafActionEdit"],
+			  },
+			success: function( data ) {
+				window.location.reload();
+			 }
+	   });
+	   return false;
+	 });
+
+	 jQuery("form.removeCPT").submit(function() {	
+		var thisForm=$(this);
+		var formData={};
+		thisForm.find( '[name]' ).each( function( i , v ){
+			let input = $( this ); // resolves to current input element.
+			let name = input.attr( 'name' );
+			let value = input.val();
+			formData[name] = value;
+		});
+
+		jQuery.ajax({
+			   type: "POST",
+			   url: ajaxurl,
+			   data: {
+				action: "editCPT",
+				slug: formData["slug"],
+				cafActionRemove: formData["cafActionRemove"]
+			  },
+			success: function( data ) {
+				window.location.reload();
+			 }
+	   });
+	   return false;
+	 });
+
 // on upload button click
 $('body').on( 'click', '.icon-upl', function(e){
  

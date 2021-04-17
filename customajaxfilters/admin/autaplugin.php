@@ -14,6 +14,7 @@ class AutaPlugin {
 		register_activation_hook( PLUGIN_FILE_URL_MAUTAWP, [$this,'auta_plugin_install'] );
 		add_action('admin_menu' , [$this,'pluginSettingsMenu']); 			
 		add_action( 'wp_ajax_createCPT', [$this,'createCPTproc'] );
+		add_action( 'wp_ajax_editCPT', [$this,'editCPTproc'] );
 		$this->loadCustomPosts();
 		//admin		
 	}
@@ -107,30 +108,28 @@ class AutaPlugin {
 		$cafAction=filter_input( INPUT_POST, "cafAction", FILTER_SANITIZE_STRING );  
 		$singular=filter_input( INPUT_POST, "singular", FILTER_SANITIZE_STRING );  
 		$plural=filter_input( INPUT_POST, "plural", FILTER_SANITIZE_STRING );  						 				
-		
-		if ($cafAction=="edit") {
-			$slug=filter_input( INPUT_POST, "slug", FILTER_SANITIZE_STRING );  
-			if (isset($_POST["cafActionEdit"])) {
-				$mess="updated!";
-				$wpdb->update(AutaPlugin::getTable("main"), array('singular' => $singular, 'plural' => $plural), array('slug' => $slug));
-				foreach ($this->customPost as $cpt ) {
-				  if ($cpt->customPostType==$slug) {
-					  $cpt->singular=$singular;
-					  $cpt->plural=$plural;					  
-				  }
+		$slug=filter_input( INPUT_POST, "slug", FILTER_SANITIZE_STRING );  
+		if (isset($_POST["cafActionEdit"])) {
+			$mess="updated!";
+			$wpdb->update(AutaPlugin::getTable("main"), array('singular' => $singular, 'plural' => $plural), array('slug' => $slug));
+			foreach ($this->customPost as $cpt ) {
+				if ($cpt->customPostType==$slug) {
+					$cpt->singular=$singular;
+					$cpt->plural=$plural;					  
 				}
-			}
-			if (isset($_POST["cafActionRemove"])) {
-				$mess="removed!";
-				$wpdb->delete( AutaPlugin::getTable("main"), array( 'slug' => $slug ) );
-				foreach ($this->customPost as $key=>$cpt ) {
-					if ($cpt->customPostType==$slug) {
-						$keyDel=$key;	
-					}
-				}
-				if (isset($keyDel)) array_splice($this->customPost,$key,1);
 			}
 		}
+		if (isset($_POST["cafActionRemove"])) {
+			$mess="removed!";
+			$wpdb->delete( AutaPlugin::getTable("main"), array( 'slug' => $slug ) );
+			foreach ($this->customPost as $key=>$cpt ) {
+				if ($cpt->customPostType==$slug) {
+					$keyDel=$key;	
+				}
+			}
+			if (isset($keyDel)) array_splice($this->customPost,$key,1);
+		}
+	
 	}
 	function plugin_settings_page() {  
 		global $wpdb;
@@ -164,10 +163,12 @@ class AutaPlugin {
 			<form method='post' class='caf-editFieldRow editCPT'>
 				<div><div><label>singular name</label></div><input type='text' name='singular' value='<?= $cpt->singular?>' /></div>	
 				<div><div><label>plural name</label></div><input type='text' name='plural' value='<?= $cpt->plural?>' /></div>
-				<div><input name='cafActionEdit' type='submit' value='Edit' />
-				<input name='cafActionRemove' type='submit' value='Remove' /></div>
+				<div><input name='cafActionEdit' type='submit' value='Edit' /></div>
 				<input name='slug' type='hidden' value='<?= $cpt->customPostType?>' />
-				<input name='cafAction' type='hidden' value='edit' />
+			</form>
+			<form method='post' class='removeCPT'>
+				<input name='cafActionRemove' type='submit' value='Remove' />
+				<input name='slug' type='hidden' value='<?= $cpt->customPostType?>' />
 			</form>			
 			<?php
 			}

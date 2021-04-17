@@ -4,7 +4,7 @@ namespace CustomAjaxFilters\Admin;
 class AutaFields {
 	public $fieldsList=array();
 	private $postCustomFields;	
-	public $customPostType;
+	private $customPostType;
 	public function __construct($postType) {					
 		add_action( 'add_meta_boxes_'.$postType, [$this,'mauta_metaboxes'] );		
 		add_action( 'save_post_'.$postType, [$this,'mauta_save_post'] ); 
@@ -127,7 +127,7 @@ class AutaFields {
 	}	
 	function addanother_metabox() {		
 		$urlSave=add_query_arg( 'msave', '1');
-		$urlNew="'./post-new.php?post_type=".AutaPlugin::$customPostType."'";										
+		$urlNew="'./post-new.php?post_type=".$this->customPostType."'";										
 		?>
 		
 		<button onclick='javascipt:saveAndAdd();'>Add another</a>				 
