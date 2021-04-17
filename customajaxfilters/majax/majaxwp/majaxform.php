@@ -7,18 +7,8 @@ class MajaxForm {
     function __construct($type="",$fields=[]) {            
         $this->postType=$type;
         $this->postedFields=$fields;
-        if (empty($fields)) {
-            if ($type=="mycka") {                
-                $this->postedFields=["fname" => "Jméno", 
-                "lname" => "Příjmení", 
-                "email" => "Email", 
-                "start_date" => "Začátek pronájmu", 
-                "start_time" => "Čas mytí", 
-                "phone_no" => "Telefon",
-                "postTitle" => "Vybraný program"
-                ];
-            }
-            else if ($type=="dotaz") {
+        if (empty($fields)) {          
+            if ($type=="dotaz") {
                 $this->postedFields=[                
                 "fname" => "Jméno", 
                 "email" => "Email",                 
@@ -139,13 +129,7 @@ class MajaxForm {
             }			
             $outHtml="<table>$outHtml</table>";			
             
-            
-            //if ($type=="mycka") $to = ['diplomat@hertz.cz','mkavan@hertz.cz'];
-            //else $to = ['rezervace@hertz.cz','mkavan@hertz.cz'];
-            if ($type=="mycka") $to=$this->loadSecret("emailymycka",true);
-            else $to = $this->loadSecret("emailydefault",true);            
-            //$to      = ['mkavan@hertz.cz'];
-            
+            $to = $this->loadSecret("emailydefault",true);            
             $subject = 'objednavka z hertz-autopujcovna.cz';
             $body = "<h1>Objednavka z webu</h1> <h3>Typ: $type</h3> <br /><br />$outHtml";
             $altBody=strip_tags($outTxt);

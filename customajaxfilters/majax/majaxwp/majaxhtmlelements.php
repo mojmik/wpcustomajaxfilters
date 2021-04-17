@@ -66,8 +66,7 @@ Class MajaxHtmlElements {
         return $field;
     }
     function showPost($cpt,$id,$name,$title,$image="",$content="",$metas="",$itemDetails="") {       
-        if ($cpt=="mycka") $this->showPostMycka($id,$name,$title,$image,$content,$metas,$itemDetails);
-        else $this->showPostDefault($id,$name,$title,$image,$content,$metas,$itemDetails);
+        $this->showPostDefault($id,$name,$title,$image,$content,$metas,$itemDetails);
     }
     function showPostDefault($id,$name,$title,$image,$content,$metas,$itemDetails) {         
         $metaOut=array();     
@@ -126,7 +125,7 @@ Class MajaxHtmlElements {
         if ($image!="") {
             $image="<img class='pct80' src='$image' />";
         }  else {
-            $image="obrazek chybi";
+            $image=""; //image missing
         }
         ?>
         <div class='majaxout majaxoutStatic' id='majaxout<?=$id?>'>
@@ -158,69 +157,5 @@ Class MajaxHtmlElements {
                         </div>
                     </div>
         <?php
-    }
-    function showPostMycka($id,$name,$title,$image,$content,$metas,$itemDetails) {         
-        $metaOut=array();     
-        for ($n=0;$n<5;$n++) {
-            $metaOut[$n]="";
-        }        
-        foreach ($metas as $metaName => $metaMisc) {           
-            //echo json_encode($metaMisc); da
-            $metaIcon=$metaMisc["icon"];
-            $displayOrder=$metaMisc["displayorder"];
-            $fieldFormat=$metaMisc["fieldformat"];
-            $metaVal=$itemDetails[$metaName];
-            if ($metaIcon) $metaIcon="<img src='$metaIcon' />";
-            else $metaIcon="<span>$metaName</span>";	
-            if ($metaName=="mauta_typ_myti") $typ=$metaVal;
-            if ($metaName=="mauta_barva") $barva=$metaVal;
-            if ($metaName=="mauta_doba-myti") $doba=$metaVal;
-            if ($metaName=="mauta_cena") $cena=$metaVal;
-        }
-        if ($barva) {
-            $style="style=\"
-                background: $barva;
-                
-            \"
-            ";
-        }
-        if ($image!="") {
-            $image="<img class='pct80' src='$image' />";
-        }  
-        ?>
-                     <div class='majaxout majaxoutStatic borf' id='majaxout<?=$id?>'>              
-                    
-                        <div class='row mcontent2 bort' <?= $style?>>	
-                            <div class='div1'><?= $title?></div>
-                            <div class='sikmaCara'></div>
-                            <div class='div2'><?= $typ?></div>
-                         
-                        </div>
-                        <div class='row mcontent mBckGray'>	
-                            <span class='mbold'>POPIS PROCEDUR:</span>
-                            <span><?= $content?></span>
-                        </div>
-                        <div class='row metaBig'>			
-                            <div class='col-sm-8 mbold'>Doba mytí:<br />(ORIENTAČNĚ)</div>    
-                            <div class='col-sm-4 mbold'><?=$doba?></div>                        
-                        </div>
-                        <div class='row'>	
-                            <div class='col-sm-12 hCara'></div>
-                        </div>
-                        <div class='row metaBig'>			
-                            <div class='col-sm-8 mbold'>Cena:<br /></div>    
-                            <div class='col-sm-4 mbold'><?=$cena?> Kč</div>                        
-                        </div>
-                        <div class='row '>			
-                            <?=$metaOut[1]?>
-                            <?=$metaOut[2]?>                                
-                        </div>
-                        <div class='row '>
-                            <div class='col action'>
-                                <a class='mButtonA' data-slug='<?=$name?>' href='?id=<?=$name?>'>Objednat zde<br />nebo na +420 225 345 041</a>
-                            </div>
-                        </div>
-                    </div>
-        <?php
-    }
+    }    
 }

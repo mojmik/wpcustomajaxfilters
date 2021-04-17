@@ -24,42 +24,7 @@ var majaxModule=(function (my) {
                     </div>                
                 </div>
                 `);       
-        },
-        singleMyckaShow: function(id,title,content,image,meta) {
-            const barva=meta["mauta_barva"];            
-            const typ=meta["mauta_typ_myti"];
-            const doba=meta["mauta_doba-myti"];
-            const cena=meta["mauta_cena"];
-            if (barva) {
-                style=`style="background: ${barva};"`;
-            }
-            return(
-                `
-                <div class='majaxout majaxoutStatic row2 borf' id='majaxout${id}'>                                   
-                        <div class='row mcontent2 bort'${style}>	
-                            <div class='div1'>${title}</div>
-                            <div class='sikmaCara'></div>
-                            <div class='div2 div2-10'>${typ}</div>
-                         
-                        </div>
-                        <div class='row mcontent mBckGray'>	
-                            <span class='mbold'>POPIS PROCEDUR:</span>
-                            <span>${content}</span>
-                        </div>
-                        <div class='row metaBig'>			
-                            <div class='col-sm-8 mbold'>Doba mytí:<br />(ORIENTAČNĚ)</div>    
-                            <div class='col-sm-4 mbold'>${doba}</div>                        
-                        </div>
-                        <div class='row'>	
-                            <div class='col-sm-12 hCara'></div>
-                        </div>
-                        <div class='row metaBig'>			
-                            <div class='col-sm-8 mbold'>Cena:<br /></div>    
-                            <div class='col-sm-4 mbold'>${cena} Kč</div>                        
-                        </div>                                           
-                    </div>
-                `);       
-        },
+        },        
         multiDefaultShow: function(id,name,content,image,metaOut) {
             return(
                 `
@@ -180,79 +145,7 @@ var majaxModule=(function (my) {
                 });
                 my.majaxViewComponents.majaxContactForm.initCaptchaWidget();
             },
-            initMycka: (formName) => {
-                majaxViewComponents.majaxContactForm.formElement=jQuery("#"+formName);
-                    majaxViewComponents.mForms.setForm(majaxViewComponents.majaxContactForm.formElement);
-                    majaxViewComponents.mForms.addInput("fname","latinletters");
-                    majaxViewComponents.mForms.addInput("lname","latinletters");
-                    majaxViewComponents.mForms.addInput("email","email",false);
-                    majaxViewComponents.mForms.addInput("cemail","email",false,"email");            
-                    majaxViewComponents.mForms.addInput("start_date","date");
-                    majaxViewComponents.mForms.addInput("start_time","select");
-                    majaxViewComponents.mForms.addInput("phone_no","phone");
-                    majaxViewComponents.mForms.addInput("postTitle","hidden",false); 
-                    majaxViewComponents.mForms.addInput("postType","hidden",false); 
-                    jQuery("#pickDate").datepicker({
-                            duration: '',
-                            changeMonth: false,
-                            changeYear: false,
-                            minDate : 0,
-                            yearRange: '2010:2050',
-                            showTime: false,
-                            time24h: true,
-                            beforeShowDay: function(d) {
-                                var day = d.getDay();
-                                return [(day == 2 || day == 4)];
-                            }                      
-                    });
-    
-                    jQuery(function($) {
-                        $.datepicker.regional['cs'] = {
-                            closeText: 'Zavřít',
-                            prevText: '&#x3c;Dříve',
-                            nextText: 'Později&#x3e;',
-                            currentText: 'Nyní',
-                            monthNames: ['leden', 'únor', 'březen', 'duben', 'květen', 'červen', 'červenec', 'srpen',
-                              'září', 'říjen', 'listopad', 'prosinec'
-                            ],
-                            monthNamesShort: ['led', 'úno', 'bře', 'dub', 'kvě', 'čer', 'čvc', 'srp', 'zář', 'říj', 'lis', 'pro'],
-                            dayNames: ['neděle', 'pondělí', 'úterý', 'středa', 'čtvrtek', 'pátek', 'sobota'],
-                            dayNamesShort: ['ne', 'po', 'út', 'st', 'čt', 'pá', 'so'],
-                            dayNamesMin: ['ne', 'po', 'út', 'st', 'čt', 'pá', 'so'],
-                            weekHeader: 'Týd',
-                            dateFormat: 'dd/mm/yy',
-                            firstDay: 1,
-                            isRTL: false,
-                            showMonthAfterYear: false,
-                            yearSuffix: ''
-                          };
-                        
-                          $.datepicker.setDefaults($.datepicker.regional['cs']);
-                    });
-                    jQuery(majaxViewComponents.majaxContactForm.formElement).on('submit', function(event) {				
-                        event.preventDefault();	      
-                        if (my.majaxViewComponents.validateForm(this)) {
-                            my.mUrl.addParam("formsent","1");
-                            my.mUrl.writeUrl();                            
-                            my.majaxPrc.captcha=grecaptcha.getResponse(majaxViewComponents.majaxContactForm.captchaWidgetId);
-                            my.majaxPrc.runAjax(this);  
-                        }                                  
-                        return false;
-                    });     
-                    jQuery("#majaxContactForm input[type='text']").on('focus', function (event) {
-                          let prev=jQuery(this).prev();
-                          if (typeof prev !=='undefined' && prev.data('formerr')=="1") jQuery(prev).text("");                        
-                    });
-                    let selects2 =jQuery("#pickTime");
-                    if (selects2.length>0) {
-                        selects2.select2({
-                            placeholder: "Požadovaný čas mytí*",
-                            allowClear: true
-                        });
-                    }
-                    my.majaxViewComponents.majaxContactForm.initCaptchaWidget();		    
-
-            },
+            
             initDotaz: (formName) => {
                 majaxViewComponents.majaxContactForm.formElement=jQuery("#"+formName);
                     majaxViewComponents.mForms.setForm(majaxViewComponents.majaxContactForm.formElement);
@@ -369,101 +262,7 @@ var majaxModule=(function (my) {
                     </div>
                 </div>
                 `
-            },    
-            renderMycka: (name,content,postTitle="",postType="") => {
-                if (content!="") {
-                    return `
-                    <div class='mpagination'>      
-                        <div class="row2 frameGray">
-                            <div class="yellowBand" id="enquiryP">
-                                ${content}
-                            </div>
-                        </div>
-                    </div>`;    
-                }                
-                return `
-                <div class='mpagination'>      
-                    <div class="row frameGray">                        
-                        <div class="col-md-11 col-xs-12 mcent">
-                            <div class="row">
-                                <div class="yellowBand" id="enquiryP">
-                                Umytí svého vozidla si prosím rezervujte prostřednictvím níže uvedeného formuláře.
-                                Nebo nám zavolejte na +420 225 345 041 a sjednejte si s námi přímo termín a čas.                                
-                                </div>
-                            </div>
-                            <div class="col-md-12 col-xs-12">
-                                    <div class="row">
-                                        <div class="col-xs-12">
-                                            <p class="formhead">
-                                            </p>								
-                                        </div>
-                                    </div>
-                                <form id="${name}" method="post">
-                                    <div class="row formGroup">
-                                        <div class="col-sm-6">                                    
-                                            <input type="text" class="form-control" id="fname" name="fname" placeholder="Jméno*">
-                                        </div>
-                                        <div class="col-sm-6">                                    
-                                            <input type="text" class="form-control" id="lname" name="lname" placeholder="Příjmení*">
-                                        </div>
-                                    </div>
-                                    <div class="row formGroup">                                
-                                        <div class="col-sm-6">                                                                        
-                                            <input type="text" class="form-control email" id="email" name="email" placeholder="Email">
-                                        </div>                                
-                                        <div class="col-sm-6">                                    
-                                            <input type="text" class="form-control email" id="remail" name="cemail" placeholder="Email">
-                                        </div>
-                                    </div>
-                                    <div class="row formGroup">
-                                        <div class="col-sm-3">
-                                            <input type="text" class="form-control cal pointerEvent" id="pickDate" placeholder="Termín mytí*" name="start_date" readonly="readonly">
-                                        </div>
-                                        <div class="col-sm-3">
-                                            <select class="form-control" id="pickTime" name="start_time" placeholder="Čas*">
-                                                <option></option>    
-                                                <option>08:00</option>
-                                                <option>09:00</option>
-                                                <option>10:00</option>
-                                                <option>11:00</option>
-                                                <option>12:00</option>
-                                                <option>13:00</option>
-                                                <option>14:00</option>
-                                                <option>15:00</option>
-                                                <option>16:00</option>
-                                                <option>17:00</option>
-                                                <option>18:00</option>
-                                            </select>                                            
-                                        </div>
-                                        <div class="col-sm-6">
-                                            <input type="text" class="form-control tel" id="phone_no" name="phone_no" placeholder="Telefon*">
-                                        </div>
-                                    </div>   
-                                    <div class="row formGroup">                                                                                    
-                                                    <div class="col-sm-12">
-                                                        anti-spam                                    
-                                                        <div id="myCaptcha"></div>
-                                                    </div>
-                                    </div> 
-                                    <div class="row formGroup">
-                                        <div class="col-sm-12">* Povinné pole</div>
-                                    </div>                                 
-                                    <div class="row3">	
-                                            <div class="col-sm-3 pullRight col-xs-12">
-                                                <input type="submit" class="btn btn-primary btn-block" name="submit" id="submit" value="Potvrdit">
-                                                    <input type="Button" class="btn btn-primary btn block" value="Processing.." id="divprocessing" style="display: none;">
-                                            </div>
-                                    </div>
-                                    
-                                    <input type='hidden' name='postTitle' value='${postTitle}' />
-                                    <input type='hidden' name='postType' value='${postType}' />
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                `
-            }
+            },                
         },
         majaxLoader: () => `
         <div class="majax-loader" data-component="loader" style="display: none;">

@@ -66,8 +66,7 @@ var majaxModule=(function (my) {
             }            
             if (typeof single !== 'undefined' ) {
                  //single                      
-                 if (majaxRender.getType()=="mycka") return my.majaxViewComponents.singleMyckaShow(id,title,content,image,meta);                      
-                 else return my.majaxViewComponents.singleDefaultShow(id,title,content,image,metaOut);                      
+                 return my.majaxViewComponents.singleDefaultShow(id,title,content,image,metaOut);                      
             }
             else {
                 //multi default    
@@ -196,15 +195,9 @@ var majaxModule=(function (my) {
                 jQuery('#majaxmain').append(thisHtml);                
             }
             else if (jsonObj.title=="action") {                                
-                majaxRender.hideLoaderAnim();
-                if (majaxRender.getType()=="mycka") { 
-                    jQuery('#majaxmain').append(my.majaxViewComponents.majaxContactForm.renderMycka("majaxContactForm",jsonObj.content,jsonObj.postTitle,jsonObj.postType));
-                    my.majaxViewComponents.majaxContactForm.initMycka("majaxContactForm");                     
-                }
-                else { 
-                    jQuery('#majaxmain').append(my.majaxViewComponents.majaxContactForm.renderDefault("majaxContactForm",jsonObj.content,jsonObj.postTitle,jsonObj.postType));
-                    my.majaxViewComponents.majaxContactForm.initDefault("majaxContactForm");                                    
-                }
+                majaxRender.hideLoaderAnim();                              
+                jQuery('#majaxmain').append(my.majaxViewComponents.majaxContactForm.renderDefault("majaxContactForm",jsonObj.content,jsonObj.postTitle,jsonObj.postType));
+                my.majaxViewComponents.majaxContactForm.initDefault("majaxContactForm");                                                    
                 majaxRender.showBack();                
             }
             else if (jsonObj.title=="empty") {
