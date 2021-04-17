@@ -11,13 +11,13 @@ function mSendMail($sub,$body,$altbody,$to,$from="dodavky@hertz-autopujcovna.cz"
   $mail = new PHPMailer();
   $mail->CharSet = "UTF-8";
   $mail->IsSMTP();                                      // set mailer to use SMTP
-  $mail->Host = "mail.gigaserver.cz";  // specify main and backup server
+  $mail->Host = "mailhost.dot.com";  // specify main and backup server
   $mail->SMTPAuth = true;     // turn on SMTP authentication
-  $mail->Username = "dodavky@hertz-autopujcovna.cz";  // SMTP username
-  $mail->Password = "Dodavky@hertz12"; // SMTP password
+  $mail->Username = "mailuser";  // SMTP username
+  $mail->Password = "mailpassword"; // SMTP password
   if ($replyTo) $mail->addReplyTo($replyTo);
-  $mail->From = "dodavky@hertz-autopujcovna.cz";
-  $mail->FromName = "Dodavky Hertz";
+  $mail->From = "mail@from.com";
+  $mail->FromName = "mailfromname";
   foreach ($to as $toMail) {
 	  $mail->AddAddress($toMail);
   }
