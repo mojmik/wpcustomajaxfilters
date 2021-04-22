@@ -3,7 +3,6 @@ namespace CustomAjaxFilters\Admin;
 
 class AutaFields {
 	public $fieldsList=array();
-	private $postCustomFields;	
 	private $customPostType;
 	public function __construct($postType) {					
 		add_action( 'add_meta_boxes_'.$postType, [$this,'mauta_metaboxes'] );		

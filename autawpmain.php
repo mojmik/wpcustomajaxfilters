@@ -14,10 +14,12 @@
 define('CAF_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
 define('CAF_PLUGIN_FILE_URL', __FILE__);
 define('CAF_SHORT_TITLE', 'CAF' );
-
+define('CAF_TAB_PREFIX','mauta_');
 
 require_once CAF_PLUGIN_PATH . '/customajaxfilters/loader.php';
 $loader=new CustomAjaxFilters\Loader();
-if (is_admin()) $loader->initAdmin();
+//$loader->initAdmin();
+
+if (is_admin() || wp_is_json_request()) $loader->initAdmin();
 else $loader->initFrontend();
 

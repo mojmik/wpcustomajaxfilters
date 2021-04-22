@@ -1,61 +1,9 @@
 var majaxModule=(function (my) {
     const majaxViewComponents = {
-        singleDefaultShow: function(id,title,content,image,metaOut) {
-            return(
-                `
-                <div class='majaxout row2' id='majaxout${id}'>
-                    <div class='row mcontent mtitle'>			    
-                            <span>${title}</span>
-                        </div>
-                    <div class='row flex-grow-1'>
-                        <div class='col title borf'>                        
-                            ${image}                        
-                        </div>
-                    </div>
-                    <div class='row mcontent'>			    
-                        <span>${content}</span>
-                    </div>
-                    <div class='row bors'>			
-                         ${metaOut[0]}                    
-                    </div>
-                    <div class='row bort'>			
-                            ${metaOut[1]}
-                            ${metaOut[2]}	
-                    </div>                
-                </div>
-                `);       
-        },        
-        multiDefaultShow: function(id,name,content,image,metaOut) {
-            return(
-                `
-                <div class='majaxout' id='majaxout${id}'>         
-                    <div class='row flex-grow-1 bort'>
-                        <div class='col title'>                        
-                            ${image}                                                        
-                        </div>
-                    </div>
-                    <div class='row mcontent borb'>			    
-                        <span>${content}</span>
-                    </div>
-                    <div class='row bors'>			
-                         ${metaOut[0]}                    
-                    </div>
-                    <div class='row bort'>			
-                            ${metaOut[1]}
-                            ${metaOut[2]}	
-                    </div>
-                    <div class='row borb'>
-                        <div class='col action'>
-                            <a class='mButtonA' data-slug='${name}' href='?id=${name}'>Objednat</a>
-                        </div>
-                    </div>
-                </div>
-                `);    
-        },
         majaxContactForm: { 
             formElement: null,
             captchaWidgetId:null,
-            initCaptchaWidget: () => {
+            initCaptchaWidget: (siteKey) => {
                 if (window.grecaptcha === undefined || window.grecaptcha.render===undefined) {
                     setTimeout(function(){ majaxViewComponents.majaxContactForm.initCaptchaWidget(); }, 500)
                     return;
@@ -63,16 +11,37 @@ var majaxModule=(function (my) {
            
                     if (jQuery('#myCaptcha').length>0) {
                         majaxViewComponents.majaxContactForm.captchaWidgetId = grecaptcha.render( 'myCaptcha', {
-                            'sitekey' : '6LdBeIYaAAAAAKca7Xx8-xEHujjD6XbdIj3Q5mUb',  // required
+                            'sitekey' : siteKey,  // required
                             'theme' : 'light',  // optional
                             /*'callback': 'verifyCallback'*/  // optional
                           });
                     }
            
             },
-            initDefault: (formName) => {
-            majaxViewComponents.majaxContactForm.formElement=jQuery("#"+formName);
-            //jQuery(document).on("click", "label.leisLabel", function() {               		            
+            initMain: (formName,fields,siteKey="") => {
+                majaxViewComponents.majaxContactForm.formElement=jQuery("#"+formName);
+                majaxViewComponents.mForms.setForm(majaxViewComponents.majaxContactForm.formElement);
+                this.postedFields=[];
+                majaxViewComponents.mForms.addInputs(fields);
+                if (siteKey!="") my.majaxViewComponents.majaxContactForm.initCaptchaWidget(siteKey); 
+                
+                jQuery(majaxViewComponents.majaxContactForm.formElement).on('submit', function(event) {				
+                    event.preventDefault();	      
+                    if (my.majaxViewComponents.validateForm(this)) {
+                        my.mUrl.addParam("formsent","1");
+                        my.mUrl.writeUrl();                        
+                        my.majaxPrc.captcha=grecaptcha.getResponse(majaxViewComponents.majaxContactForm.captchaWidgetId);
+                        my.majaxPrc.runAjax(this);                                            		
+                    }                                  
+			        return false;
+                });     
+                jQuery("#majaxContactForm input[type='text']").on('focus', function (event) {
+                      let prev=jQuery(this).prev();
+                      if (typeof prev !=='undefined' && prev.data('formerr')=="1") jQuery(prev).text("");                        
+                });
+            },
+            initDefault: (formName,fields,siteKey) => {
+                majaxViewComponents.majaxContactForm.initMain(formName,fields,siteKey);
                 jQuery(document).on("click", "label.leisLabel", function(e) {               		                            
                     e.stopImmediatePropagation();
                     let forCheckBox=jQuery(this).attr("for");
@@ -80,21 +49,10 @@ var majaxModule=(function (my) {
                     let inputCheckBoxVal=jQuery("#"+forCheckBox+"ChBox").prop('checked');
                     jQuery(inputCheckBox).prop('checked', !inputCheckBoxVal);                    
                     jQuery("#"+forCheckBox+"Box").toggleClass('checked');
-                    //alert (my.mUrl.prevUrl);
                     return false;
                 });
-                majaxViewComponents.mForms.setForm(majaxViewComponents.majaxContactForm.formElement);
-                majaxViewComponents.mForms.addInput("fname","latinletters");
-                majaxViewComponents.mForms.addInput("lname","latinletters");
-                majaxViewComponents.mForms.addInput("email","email");
-                majaxViewComponents.mForms.addInput("cemail","email",true,"email");            
-                majaxViewComponents.mForms.addInput("start_date","date");
-                majaxViewComponents.mForms.addInput("end_date","date");
-                majaxViewComponents.mForms.addInput("phone_no","phone");
-                majaxViewComponents.mForms.addInput("expected_mileage","number"); 
-                majaxViewComponents.mForms.addInput("business","checkbox",false); 
-                majaxViewComponents.mForms.addInput("postTitle","hidden",false); 
-                majaxViewComponents.mForms.addInput("postType","hidden",false); 
+                
+
                 jQuery("#pickDate").datepicker({
                         duration: '',
                         changeMonth: false,
@@ -129,139 +87,21 @@ var majaxModule=(function (my) {
                     
                       $.datepicker.setDefaults($.datepicker.regional['cs']);
                 });
-                jQuery(majaxViewComponents.majaxContactForm.formElement).on('submit', function(event) {				
-                    event.preventDefault();	      
-                    if (my.majaxViewComponents.validateForm(this)) {
-                        my.mUrl.addParam("formsent","1");
-                        my.mUrl.writeUrl();                        
-                        my.majaxPrc.captcha=grecaptcha.getResponse(majaxViewComponents.majaxContactForm.captchaWidgetId);
-                        my.majaxPrc.runAjax(this);                                            		
-                    }                                  
-			        return false;
-                });     
-                jQuery("#majaxContactForm input[type='text']").on('focus', function (event) {
-                      let prev=jQuery(this).prev();
-                      if (typeof prev !=='undefined' && prev.data('formerr')=="1") jQuery(prev).text("");                        
-                });
-                my.majaxViewComponents.majaxContactForm.initCaptchaWidget();
+                
+                
             },
-            
-            initDotaz: (formName) => {
-                majaxViewComponents.majaxContactForm.formElement=jQuery("#"+formName);
-                    majaxViewComponents.mForms.setForm(majaxViewComponents.majaxContactForm.formElement);
-                    majaxViewComponents.mForms.addInput("fname","latinletters",false);                    
-                    majaxViewComponents.mForms.addInput("email","email",true);                                        
-                    majaxViewComponents.mForms.addInput("msg","textarea",true);                                        
-                    majaxViewComponents.mForms.addInput("postTitle","hidden",false); 
-                    majaxViewComponents.mForms.addInput("postType","hidden",false); 
-                    
-                    jQuery(majaxViewComponents.majaxContactForm.formElement).on('submit', function(event) {				
-                        event.preventDefault();	                              
-                        if (my.majaxViewComponents.validateForm(this)) {    
-                            my.mUrl.addParam("formsent","1");
-                            my.mUrl.writeUrl();                            
-                            my.majaxPrc.captcha=grecaptcha.getResponse();
-                            my.majaxPrc.runAjax(this);                        		
-                        }                                  
-                        return false;
-                    });     
-                    jQuery("#majaxContactForm input[type='text']").on('focus', function (event) {
-                          let prev=jQuery(this).prev();
-                          if (typeof prev !=='undefined' && prev.data('formerr')=="1") jQuery(prev).text("");                        
-                    }); 
-                    my.majaxViewComponents.majaxContactForm.initCaptchaWidget();          	    
-            },
-            renderDefault: (name,content,postTitle="",postType="") => {
-                if (content!="") {
+            renderDefault: (name,jsonObj) => {
+                if ((typeof jsonObj.content !== 'undefined') && jsonObj.content!="") {
                     return `
                     <div class='mpagination'>      
                         <div class="row2 frameGray">
                             <div class="yellowBand" id="enquiryP">
-                                ${content}
+                                ${jsonObj.content}
                             </div>
                         </div>
                     </div>`;    
                 }                
-                return `
-                <div class='mpagination'>      
-                    <div class="row frameGray">                        
-                        <div class="col-md-11 col-xs-12 mcent">
-                            <div class="row">
-                                <div class="yellowBand" id="enquiryP">
-                                    Pokud potřebujete více informací nebo se zajímáte o pronájem vozu na delší dobu, vyplňte prosím níže uvedený formulář a my vás budeme kontaktovat.
-                                </div>
-                            </div>
-                            <div class="col-md-12 col-xs-12">
-                                    <div class="row">
-                                        <div class="col-xs-12">
-                                            <p class="formhead">
-                                            
-                                            </p>								
-                                        </div>
-                                    </div>
-                                <form id="${name}" method="post">
-                                    <div class="row formGroup">
-                                        <div class="col-sm-6">                                    
-                                            <input type="text" class="form-control" id="fname" name="fname" placeholder="Jméno*">
-                                        </div>
-                                        <div class="col-sm-6">                                    
-                                            <input type="text" class="form-control" id="lname" name="lname" placeholder="Příjmení*">
-                                        </div>
-                                    </div>
-                                    <div class="row formGroup">                                
-                                        <div class="col-sm-6">                                                                        
-                                            <input type="text" class="form-control email" id="email" name="email" placeholder="Email*">
-                                        </div>                                
-                                        <div class="col-sm-6">                                    
-                                            <input type="text" class="form-control email" id="remail" name="cemail" placeholder="Email*">
-                                        </div>
-                                    </div>
-                                    <div class="row formGroup">
-                                        <div class="col-sm-3">
-                                            <input type="text" class="form-control cal pointerEvent" id="pickDate" placeholder="Začátek pronájmu*" name="start_date" readonly="readonly">
-                                        </div>
-                                        <div class="col-sm-3">
-                                            <input type="text" class="form-control cal pointerEvent" id="dropDate" placeholder="Konec pronájmu*" name="end_date" readonly="readonly">
-                                        </div>
-                                        <div class="col-sm-6">
-                                            <input type="text" class="form-control tel" id="phone_no" name="phone_no" placeholder="Telefon*">
-                                        </div>
-                                    </div>
-                                    <div class="row formGroup">
-                                        <div class="col-sm-6">
-                                            <input type="text" class="form-control mileage" id="mileage" placeholder="Předpoklad najetých kilometrů*" name="expected_mileage">
-                                        </div>
-                                        <div class="col-sm-6 p-spc-0">
-                                                    <label for="business" id="leasing-for-leisure" class="leisLabel">
-                                                        <input name="business" id="businessChBox" type="checkbox" class="leisCheck">
-                                                        <em id="businessBox" class="sprite"></em>
-                                                        Jste již naším firemním zákazníkem*
-                                                    </label>
-                                        </div>
-                                    </div>
-                                    <div class="row formGroup">                                                                                    
-                                                    <div class="col-sm-12">
-                                                        anti-spam                                    
-                                                        <div id="myCaptcha"></div>
-                                                    </div>
-                                    </div> 
-                                    <div class="row formGroup">
-                                        <div class="col-sm-12">* Povinné pole</div>
-                                    </div>                                 
-                                    <div class="row3">	
-                                            <div class="col-sm-3 pullRight col-xs-12">
-                                                <input type="submit" class="btn btn-primary btn-block" name="submit" id="submit" value="Potvrdit">
-                                                    <input type="Button" class="btn btn-primary btn block" value="Processing.." id="divprocessing" style="display: none;">
-                                            </div>
-                                    </div>
-                                    <input type='hidden' name='postTitle' value='${postTitle}' />
-                                    <input type='hidden' name='postType' value='${postType}' />
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                `
+                return `${jsonObj.htmlSrc}`;
             },                
         },
         majaxLoader: () => `
@@ -302,8 +142,15 @@ var majaxModule=(function (my) {
                 "required":"Toto je povinné pole",
                 "sameLikeName":"Kontrolní pole se neshoduje"
             },
-            addInput: function (idName, inputType, isRequired=true, sameLikeName=false) {
-                this.postedFields.push({"name": idName,"type": inputType,"required": isRequired, "sameLikeName" : sameLikeName});                                  
+            addInputs(fieldSet) {
+                fieldSet.forEach(function(fields, key) {
+                    //mUrl.params[key]=decodeURIComponent(value);
+                    majaxViewComponents.mForms.addInput(fields[0],fields[1],fields[2],fields[3]);      
+                });
+                
+            },
+            addInput: function (idName, inputType, mRequired=true, sameLikeName=false) {
+                this.postedFields.push({"name": idName,"type": inputType,"required": mRequired, "sameLikeName" : sameLikeName});                                  
             },
             check: function(postedFieldKey,val) {
                 let postedField=this.postedFields[postedFieldKey];

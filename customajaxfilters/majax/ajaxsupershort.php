@@ -30,6 +30,10 @@ require_once(plugin_dir_path( __FILE__ ) . '/majaxwp/imagecache.php');
 
 
 $action=$_POST["action"];
+if ($action=="formInit") {
+	$renderer = new MajaxWP\MajaxRender(true); //use false pro preloading hardcoded fields (save one sql query)
+	$renderer->showFormFields("contactFilled","kontakt form");	
+}
 if ($action=="contact_filled") {
 	$renderer = new MajaxWP\MajaxRender(true); //use false pro preloading hardcoded fields (save one sql query)
 	MajaxWP\MikDb::connect(DB_HOST,DB_USER,DB_PASSWORD,DB_NAME);		

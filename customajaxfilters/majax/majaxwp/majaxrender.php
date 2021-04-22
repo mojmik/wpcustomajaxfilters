@@ -66,17 +66,23 @@ Class MajaxRender {
 
 		$this->htmlElements->showMainPlaceHolderStatic(false);		
 	}
-	function showStaticForm($atts = []) {						
-		$title="kontakt title";		
+	function showStaticForm($atts = []) {								
 		$mForm=new MajaxForm($this->getPostType());		
 		$this->htmlElements->showMainPlaceHolderStatic(true,$this->getPostType());
-		$mForm->printForm("majaxContactForm",$title);
+		$this->htmlElements->getTemplate("contactForm","form",["title"=>"contact title","type" => "dotaz"]);
+		//$mForm->printForm("majaxContactForm",$title);
 		$this->htmlElements->showMainPlaceHolderStatic(false);
 	}
 	function showFormFilled($miscAction,$title) {
 		$mForm=new MajaxForm($this->getPostType());
-		echo json_encode($mForm->processForm($miscAction,$title,$this->getPostType())).PHP_EOL;
+		echo json_encode($mForm->runForm($miscAction,$title,$this->getPostType())).PHP_EOL;
 	}
+	function showFormFields($miscAction,$type) {
+		$mForm=new MajaxForm($this->getPostType());
+		echo json_encode($mForm->renderForm()).PHP_EOL;	
+		
+	}
+	
 	
 	function printFilters($atts = []) {		
 		 $this->loadFields();
@@ -190,7 +196,7 @@ Class MajaxRender {
 		$this->logWrite("exposed: ".$out);
 		return $out;					
 	}
-	function buildInit() {
+	function buildInit($templateName="") {
 		$row=[];
 		$row["title"]="buildInit";
 
@@ -202,6 +208,9 @@ Class MajaxRender {
 			$row["misc"][$field->outName()]["displayorder"]=$field->displayOrder;	
 			$row["misc"][$field->outName()]["title"]=$field->title;	
 			$row["misc"][$field->outName()]["type"]=$field->type;	
+		}
+		if ($templateName<>"") {
+			$row["htmltemplate"][$templateName]=$this->htmlElements->getTemplate($templateName);				
 		}
 		return $row;	
 	}
@@ -252,8 +261,11 @@ Class MajaxRender {
 	}	
 	function showRows($rows,$delayBetweenPostsSeconds=0.5,$custTitle="",$limit=9,$aktPage=0,$miscAction="") {
 		$n=0;	
-		$showPosts=true;
 		$totalRows=count($rows);
+		$showPosts=true;
+		if ($miscAction=="contactFilled") $showPosts=false;
+		$templateName="single"; //default template name
+		if ($totalRows>1) $templateName="multi";
 
 		if ($custTitle != "majaxcounts") {
 			if ($totalRows<1)	 {
@@ -261,30 +273,32 @@ Class MajaxRender {
 			}
 			$pagination=$this->showPagination($totalRows,$aktPage,$limit);
 			$rows=array_slice($rows,$aktPage*$limit,$limit);		
-			//$rows=array_slice($rows,0,10);		
 			$this->logWrite("aktpage ".$aktPage);
 		}
 		
 		foreach ($rows as $row) {
-			//if ($limit>0 && $n>$limit) break;
 			if ($custTitle=="majaxcounts") { 
 				$row["title"]=$custTitle;
 				$this->logWrite("countitem ".json_encode($row));
 				echo json_encode($row).PHP_EOL;								
 			}
 			else {
-				 if ($n==0) {
-					 //first row
-					echo json_encode($this->buildInit()).PHP_EOL;	
+				 if ($n==0) { //first row
+					 //buildinit - fields description and html template for posts
+					echo json_encode($this->buildInit($templateName)).PHP_EOL;						
 					if ($miscAction) { 
-						$mForm=new MajaxForm($this->getPostType());
-						echo json_encode($mForm->processForm($miscAction,$row["post_title"],$this->getPostType())).PHP_EOL;	
-					}
-					if ($miscAction=="contactFilled") $showPosts=false;
+						//send form
+						$mForm=new MajaxForm($this->getPostType(),$row["post_title"]);
+						if ($miscAction=="action") {							
+							echo json_encode($mForm->renderForm($this->htmlElements->getTemplate("defaultForm","form"))).PHP_EOL;	
+						}
+						if ($miscAction=="contactFilled") {							
+							echo json_encode($mForm->runForm()).PHP_EOL;	
+						}						
+					}					
 				 }
 				 if ($showPosts) {
-					if (count($rows)==1) echo $this->buildItem($row,"single","yes").PHP_EOL;
-					else echo $this->buildItem($row).PHP_EOL;
+					echo $this->buildItem($row,"templateName",$templateName).PHP_EOL;					
 				 }
 				 
 				 if ($n==count($rows)-1) { 

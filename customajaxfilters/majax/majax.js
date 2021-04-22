@@ -15,6 +15,10 @@ const mStrings = {
 		let newStr="" + mStr;
 		newStr=newStr.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 			return (mStrings.mReplaceAll(newStr," ","-"));		 
+	},
+	isNonEmptyStr: (mVar) => {
+		if ((typeof mVar === 'string' || mVar instanceof String) && mVar) return true;
+		return false;
 	}
 }
 
@@ -107,76 +111,69 @@ const metaMisc = {
 };
 
 	
-	jQuery(document).ready(function($) {	
-		let hasFilterForm=false;
-		let hasIdSign=false;
-		if ($('#majaxform').length>0)  hasFilterForm=true;
-		if ($('#idSign').length>0)  hasIdSign=true;
-		if ($('#majaxContactForm').length>0)  {
-			
-			/*
-			let href=window.location;
-			window.history.pushState({href: href}, '', href);
-			
-			my.mUrl.saveUrl();
-			*/
-			my.majaxViewComponents.majaxContactForm.initDotaz("majaxContactForm");  			
-			my.mUrl.writeUrl();
-		}
-		
+jQuery(document).ready(function($) {	
+	let hasFilterForm=false;
+	let hasIdSign=false;
+	if ($('#majaxform').length>0)  hasFilterForm=true;
+	if ($('#idSign').length>0)  hasIdSign=true;
+	//handle static forms
+	let staticForms=jQuery('form[data-group="staticForms"]');
+	staticForms.each(function (i,obj) {
+		my.majaxPrc.runAjax(obj,"formInit");
+	});
 
-		my.mUrl.readUrl();
-		//fire event handlers			
-		$('.majax-select').on('change', function() {				
-				my.majaxPrc.runAjax(this);
-		});
-		$('.majax-fireinputs').on('change', function() {	
-				my.majaxPrc.runAjax(this);
-		});		
-		//select2
-		let selects2 =$(".majax-select");
-		if (selects2.length>0) {
-			selects2.select2({
-				templateResult: my.majaxSelect.formatState,
-				templateSelection: my.majaxSelect.formatState
-			});
-		}		
-
-		//click items anchors 
-		$('#majaxmain').on('click', 'a', function(event) {
-			let href=$(this).attr('href');
-			//console.info('Anchor clicked!' + href);
-			//window.history.pushState({href: href}, '', href);
-			my.mUrl.saveUrl();
-			window.history.pushState({href: href}, '', href);
+	my.mUrl.readUrl();
+	//fire event handlers			
+	$('.majax-select').on('change', function() {				
 			my.majaxPrc.runAjax(this);
-			event.preventDefault();			
-			return false;
+	});
+	$('.majax-fireinputs').on('change', function() {	
+			my.majaxPrc.runAjax(this);
+	});		
+	//select2
+	let selects2 =$(".majax-select");
+	if (selects2.length>0) {
+		selects2.select2({
+			templateResult: my.majaxSelect.formatState,
+			templateSelection: my.majaxSelect.formatState
 		});
+	}		
+
+	//click items anchors 
+	$('#majaxmain').on('click', 'a', function(event) {
+		let href=$(this).attr('href');
+		//console.info('Anchor clicked!' + href);
+		//window.history.pushState({href: href}, '', href);
+		my.mUrl.saveUrl();
+		window.history.pushState({href: href}, '', href);
+		my.majaxPrc.runAjax(this);
+		event.preventDefault();			
+		return false;
+	});
+	
+	$('#goBackButton').on('click', function(e) {			
+		e.stopImmediatePropagation();
+		my.mUrl.goBack();			
+	});
+	
+	window.addEventListener('popstate', function(e){
+		let href="";
+		if(e.state) href=e.state.href;
+		//reset filter boxes
+		if (hasFilterForm) {
+			my.majaxSelect.resetAll();
+			my.majaxPrc.runAjax(this);			
+		} else {				
+				location.reload(); 				
+		}	
+		}); 
 		
-		$('#goBackButton').on('click', function(e) {			
-			e.stopImmediatePropagation();
-			my.mUrl.goBack();			
-		});
-		
-		window.addEventListener('popstate', function(e){
-			let href="";
-			if(e.state) href=e.state.href;
-			//reset filter boxes
-			if (hasFilterForm) {
-				my.majaxSelect.resetAll();
-				my.majaxPrc.runAjax(this);			
-			} else {				
-					location.reload(); 				
-			}	
-		 }); 
-		 
-		//sliders
-		my.majaxSlider.initSliders(); 
-		
-		//load
-		if (hasFilterForm || hasIdSign) my.majaxPrc.runAjax(false);
-	}); 
+	//sliders
+	my.majaxSlider.initSliders(); 
+	
+	//load
+	if (hasFilterForm || hasIdSign) my.majaxPrc.runAjax(false);
+}); 
 
 
 

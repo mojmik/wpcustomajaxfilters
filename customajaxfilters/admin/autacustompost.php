@@ -3,7 +3,7 @@ namespace CustomAjaxFilters\Admin;
 
 class AutaCustomPost {	
 	public $autaFields;
-	public $customPostType;
+	private $customPostType;
 	public $singular;
 	public $plural;
 	 public function __construct($postType="",$singular="",$plural="") {		 	
@@ -18,7 +18,7 @@ class AutaCustomPost {
 		 //init custom fields
 		 $this->autaFields = new AutaFields($this->customPostType);		 		 
 		 
-		 add_action( 'save_post_'.$postType, [$this,'saveCPT'] ); 
+		 add_action( 'save_post_'.$this->customPostType, [$this,'saveCPT'] ); 
 		 
 	 }
 
@@ -26,11 +26,8 @@ class AutaCustomPost {
 		AutaCustomPost::sendMessageToMajax("deletecache");		
 	 }
 	 	
-	/*
-	* Creating a function to create our CPT
-	*/
 	function custom_post_type() {
-	 $textDomain=AutaPlugin::$textDomain; //for If your theme is translation ready, and you want your custom post types to be translated, then you will need to mention text domain used by your theme.
+	 $textDomain=AutaPlugin::$textDomain; 
 	// Set UI labels for Custom Post Type
 		$labels = array(
 			'name'                => _x( $this->customPostType, 'Post Type General Name', $textDomain ),
@@ -123,15 +120,12 @@ class AutaCustomPost {
 		add_submenu_page($parent_slug, $page_title, $menu_title, $capability, $menu_slug, $function);
 
 		//adds menu item
-		$page_title = CAF_SHORT_TITLE.' - settings';   
-		$menu_title = CAF_SHORT_TITLE.' - '.$this->customPostType;   
+		$page_title = CAF_SHORT_TITLE.' - settings';   		
+		$menu_title = "Fields";   
 		$capability = 'manage_options';   
 		$menu_slug  = $this->customPostType.'-plugin-settings';   
 		$function   =  [$this,'mauta_plugin_actions_page'];   
-		$icon_url   = 'dashicons-media-code';   
-		$position   = 5;    
-		//add_menu_page( $page_title, $menu_title, $capability, $menu_slug, $function, $icon_url, $position ); 		
-		add_submenu_page(AutaPlugin::$menuSlug, $page_title, $menu_title, $capability, $menu_slug, $function);
+		add_submenu_page($parent_slug, $page_title, $menu_title, $capability, $menu_slug, $function);
 	} 
 	static function sendMessageToMajax($message) {
 		$fn=wp_upload_dir()["basedir"]."/$message.txt";				

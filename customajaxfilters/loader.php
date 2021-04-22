@@ -3,9 +3,8 @@ namespace CustomAjaxFilters;
 
 class Loader {	
 
-    public function __construct() {	
-        spl_autoload_register([$this,"mLoadClass"]);
-        define('CAF_TAB_PREFIX','mauta_');
+    public function __construct() {	        
+        spl_autoload_register([$this,"mLoadClass"]);        
     }
     public function initAdmin() {
         $mautawp=new Admin\AutaPlugin(); 

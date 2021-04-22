@@ -87,24 +87,8 @@ Class MajaxHtmlElements {
                 else $metaOut[0]=$metaOut[0] . "<div class='col meta'>$metaIcon"."$metaVal</div>";
             }
             if ($displayOrder>=20 && $displayOrder<=30) {
-                $metaOut[1]=$metaOut[1] . "
-                <div class='col-sm-6 price'>
-                    Cena bez DPH / měsíc 
-                    <div class='row'>
-                        <div class='col priceTag'>".
-                            $this->formatField($metaVal,$fieldFormat)."
-                        </div>
-                    </div> 
-                </div>";
-                $metaOut[2]=$metaOut[2] . "
-                <div class='col-sm-6 price'>
-                    Cena včetně DPH / měsíc 
-                    <div class='row'>
-                        <div class='col priceTag'>".
-                        $this->formatField(ceil($metaVal*1.21),$fieldFormat)."
-                        </div>
-                    </div> 
-                </div>";
+                $metaOut[1]=$metaOut[1] . $this->postTemplate("cena-bez-dph",[$metaVal,$fieldFormat]);
+                $metaOut[2]=$metaOut[2] . $this->postTemplate("cena-s-dph",[ceil($metaVal*1.21),$fieldFormat]);
             }
             if ($displayOrder>30 && $displayOrder<=40) {
                 $propVal=$metaVal;
@@ -158,4 +142,216 @@ Class MajaxHtmlElements {
                     </div>
         <?php
     }    
+    function postTemplate($templateName,$params=[]) {
+        if ($templateName=="cena-bez-dph") {
+            return "
+            <div class='col-sm-6 price'>
+                Cena bez DPH / měsíc 
+                <div class='row'>
+                    <div class='col priceTag'>".
+                        $this->formatField($params["metaVal"],$params["fieldFormat"])."
+                    </div>
+                </div> 
+            </div>";
+        }
+        if ($templateName=="cena-s-dph") {
+            return "
+            <div class='col-sm-6 price'>
+                Cena včetně DPH / měsíc 
+                <div class='row'>
+                    <div class='col priceTag'>".
+                    $this->formatField($params["metaVal"],$params["fieldFormat"])."
+                    </div>
+                </div> 
+            </div>";
+        }
+        if ($templateName=="multi") {
+            return "
+            <div class='majaxout' id='majaxout{id}'>         
+                        <div class='row flex-grow-1 bort'>
+                            <div class='col title'>                        
+                                {image}{featuredHtml}                                                        
+                            </div>
+                        </div>
+                        <div class='row mcontent borb'>			    
+                            <span>{content}</span>
+                        </div>
+                        <div class='row bors'>			
+                            {metaOut[0]}                    
+                        </div>
+                        <div class='row bort'>			
+                                {metaOut[1]}
+                                {metaOut[2]}	
+                        </div>
+                        <div class='row borb'>
+                            <div class='col action'>
+                                <a class='mButtonA' data-slug='{name}' href='?id={name}'>Objednat</a>
+                            </div>
+                        </div>
+                    </div>";
+        }
+        if ($templateName=="single") {
+            return "
+				<div class='majaxout row2' id='majaxout{id}'>
+                    <div class='row mcontent mtitle'>			    
+                            <span>{title}</span>
+                        </div>
+                    <div class='row flex-grow-1'>
+                        <div class='col title borf'>                        
+                            {image}{featuredHtml}                        
+                        </div>
+                    </div>
+                    <div class='row mcontent'>			    
+                        <span>{content}</span>
+                    </div>
+                    <div class='row bors'>			
+                         {metaOut[0]}                    
+                    </div>
+                    <div class='row bort'>			
+                            {metaOut[1]}
+                            {metaOut[2]}	
+                    </div>                
+                </div>";
+        }
+    }
+    function formTemplate($templateName,$params=[]) {
+        if (isset($params["title"])) $postTitle=$params["title"];
+        if (isset($params["type"])) $postType=$params["type"];
+        $innerForm="";
+        if ($templateName=="contactForm") {
+            ?>
+            <div class="mpagination">
+            <div class="row frameGray">
+                <div class="col-md-11 col-xs-12 mcent">
+                    <form id="majaxContactForm" data-group="staticForms" method="post">
+                                                <div class="row formGroup">
+                                                    <div class="col-sm-6">                                    
+                                                        <input type="text" class="form-control" id="fname" name="fname" placeholder="Jméno">
+                                                    </div>
+                                                    <div class="col-sm-6">                                                                        
+                                                        <input type="text" class="form-control email" id="email" name="email" placeholder="Email*">
+                                                    </div>                                
+                                                </div>
+                                                <div class="row formGroup">                                                                                    
+                                                    <div class="col-sm-12">                                    
+                                                        <textarea class="form-control" id="txtmsg" name="msg" placeholder="Vaše zpráva*"></textarea>
+                                                    </div>
+                                                </div>
+                                                <div class="row formGroup">                                                                                    
+                                                    <div class="col-sm-12">
+                                                        anti-spam                                                                                            
+                                                        <div id="myCaptcha"></div>
+                                                    </div>
+                                                </div>                                                                                                
+                                                <div class="row3">	
+                                                        <div class="col-sm-3 pullRight col-xs-12">
+                                                            <input type="submit" class="btn btn-primary btn-block" name="submit" id="submit" value="Potvrdit">
+                                                                <input type="Button" class="btn btn-primary btn block" value="Processing.." id="divprocessing" style="display: none;">
+                                                        </div>
+                                                </div>                                                
+                                                <input type='hidden' name='postTitle' value='<?= $postType?>' />
+                                                <input type='hidden' name='postType' value='<?= $postType?>' />
+                                                
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <?php
+            return "";
+        }
+        if ($templateName=="defaultForm") {
+            $innerForm='
+            <div class="row formGroup">
+                                        <div class="col-sm-6">                                    
+                                            <input type="text" class="form-control" id="fname" name="fname" placeholder="Jméno*">
+                                        </div>
+                                        <div class="col-sm-6">                                    
+                                            <input type="text" class="form-control" id="lname" name="lname" placeholder="Příjmení*">
+                                        </div>
+                                    </div>
+                                    <div class="row formGroup">                                
+                                        <div class="col-sm-6">                                                                        
+                                            <input type="text" class="form-control email" id="email" name="email" placeholder="Email*">
+                                        </div>                                
+                                        <div class="col-sm-6">                                    
+                                            <input type="text" class="form-control email" id="remail" name="cemail" placeholder="Email*">
+                                        </div>
+                                    </div>
+                                    <div class="row formGroup">
+                                        <div class="col-sm-3">
+                                            <input type="text" class="form-control cal pointerEvent" id="pickDate" placeholder="Začátek pronájmu*" name="start_date" readonly="readonly">
+                                        </div>
+                                        <div class="col-sm-3">
+                                            <input type="text" class="form-control cal pointerEvent" id="dropDate" placeholder="Konec pronájmu*" name="end_date" readonly="readonly">
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <input type="text" class="form-control tel" id="phone_no" name="phone_no" placeholder="Telefon*">
+                                        </div>
+                                    </div>
+                                    <div class="row formGroup">
+                                        <div class="col-sm-6">
+                                            <input type="text" class="form-control mileage" id="mileage" placeholder="Předpoklad najetých kilometrů*" name="expected_mileage">
+                                        </div>
+                                        <div class="col-sm-6 p-spc-0">
+                                                    <label for="business" id="leasing-for-leisure" class="leisLabel">
+                                                        <input name="business" id="businessChBox" type="checkbox" class="leisCheck">
+                                                        <em id="businessBox" class="sprite"></em>
+                                                        Jste již naším firemním zákazníkem*
+                                                    </label>
+                                        </div>
+                                    </div>
+                                    <div class="row formGroup">                                                                                    
+                                                    <div class="col-sm-12">
+                                                        anti-spam                                    
+                                                        <div id="myCaptcha"></div>
+                                                    </div>
+                                    </div> 
+                                    <div class="row formGroup">
+                                        <div class="col-sm-12">* Povinné pole</div>
+                                    </div>                                 
+                                    <div class="row3">	
+                                            <div class="col-sm-3 pullRight col-xs-12">
+                                                <input type="submit" class="btn btn-primary btn-block" name="submit" id="submit" value="Potvrdit">
+                                                    <input type="Button" class="btn btn-primary btn block" value="Processing.." id="divprocessing" style="display: none;">
+                                            </div>
+                                    </div>
+                                    ';
+        }
+        
+        return '
+            <div class="mpagination">     
+                <div class="row frameGray">                        
+                    <div class="col-md-11 col-xs-12 mcent">
+                        <div class="row">
+                            <div class="yellowBand" id="enquiryP">
+                                Pokud potřebujete více informací nebo se zajímáte o pronájem vozu na delší dobu, vyplňte prosím níže uvedený formulář a my vás budeme kontaktovat.
+                            </div>
+                        </div>
+                        <div class="col-md-12 col-xs-12">
+                                <div class="row">
+                                    <div class="col-xs-12">
+                                        <p class="formhead">
+                                        
+                                        </p>								
+                                    </div>
+                                </div>
+                            <form id="{name}" method="post">'.$innerForm.'
+                                
+                                <input type="hidden" name="postTitle" value="'.$postTitle.'" />
+                                <input type="hidden" name="postType" value="'.$postType.'" />
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        ';
+    }
+    function getTemplate($templateName,$type="post",$params=[]) {
+        if ($type=="post") {
+            return $this->postTemplate($templateName,$params);
+        }
+        if ($type=="form") {
+            return $this->formTemplate($templateName,$params);
+        }  
+    }
 }

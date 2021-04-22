@@ -2,7 +2,6 @@
 namespace CustomAjaxFilters\Admin;
 
 class AutaField {
- //private $thisPostCustom;
  public function __construct($name,$type="",$title="",$options="",$postType="",$compare="",$filterorder="",$displayorder="",$icon="",$fieldformat="") {
 	  $this->name=$name;	 
 	  $this->type=$type;	

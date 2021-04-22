@@ -5,10 +5,7 @@ const majaxSelect = {
 		if (!state.id) {
 		  return state.text;
 		}
-		//var mValNormalized=state.element.value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(" ","-");
 		let mValNormalized=my.mStrings.mNormalize(state.element.value);
-		//console.log(state.element.value);
-		//console.log(mValNormalized);
 		let metaKey=state.element.parentElement.name;		
 		let mCntVal="("+my.mCounts.getMetaCnt(metaKey,mValNormalized)+")";
 		var baseUrl = "/select2-icons";
@@ -20,10 +17,7 @@ const majaxSelect = {
 			</span>`
 		);
 	  
-		// Use .text() instead of HTML string concatenation to avoid script injection issues
 		$state.find("span[data-cap]").text(state.text);
-		//$state.find("span").text(state.text + " - cus");
-
 		$state.find("img").attr("src", baseUrl + "/" + mValNormalized + ".png");
 	  
 		return $state;
@@ -101,7 +95,6 @@ const majaxSlider =  {
 				});
 				sliderRange.on('slidestop',function(e) {			
 					my.majaxPrc.runAjax(this);
-					//loadCounters();
 				});
 				jQuery(this).val(fs(jQuery(sliderRange).slider( "values", 0 ),jQuery(sliderRange).slider( "values", 1 ),2));
 			})
