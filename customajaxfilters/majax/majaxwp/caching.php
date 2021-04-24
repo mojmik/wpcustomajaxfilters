@@ -31,15 +31,18 @@ Class Caching {
         Caching::$cachePath="";
         Caching::$customPostType=$cpt;
     }
-    static function getCachePath() {
+    static function getCachePath($cpt="") {
+        if ($cpt) {
+            return plugin_dir_path( __FILE__ ) ."cache/".$cpt."/";
+        }
         if (!Caching::$cachePath) { 
             if (Caching::$customPostType) Caching::$cachePath=plugin_dir_path( __FILE__ ) ."cache/".Caching::$customPostType."/";
             else Caching::$cachePath=plugin_dir_path( __FILE__ ) ."cache/";
         }
         return Caching::$cachePath;
     }
-    static function pruneCache($all=false) {
-        $files = glob(Caching::getCachePath() . "*");
+    static function pruneCache($all=false,$cpt="") {
+        $files = glob(Caching::getCachePath($cpt) . "*");
         $now   = time();
       
         foreach ($files as $file) {
@@ -49,7 +52,7 @@ Class Caching {
             }
           }
         }
-        Caching::logWrite("cache pruned");
+        Caching::logWrite("cache pruned for ".Caching::getCachePath($cpt));
     }
 
     

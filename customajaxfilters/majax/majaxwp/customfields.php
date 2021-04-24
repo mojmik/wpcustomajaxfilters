@@ -63,6 +63,13 @@ class CustomFields {
 	  } 
 	  return $rows;
   }
+  public function getFieldsVirtual() {
+	$rows=[];
+	foreach ($this->fieldsList as $f) {
+		if ($f->virtVal) $rows[]=$f;
+	  } 
+	  return $rows;
+  }
   public function getFieldsOfType($type) {
 	$rows=[];
 	foreach ($this->fieldsList as $f) {		
@@ -94,7 +101,7 @@ class CustomFields {
 	$load=false;
 	foreach( $wpdb->get_results($query) as $key => $row) {	
 		$this->fieldsRows[] = $row;	
-		$this->fieldsList[] = new CustomField($row->name,$row->value,$row->type,$row->title,$row->compare,$row->valMin,$row->valMax,$row->postType,$row->icon,$row->filterorder,$row->displayorder,$row->fieldformat,$row->htmlTemplate);
+		$this->fieldsList[] = new CustomField($row->name,$row->value,$row->type,$row->title,$row->compare,$row->valMin,$row->valMax,$row->postType,$row->icon,$row->filterorder,$row->displayorder,$row->fieldformat,$row->htmlTemplate,$row->virtVal);
 		$load=true;
 	}	
 	return $load;
@@ -107,7 +114,7 @@ class CustomFields {
   public function loadFromRows($rows) {	
 	foreach( $rows as $row) {	
 		$this->fieldsRows[] = $row;	
-		$this->fieldsList[] = new CustomField($row["name"],$row["value"],$row["type"],$row["title"],$row["compare"],$row["valMin"],$row["valMax"],$row["postType"],$row["icon"],$row["filterorder"],$row["displayorder"],$row["fieldformat"],$row["htmlTemplate"]);
+		$this->fieldsList[] = new CustomField($row["name"],$row["value"],$row["type"],$row["title"],$row["compare"],$row["valMin"],$row["valMax"],$row["postType"],$row["icon"],$row["filterorder"],$row["displayorder"],$row["fieldformat"],$row["htmlTemplate"],$row["virtVal"]);
 		$load=true;
 	}	
 	return $load;

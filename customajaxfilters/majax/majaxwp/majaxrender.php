@@ -61,7 +61,7 @@ Class MajaxRender {
 			$item=[];
 			$item=$this->buildItem($row,"","",0);		
 			$this->logWrite("rowimg ".$item["image"]);				
-			$this->htmlElements->showPost($this->postType,1,$row["post_name"],$row["post_title"],$item["image"],$item["content"],$metaMisc["misc"],$item["meta"]);
+			$this->htmlElements->showPost(1,$row["post_name"],$row["post_title"],$item["image"],$item["content"],$metaMisc["misc"],$item["meta"]);
 		}
 
 		$this->htmlElements->showMainPlaceHolderStatic(false);		
@@ -186,12 +186,15 @@ Class MajaxRender {
 		$ajaxItem->addField("title",$row["post_title"])
 		->addField("name",$row["post_name"])
 		->addField("id",$row["ID"])
+		->addField("neco","neco2") //test virtual fix field
 		->addField("content",$row["post_content"])->addField("url",$row["slug"])
 		->addField("image",ImageCache::getImageUrlFromId($row["_thumbnail_id"]));
 		if ($addFieldKey && $addFieldValue) $ajaxItem->addField($addFieldKey,$addFieldValue);
 		foreach ($this->fields->getFieldsDisplayed() as $field) {
 		 $ajaxItem->addMeta($field->outName(),$row[$field->outName()]);
 		}	
+		//$ajaxItem->addMeta("neco","neco2");
+
 		$out=$ajaxItem->expose($getJson);
 		$this->logWrite("exposed: ".$out);
 		return $out;					
@@ -210,6 +213,22 @@ Class MajaxRender {
 			$row["misc"][$field->outName()]["type"]=$field->type;	
 			$row["misc"][$field->outName()]["htmlTemplate"]=$field->htmlTemplate;	
 		}
+
+		foreach ($this->fields->getFieldsVirtual() as $field) {		
+			$row["misc"][$field->outName()]["icon"]=$field->icon;
+			$row["misc"][$field->outName()]["fieldformat"]=$field->fieldformat;
+			$row["misc"][$field->outName()]["min"]=$field->valMin;
+			$row["misc"][$field->outName()]["max"]=$field->valMax;			
+			$row["misc"][$field->outName()]["displayorder"]=$field->displayOrder;	
+			$row["misc"][$field->outName()]["title"]=$field->title;	
+			$row["misc"][$field->outName()]["type"]=$field->type;	
+			$row["misc"][$field->outName()]["htmlTemplate"]=$field->htmlTemplate;	
+			$row["misc"][$field->outName()]["virtVal"]=$field->virtVal;	//first character .. # - clone value from other field, ! - fix value
+		}
+		//$row["misc"]["neco"]["virtVal"]="#mauta_cenaden"; //first character .. # - clone value from other field, ! - fix value
+		//$row["misc"]["neco"]["title"]="Cena bez dph";
+		
+
 		if ($templateName<>"") {
 			$row["htmltemplate"][$templateName]=$this->htmlElements->getTemplate($templateName);				
 		}

@@ -56,6 +56,7 @@ var majaxModule=(function (my) {
                 let displayOrder=my.metaMisc.displayorder[property];
                 let metaTitle=my.metaMisc.title[property];
                 let htmlTemplate=my.metaMisc.htmlTemplate[property]; 
+                let virtVal=my.metaMisc.virtVal[property]; 
                 let formattedVal=my.metaMisc.formatMetaVal(meta[property],0,my.metaMisc.fieldformat[property],"toFormat",true);
                 
                 if (my.mStrings.isNonEmptyStr(htmlTemplate)) {
@@ -69,30 +70,7 @@ var majaxModule=(function (my) {
                     metaOut[0]=metaOut[0] + `<div class='col meta'>${metaIcon}${meta[property]}</div>`;
                 }
                 if (displayOrder>=20 && displayOrder<=30) {  
-                    metaOut[1]=metaOut[1] + htmlTemplate;
-                    //meta group 1
-                    /*
-                    let formattedVal1=my.metaMisc.formatMetaVal(meta[property],0,my.metaMisc.fieldformat[property],"toFormat",true);
-                    let formattedVal2=my.metaMisc.formatMetaVal(Math.ceil(meta[property]*1.21),0,my.metaMisc.fieldformat[property],"toFormat",true);
-                    metaOut[1]=metaOut[1] + `  
-                    <div class='col-sm-6 price'>
-                        ${metaIcon}
-                        <div class='row'>
-                            <div class='col priceTag'>
-                                ${formattedVal1}
-                            </div>
-                        </div> 
-                    </div>`;
-                    metaOut[2]=metaOut[2] + `
-                    <div class='col-sm-6 price'>
-                        ${metaIcon}
-                        <div class='row'>
-                            <div class='col priceTag'>
-                             ${formattedVal2}
-                            </div>
-                        </div> 
-                    </div>`;
-                    */
+                    metaOut[1]=metaOut[1] + htmlTemplate;                    
                 }
                 if (displayOrder>30 && displayOrder<=40) {
                     //meta group 2

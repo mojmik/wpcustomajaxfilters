@@ -1,5 +1,6 @@
 <?php
 namespace CustomAjaxFilters\Admin;
+use \CustomAjaxFilters\Majax\MajaxWP as MajaxWP;
 
 class AutaFields {
 	public $fieldsList=array();
@@ -32,6 +33,7 @@ class AutaFields {
 		$icon=filter_input( INPUT_POST, "icon", FILTER_SANITIZE_STRING );
 		$fieldformat=filter_input( INPUT_POST, "fieldformat", FILTER_SANITIZE_STRING );
 		$htmlTemplate=$_POST["htmlTemplate"];//filter_input( INPUT_POST, "htmlTemplate", FILTER_SANITIZE_STRING );
+		$virtVal=filter_input( INPUT_POST, "virtVal", FILTER_SANITIZE_STRING );
 		
 		if (isset($_POST["editField"])) {						
 			foreach ($this->fieldsList as $f) {	
@@ -45,21 +47,23 @@ class AutaFields {
 				$f->icon=$icon;
 				$f->fieldformat=$fieldformat;
 				$f->htmlTemplate=$htmlTemplate;
+				$f->virtVal=$virtVal;
 				$f->saveToSQL();
 				echo "changed $name";
 			 }
 			}
+			MajaxWP\Caching::pruneCache(true,$this->customPostType);
 		}
 		
 		//new field
 		if (isset($_POST["newField"])) {			
 				//create table if not exists
 			 	$newName=CAF_TAB_PREFIX.sanitize_title($title);
-				$f = $this->createField($newName,$type,$compare,$title,$options,$filterorder,$displayorder,$icon,$fieldformat,$htmlTemplate);
+				$f = $this->createField($newName,$type,$compare,$title,$options,$filterorder,$displayorder,$icon,$fieldformat,$htmlTemplate,$virtVal);
 				$this->fieldsList[] = $f;
 				$f->saveToSQL();				
 				echo "created $name";
-			 
+				MajaxWP\Caching::pruneCache(true,$this->customPostType);
 		}
 		
 		//delete field
@@ -77,6 +81,7 @@ class AutaFields {
 				unset($this->fieldsList[$index]);				
 				echo "deleted $name $key";
 			}
+			MajaxWP\Caching::pruneCache(true,$this->customPostType);
 		}
 	}
 	public function printFields() {
@@ -103,8 +108,8 @@ class AutaFields {
 	</form>
 	 <?php
  }
-	function createField($name,$type,$compare,$title,$options="",$filterorder="",$displayorder="",$icon="",$fieldformat="",$htmlTemplate="") {
-		return new AutaField($name,$type,$title,$options,$this->customPostType,$compare,$filterorder,$displayorder,$icon,$fieldformat,$htmlTemplate);
+	function createField($name,$type,$compare,$title,$options="",$filterorder="",$displayorder="",$icon="",$fieldformat="",$htmlTemplate="",$virtVal="") {
+		return new AutaField($name,$type,$title,$options,$this->customPostType,$compare,$filterorder,$displayorder,$icon,$fieldformat,$htmlTemplate,$virtVal);
 	}
 	function mauta_metaboxes( ) {
 		global $wp_meta_boxes;
@@ -136,8 +141,7 @@ class AutaFields {
 	}
 	function mauta_save_post()	{		
 		if(empty($_POST)) return; //tackle trigger by add new 
-		global $post;
-		AutaCustomPost::sendMessageToMajax("deletecache");
+		MajaxWP\Caching::pruneCache(true,$this->customPostType);
 		foreach ($this->fieldsList as $f) {
 		  $f->saveField();	
 		}			
@@ -172,6 +176,7 @@ class AutaFields {
 		  icon text,
 		  fieldformat text,
 		  htmlTemplate text,
+		  virtVal text,
 		  PRIMARY KEY  (id)
 		) $charset_collate;";
 

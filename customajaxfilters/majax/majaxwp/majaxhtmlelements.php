@@ -64,31 +64,51 @@ Class MajaxHtmlElements {
     function formatField($field,$fieldFormat) {                
         if ($fieldFormat) $field=str_replace("%1",$field,$fieldFormat);
         return $field;
-    }
-    function showPost($cpt,$id,$name,$title,$image="",$content="",$metas="",$itemDetails="") {       
-        $this->showPostDefault($id,$name,$title,$image,$content,$metas,$itemDetails);
-    }
-    function showPostDefault($id,$name,$title,$image,$content,$metas,$itemDetails) {         
-        $metaOut=array();     
+    }    
+    function showPost($id,$name,$title,$image="",$content="",$metas=[],$itemDetails="") {      
+        //used for static content output   
+        $metaOut=[];     
+        $featuredText=[];
         for ($n=0;$n<5;$n++) {
             $metaOut[$n]="";
         }        
-        foreach ($metas as $metaName => $metaMisc) {           
-            //echo json_encode($metaMisc); da
+        foreach ($metas as $metaName => $metaMisc) {
+            //iterate fields           
             $metaIcon=$metaMisc["icon"];
             $displayOrder=$metaMisc["displayorder"];
             $fieldFormat=$metaMisc["fieldformat"];
             $metaVal=$itemDetails[$metaName];
+            $htmlTemplate=$metaMisc["htmlTemplate"];
+            
             if ($metaIcon) $metaIcon="<img src='$metaIcon' />";
-            else $metaIcon="<span>$metaName</span>";	
+            else $metaIcon="<span>{$metaMisc["title"]}</span>";	
+
+            if ($metaMisc["virtVal"]) { //virtual values; first character .. # - clone value from other field, otherwise fix value
+                if (substr($metaMisc["virtVal"],0,1) == "#") { 
+                    //clone from other field
+                    $cloneVar=substr($metaMisc["virtVal"],1);
+                    $metaVal=ceil($itemDetails[$cloneVar]*1.21);    
+                    $displayOrder=($displayOrder) ? $displayOrder : $metas[$cloneVar]["displayorder"];
+                    $htmlTemplate=($htmlTemplate) ? $htmlTemplate : $metas[$cloneVar]["htmlTemplate"];
+                    $fieldFormat=($fieldFormat) ? $fieldFormat : $metas[$cloneVar]["fieldformat"];
+                    $metaIcon=($metaIcon) ? $metaIcon : $metas[$cloneVar]["icon"];
+                }
+                else $metaVal=$metaMisc["virtVal"];
+            }             
+            if ($htmlTemplate) {
+                $htmlTemplate=str_replace('${formattedVal}',$this->formatField($metaVal,$fieldFormat),$htmlTemplate);
+                $htmlTemplate=str_replace('${metaIcon}',$metaIcon,$htmlTemplate);  
+                $metaVal=$htmlTemplate;              
+            }
+            
+           
            
             if ($displayOrder<20) {
                 if ($metaMisc["type"]=="NUMERIC") $metaOut[0]=$metaOut[0] . "<div class='col meta col-md-2'>$metaIcon"."$metaVal</div>";
                 else $metaOut[0]=$metaOut[0] . "<div class='col meta'>$metaIcon"."$metaVal</div>";
             }
             if ($displayOrder>=20 && $displayOrder<=30) {
-                $metaOut[1]=$metaOut[1] . $this->postTemplate("cena-bez-dph",[$metaVal,$fieldFormat]);
-                $metaOut[2]=$metaOut[2] . $this->postTemplate("cena-s-dph",[ceil($metaVal*1.21),$fieldFormat]);
+                $metaOut[1]=$metaOut[1] . $metaVal;                
             }
             if ($displayOrder>30 && $displayOrder<=40) {
                 $propVal=$metaVal;
@@ -103,7 +123,9 @@ Class MajaxHtmlElements {
                     </div> 
                 </div>";
             }
-            
+            if ($displayOrder>40 && $displayOrder<=50) {
+                $featuredText[]=$metaVal;
+            }
         }
   
         if ($image!="") {
@@ -120,8 +142,16 @@ Class MajaxHtmlElements {
                         <div class='row flex-grow-1 bort'>
                             <div class='col title'>                        
                                 <?= $image?>
-                                <div class='stripes stripe1'>Převodovka - manuál</div>
-                                <div class='stripes stripe2'>Dálniční známka pro ČR</div>                                
+                                <?php
+                                    $n=1;
+                                    foreach ($featuredText as $f) {
+                                    ?>
+                                     <div class='stripes stripe<?= $n?>'><?= $f?></div>
+                                    <?php
+                                     $n++;
+                                    }
+                                ?>
+
                             </div>
                         </div>                        
                         <div class='row mcontent'>			    
@@ -142,29 +172,7 @@ Class MajaxHtmlElements {
                     </div>
         <?php
     }    
-    function postTemplate($templateName,$params=[]) {
-        if ($templateName=="cena-bez-dph") {
-            return "
-            <div class='col-sm-6 price'>
-                Cena bez DPH / měsíc 
-                <div class='row'>
-                    <div class='col priceTag'>".
-                        $this->formatField($params["metaVal"],$params["fieldFormat"])."
-                    </div>
-                </div> 
-            </div>";
-        }
-        if ($templateName=="cena-s-dph") {
-            return "
-            <div class='col-sm-6 price'>
-                Cena včetně DPH / měsíc 
-                <div class='row'>
-                    <div class='col priceTag'>".
-                    $this->formatField($params["metaVal"],$params["fieldFormat"])."
-                    </div>
-                </div> 
-            </div>";
-        }
+    function postTemplate($templateName,$params=[]) {        
         if ($templateName=="multi") {
             return "
             <div class='majaxout' id='majaxout{id}'>         
