@@ -15,7 +15,7 @@ class AutaFields {
 		$tableName=AutaPlugin::getTable($tabName,$this->customPostType);
 		$query = "SELECT * FROM `{$tableName}` ORDER BY `filterorder`";	
 		foreach( $wpdb->get_results($query) as $key => $row) {					
-			$this->fieldsList[] = $this->createField($row->name,$row->type,$row->compare,$row->title,$row->value,$row->filterorder,$row->displayorder,$row->icon,$row->fieldformat);
+			$this->fieldsList[] = $this->createField($row->name,$row->type,$row->compare,$row->title,$row->value,$row->filterorder,$row->displayorder,$row->icon,$row->fieldformat,$row->htmlTemplate);
 			$load=true;
 		}	
 		return true;
@@ -31,6 +31,7 @@ class AutaFields {
 		$displayorder=filter_input( INPUT_POST, "displayorder", FILTER_SANITIZE_STRING );
 		$icon=filter_input( INPUT_POST, "icon", FILTER_SANITIZE_STRING );
 		$fieldformat=filter_input( INPUT_POST, "fieldformat", FILTER_SANITIZE_STRING );
+		$htmlTemplate=$_POST["htmlTemplate"];//filter_input( INPUT_POST, "htmlTemplate", FILTER_SANITIZE_STRING );
 		
 		if (isset($_POST["editField"])) {						
 			foreach ($this->fieldsList as $f) {	
@@ -43,6 +44,7 @@ class AutaFields {
 				$f->displayorder=$displayorder;
 				$f->icon=$icon;
 				$f->fieldformat=$fieldformat;
+				$f->htmlTemplate=$htmlTemplate;
 				$f->saveToSQL();
 				echo "changed $name";
 			 }
@@ -53,7 +55,7 @@ class AutaFields {
 		if (isset($_POST["newField"])) {			
 				//create table if not exists
 			 	$newName=CAF_TAB_PREFIX.sanitize_title($title);
-				$f = $this->createField($newName,$type,$compare,$title,$options,$filterorder,$displayorder,$icon,$fieldformat);
+				$f = $this->createField($newName,$type,$compare,$title,$options,$filterorder,$displayorder,$icon,$fieldformat,$htmlTemplate);
 				$this->fieldsList[] = $f;
 				$f->saveToSQL();				
 				echo "created $name";
@@ -101,8 +103,8 @@ class AutaFields {
 	</form>
 	 <?php
  }
-	function createField($name,$type,$compare,$title,$options="",$filterorder="",$displayorder="",$icon="",$fieldformat="") {
-		return new AutaField($name,$type,$title,$options,$this->customPostType,$compare,$filterorder,$displayorder,$icon,$fieldformat);
+	function createField($name,$type,$compare,$title,$options="",$filterorder="",$displayorder="",$icon="",$fieldformat="",$htmlTemplate="") {
+		return new AutaField($name,$type,$title,$options,$this->customPostType,$compare,$filterorder,$displayorder,$icon,$fieldformat,$htmlTemplate);
 	}
 	function mauta_metaboxes( ) {
 		global $wp_meta_boxes;
@@ -169,6 +171,7 @@ class AutaFields {
 		  displayorder smallint,
 		  icon text,
 		  fieldformat text,
+		  htmlTemplate text,
 		  PRIMARY KEY  (id)
 		) $charset_collate;";
 

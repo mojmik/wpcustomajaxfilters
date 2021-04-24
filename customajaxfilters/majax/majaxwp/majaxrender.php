@@ -208,6 +208,7 @@ Class MajaxRender {
 			$row["misc"][$field->outName()]["displayorder"]=$field->displayOrder;	
 			$row["misc"][$field->outName()]["title"]=$field->title;	
 			$row["misc"][$field->outName()]["type"]=$field->type;	
+			$row["misc"][$field->outName()]["htmlTemplate"]=$field->htmlTemplate;	
 		}
 		if ($templateName<>"") {
 			$row["htmltemplate"][$templateName]=$this->htmlElements->getTemplate($templateName);				

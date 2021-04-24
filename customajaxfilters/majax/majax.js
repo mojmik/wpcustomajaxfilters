@@ -68,6 +68,7 @@ const metaMisc = {
 	aktMin:[],
 	aktMax:[],
 	displayorder:[],
+	htmlTemplate:[],
 	title:[],
 	addMetaMisc: function(misc) {
 		for (let key in misc) {
@@ -80,6 +81,7 @@ const metaMisc = {
 			this.fieldformat[key]=misc[key]["fieldformat"];
 			this.displayorder[key]=misc[key]["displayorder"];
 			this.title[key]=misc[key]["title"];
+			this.htmlTemplate[key]=misc[key]["htmlTemplate"];
 		}
 	},
 	formatMetaVal: (val1 , val2=0, format=2, direction="toFormat", oneVal=false) => {		

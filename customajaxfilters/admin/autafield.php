@@ -2,7 +2,7 @@
 namespace CustomAjaxFilters\Admin;
 
 class AutaField {
- public function __construct($name,$type="",$title="",$options="",$postType="",$compare="",$filterorder="",$displayorder="",$icon="",$fieldformat="") {
+ public function __construct($name,$type="",$title="",$options="",$postType="",$compare="",$filterorder="",$displayorder="",$icon="",$fieldformat="",$htmlTemplate="") {
 	  $this->name=$name;	 
 	  $this->type=$type;	
 	  $this->id=CAF_TAB_PREFIX.$name;
@@ -14,6 +14,7 @@ class AutaField {
 	  $this->displayorder=$displayorder;
 	  $this->icon=$icon;
 	  $this->fieldformat=$fieldformat;
+	  $this->htmlTemplate=$htmlTemplate;
  } 
  public function addMetaBox($val) {
 	$this->val=$val;
@@ -69,6 +70,7 @@ class AutaField {
 			<div><div><label>filterorder</label></div><input type='text' name='filterorder' value='<?= $this->filterorder?>' /></div>	
 			<div><div><label>displayorder</label></div><input type='text' name='displayorder' value='<?= $this->displayorder?>' /></div>	
 			<div><div><label>fieldformat</label></div><input type='text' name='fieldformat' value='<?= $this->fieldformat?>' /></div>	
+			<div><div><label>html template</label></div><textarea type='text' name='htmlTemplate'><?= $this->htmlTemplate?></textarea></div>	
 			<div><div><label>icon</label></div>
 
 			<div class='iconEdit'>
@@ -119,8 +121,8 @@ class AutaField {
 	if ($tabName=="ajax") {
 		$icon=wp_get_attachment_url($icon);
 	}	
-	$query = "INSERT INTO `{$tableName}` ( `name`, `value`, `type`, `title`, `compare`, `valMin`, `valMax`, `postType`, `filterorder`, `displayorder`, `icon`, `fieldformat`) 
-		VALUES ('{$this->name}', '{$this->value}', '{$this->type}', '{$this->title}', '{$this->compare}', '{$this->valMin}', '{$this->valMax}', '{$this->customPostType}', '{$this->filterorder}', '{$this->displayorder}', '{$icon}', '{$this->fieldformat}');";   
+	$query = "INSERT INTO `{$tableName}` ( `name`, `value`, `type`, `title`, `compare`, `valMin`, `valMax`, `postType`, `filterorder`, `displayorder`, `icon`, `fieldformat`, `htmlTemplate`) 
+		VALUES ('{$this->name}', '{$this->value}', '{$this->type}', '{$this->title}', '{$this->compare}', '{$this->valMin}', '{$this->valMax}', '{$this->customPostType}', '{$this->filterorder}', '{$this->displayorder}', '{$icon}', '{$this->fieldformat}', '{$this->htmlTemplate}');";   
 	$wpdb->get_results($query);	 
 	return "<br /> $query {$this->name} saved";
    }

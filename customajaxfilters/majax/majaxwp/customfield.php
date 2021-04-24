@@ -4,7 +4,7 @@ namespace CustomAjaxFilters\Majax\MajaxWP;
 class CustomField {
 
  
-	public function __construct($name="",$value="",$type="",$title="",$compare="=",$valMin=false,$valMax=false,$postType="hp_listing",$icon="",$filterOrder="",$displayOrder="",$fieldformat="") {
+	public function __construct($name="",$value="",$type="",$title="",$compare="=",$valMin=false,$valMax=false,$postType="hp_listing",$icon="",$filterOrder="",$displayOrder="",$fieldformat="",$htmlTemplate="") {
 	 $this->name=$name;	 
 	 $this->value=$value;	 
 	 $this->type=$type;	 
@@ -18,6 +18,7 @@ class CustomField {
 	 $this->filterOrder=$filterOrder;
 	 $this->displayOrder=$displayOrder;
 	 $this->fieldformat=$fieldformat;	 
+	 $this->htmlTemplate=$htmlTemplate;
 	 $this->postedValue="";
 	}	
 	public function setFixFilter($filter) {

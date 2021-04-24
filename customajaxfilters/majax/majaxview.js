@@ -55,14 +55,23 @@ var majaxModule=(function (my) {
                 let metaIcon=my.metaMisc.icons[property];
                 let displayOrder=my.metaMisc.displayorder[property];
                 let metaTitle=my.metaMisc.title[property];
+                let htmlTemplate=my.metaMisc.htmlTemplate[property]; 
+                let formattedVal=my.metaMisc.formatMetaVal(meta[property],0,my.metaMisc.fieldformat[property],"toFormat",true);
+                
+                if (my.mStrings.isNonEmptyStr(htmlTemplate)) {
+                    htmlTemplate=htmlTemplate.replace("${formattedVal}",formattedVal);
+                    htmlTemplate=htmlTemplate.replace("${metaIcon}",metaIcon);
+                }
                 if (typeof metaIcon!== 'undefined' && metaIcon!="") metaIcon=`<img src='${metaIcon}' />`;
                 else metaIcon=`<span>${metaTitle}</span> `;	
                 if (displayOrder<20) {
                     //meta group 0
                     metaOut[0]=metaOut[0] + `<div class='col meta'>${metaIcon}${meta[property]}</div>`;
                 }
-                if (displayOrder>=20 && displayOrder<=30) {                    		
+                if (displayOrder>=20 && displayOrder<=30) {  
+                    metaOut[1]=metaOut[1] + htmlTemplate;
                     //meta group 1
+                    /*
                     let formattedVal1=my.metaMisc.formatMetaVal(meta[property],0,my.metaMisc.fieldformat[property],"toFormat",true);
                     let formattedVal2=my.metaMisc.formatMetaVal(Math.ceil(meta[property]*1.21),0,my.metaMisc.fieldformat[property],"toFormat",true);
                     metaOut[1]=metaOut[1] + `  
@@ -83,6 +92,7 @@ var majaxModule=(function (my) {
                             </div>
                         </div> 
                     </div>`;
+                    */
                 }
                 if (displayOrder>30 && displayOrder<=40) {
                     //meta group 2
