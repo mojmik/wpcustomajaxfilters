@@ -16,7 +16,8 @@ class AutaCustomPost {
 		 add_action('admin_menu' , [$this,'add_to_admin_menu']); 
 		 
 		 //init custom fields
-		 $this->autaFields = new AutaFields($this->customPostType);		 		 
+		 $this->autaFields = new AutaFields($this->customPostType);		
+		 $this->autaFields->loadFromSQL();
 		 
 		 add_action( 'save_post_'.$this->customPostType, [$this,'saveCPT'] ); 
 		 
@@ -142,7 +143,8 @@ class AutaCustomPost {
 	  <?php
 	  $setUrl = [
 					["recreate",add_query_arg( 'do', 'recreate'),"remove all"],
-					["refresh",add_query_arg( 'do', 'refresh'),"not implemented"],				
+					["export fields",add_query_arg( ['do'=>'exportfields','noheader'=>'1']),"export fields to csv"],				
+					["import fields",add_query_arg( 'do', 'importfields'),"import fields from csv"],
 				];
 	  ?>
 	  <ul>
@@ -163,15 +165,34 @@ class AutaCustomPost {
 		$this->autaFields->makeTable("fields",true);		
 		$this->autaFields->fieldsList=array();
 	  }	 
+	  if ($do=="exportfields") {		    
+		  $exportCsv=new ExportCSV();
+		  $thisTable=AutaPlugin::getTable("fields",$this->customPostType);
+		  $exportCsv->exportTable($thisTable);
+	  }
+	  if ($do=="importfields") {	    		
+		if(isset($_FILES['mfilecsv']) && ($_FILES['mfilecsv']['size'] > 0)) {
+			$upload_overrides = array( 'test_form' => false ); 
+			$uploaded_file = wp_handle_upload($_FILES['mfilecsv'], $upload_overrides);
+			$fn = $uploaded_file['file'];
+			if(isset($fn) && wp_check_filetype($uploaded_file['file'],"text/csv")) {									
+					$importCSV=new ImportCSV($this->customPostType);	
+					$thisTable=AutaPlugin::getTable("fields",$this->customPostType);
+					$importCSV->loadCsvFile($fn,$thisTable,";","",null,false,"",true,true);		  	  								
+					$this->autaFields->loadFromSQL();				
+					echo "imported";
+			}
+		} else {
+			?>
+			<form method="post" enctype="multipart/form-data"> 
+				<input type="file" name="mfilecsv" id="mfilecsv" />
+				<input type="submit" name="html-upload" id="html-upload" class="button" value="Upload" />
+			</form>
+			<?php	
+		}				
+	  }
 	  $this->autaFields->procEdit();
 	  $this->autaFields->printNewField();
 	  $this->autaFields->printFields();		 
-	  if ($do=="ajax") {	
-		$this->autaFields->makeTable("ajax");
-		$this->autaFields->initMinMax();
-		$this->autaFields->saveFields("ajax");
-		AutaCustomPost::sendMessageToMajax("deletecache");
-	  }
-	 	  
 	}	
 }

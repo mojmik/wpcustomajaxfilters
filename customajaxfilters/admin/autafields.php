@@ -3,21 +3,20 @@ namespace CustomAjaxFilters\Admin;
 use \CustomAjaxFilters\Majax\MajaxWP as MajaxWP;
 
 class AutaFields {
-	public $fieldsList=array();
+	private $fieldsList=array();
 	private $customPostType;
 	public function __construct($postType) {					
 		add_action( 'add_meta_boxes_'.$postType, [$this,'mauta_metaboxes'] );		
 		add_action( 'save_post_'.$postType, [$this,'mauta_save_post'] ); 
-		$this->customPostType=$postType;		
-		$this->loadFromSQL();
+		$this->customPostType=$postType;				
 	}
-	private function loadFromSQL($tabName="fields") {
+	public function loadFromSQL($tabName="fields") {
 		global $wpdb;		
+		$this->fieldsList=[];
 		$tableName=AutaPlugin::getTable($tabName,$this->customPostType);
-		$query = "SELECT * FROM `{$tableName}` ORDER BY `filterorder`";	
+		$query = "SELECT * FROM `{$tableName}` ORDER BY `displayorder`";	
 		foreach( $wpdb->get_results($query) as $key => $row) {					
 			$this->fieldsList[] = $this->createField($row->name,$row->type,$row->compare,$row->title,$row->value,$row->filterorder,$row->displayorder,$row->icon,$row->fieldformat,$row->htmlTemplate);
-			$load=true;
 		}	
 		return true;
 	}

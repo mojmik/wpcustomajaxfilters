@@ -177,8 +177,8 @@ class ImportCSV {
 	}
 	private function fgetcsvUTF8(&$handle, $length, $separator = ';',$encoding="") {
 		if (($buffer = fgets($handle, $length)) !== false)    {
-			$buffer = $this->autoUTF($buffer,$encoding);
-			return str_getcsv($buffer, $separator);
+			$buffer = $this->autoUTF($buffer,$encoding);			
+			return str_getcsv($buffer, $separator,"","\\");
 		}
 		return false;	
 	}
@@ -187,21 +187,15 @@ class ImportCSV {
 		if ($encoding=="cp852") return iconv('CP852', 'UTF-8', $s);
 		return $s;
 	}
-	public function loadCsvFile($file,$table,$sep="^",$enc='"',$skipCols=null,$createTable=false,$encoding="") {
+	public function loadCsvFile($file,$table,$sep="^",$enc='"',$skipCols=null,$createTable=false,$encoding="",$emptyFirst=false,$colsOnFirstLine=true,$mCols=[]) {
 		global $wpdb;
 		$fh = fopen($file, "r"); 
-		//echo "-".$fh." ".$file."-";
-		$queryO="INSERT INTO `$table` SET ";
-		$filesize=filesize($file);
-		$radek=0;
 		$lineNum=0;
-		$mInserted=0;
-		$mCols=array();
+		$mInserted=0;		
+		if ($emptyFirst) $wpdb->query("TRUNCATE TABLE `$table`");
 		while ($line = $this->fgetcsvUTF8($fh, 8000, $sep,$encoding)) {		
-			//utf8_encode			
-			//echo "-line: ".$fh." ".$file." $line-";
-			$lineNum++;
-			if ($lineNum===1) {		
+			$lineNum++;			
+			if ($colsOnFirstLine && $lineNum===1) {		
 			 $mCols=$line;
 			 if ($createTable) $this->createTable($table,$line);
 			}
@@ -209,12 +203,10 @@ class ImportCSV {
 				$n=0;
 				foreach ($line as $mVal) {
 					$colName=$mCols[$n];
-					//echo "<br />colN:".$colName."-".$mVal.";";
 					$mRow[$colName]=$mVal;
 					$n++;
 				}									
 				$query=$this->getInsertQueryFromArray($table,$mRow,$skipCols);
-				//echo "<br />$query";
 				$result = $wpdb->get_results($query);
 				$mInserted++;			 
 			}			
