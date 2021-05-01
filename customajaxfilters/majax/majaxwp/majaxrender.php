@@ -10,7 +10,7 @@ Class MajaxRender {
 	private $subType;
 	
 
-	function __construct($ajax=false,$atts=[]) {	
+	function __construct($ajax=false,$atts=[]) {				
 			if (!empty($atts)) { 
 				if (isset($atts["type"])) $this->setPostType($atts["type"]);
 				if (isset($atts["typ"])) $this->subType=$atts["typ"];				
@@ -73,12 +73,13 @@ Class MajaxRender {
 		//$mForm->printForm("majaxContactForm",$title);
 		$this->htmlElements->showMainPlaceHolderStatic(false);
 	}
-	function showFormFilled($miscAction,$title) {
+	function showFormFilled($templateName) {
 		$mForm=new MajaxForm($this->getPostType());
-		echo json_encode($mForm->runForm($miscAction,$title,$this->getPostType())).PHP_EOL;
+		$htmlSrc=$this->htmlElements->getTemplate("contactFormMessage");
+		echo json_encode($mForm->runForm($htmlSrc)).PHP_EOL;
 	}
-	function showFormFields($miscAction,$type) {
-		$mForm=new MajaxForm($this->getPostType());
+	function showFormFields($type) {
+		$mForm=new MajaxForm($type);
 		echo json_encode($mForm->renderForm()).PHP_EOL;	
 		
 	}
@@ -312,8 +313,9 @@ Class MajaxRender {
 						if ($miscAction=="action") {							
 							echo json_encode($mForm->renderForm($this->htmlElements->getTemplate("defaultForm","form"))).PHP_EOL;	
 						}
-						if ($miscAction=="contactFilled") {							
-							echo json_encode($mForm->runForm()).PHP_EOL;	
+						if ($miscAction=="contactFilled") {	
+							$htmlSrc=$this->htmlElements->getTemplate("contactFormMessage");						
+							echo json_encode($mForm->runForm($htmlSrc)).PHP_EOL;	
 						}						
 					}					
 				 }

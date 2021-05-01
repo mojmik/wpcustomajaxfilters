@@ -51,7 +51,7 @@ class MajaxForm {
         $fields=[
             ["idName" => "fname", "inputType" => "latinletters", "mRequired" => true, "sameLikeName" => false, "caption" => "Jméno" ],
             ["idName" => "email", "inputType" => "email", "mRequired" => true, "sameLikeName" => false, "caption" => "Email" ],
-            ["idName" => "msg", "inputType" => "textarea", "mRequired" => false, "sameLikeName" => false, "caption" => "Zpráva" ],
+            ["idName" => "msg", "inputType" => "textarea", "mRequired" => true, "sameLikeName" => false, "caption" => "Zpráva" ],
             ["idName" => "postTitle", "inputType" => "hidden", "mRequired" => false, "sameLikeName" => false, "caption" => "" ],            
             ["idName" => "postType", "inputType" => "hidden", "mRequired" => false, "sameLikeName" => false, "caption" => "" ]            
         ];
@@ -72,8 +72,13 @@ class MajaxForm {
             ];        
     }
     foreach ($fields as $f) {
-        $this->inputFields[]=array($f["idName"],$f["caption"]);
-        $this->postedFields[]=array($f["idName"],$f["inputType"],$f["mRequired"],$f["sameLikeName"],$f["caption"]);
+        $this->inputFields[]=array("idName"=>$f["idName"],"caption"=>$f["caption"]);
+        $this->postedFields[]=array(
+        "idName"=>$f["idName"],
+        "inputType"=>$f["inputType"],
+        "mRequired"=>$f["mRequired"],
+        "sameLikeName"=>$f["sameLikeName"],
+        "caption"=>$f["caption"]);
     }   
    }
    function renderForm($htmlSrc="") {
@@ -85,38 +90,47 @@ class MajaxForm {
     $row["htmlSrc"]=$htmlSrc;
     $row["name"]="majaxContactForm";
     $row["siteKey"]="6LdBeIYaAAAAAKca7Xx8-xEHujjD6XbdIj3Q5mUb";
+    $row["flag"]="form-show";
     //idName, inputType, mRequired=true, sameLikeName=false    
     $row["fields"]=$this->postedFields;
     //$row["fields"]=[["neco" => "cau", "neco2" => "as"],["aneco" => "cau", "aneco2" => "as"]];
     return $row;
    }
-   function runForm() {		
+   function runForm($htmlSrc="") {		
         $row=[];                  
         if (!$this->checkCaptcha()) {
             $row["title"]="action";
+            $row["flag"]="form-not-ok";
+            $row["htmlSrc"]=$htmlSrc;
             $row["content"]="Antispam ověření selhalo, vraťte se zpět a zkuste znova."; 
             return $row;
         }
         $outHtml="";
         $outTxt="";
-        foreach ($this->postedFields as $name => $value) {
-            if ($outTxt) $outTxt.="<br />";
-            //$out.="$name: ".filter_var($_POST[$name], FILTER_SANITIZE_STRING);
-            $formVal=$_POST[$name];
-            $outTxt.="$value - $formVal";	
-            $outHtml.="<tr><td><b>$value</b></td><td>".$formVal."</td></tr>";	
-            if ($name=="email") $replyTo=$formVal;
+        foreach ($this->postedFields as $p) {
+            if ($p["caption"]) {
+                if ($outTxt) $outTxt.="<br />";            
+                $varDump="";
+                $formVal=$_POST[$p["idName"]];
+                $caption=$p["caption"];
+                $outTxt.="$varDump $caption - $formVal";	
+                $outHtml.="<tr><td><b>$caption</b></td><td>".$formVal."</td></tr>";	
+            }            
+            if ($p["idName"]=="email") $replyTo=$formVal;
         }			
         $outHtml="<table>$outHtml</table>";			
         
-        $to = $this->loadSecret("emailydefault",true);            
-        $subject = 'objednavka z hertz-autopujcovna.cz';
+        $to = $this->loadSecret("emailydefault",false);            
+        $subject = 'objednavka z '.$_SERVER['SERVER_NAME'];
         $body = "<h1>Objednavka z webu</h1> <h3>Typ: {$this->postType}</h3> <br /><br />{$outHtml}";      	
-        $headers = array('Content-Type: text/html; charset=UTF-8');	
-        wp_mail($to,$subject,$body,$headers);			
+        $headers = 'Content-Type: text/html; charset=UTF-8';	
+        mail($to,$subject,$body,$headers);			
         $this->logWrite("".$outTxt." replyto $replyTo.","filledform.txt");
         $row["title"]="action";
-        $row["content"]="Díky za odeslání. Budeme vás brzy kontaktovat.";
+        $row["flag"]="form-ok";        
+        $htmlSrc=MajaxHtmlElements::processTemplate($htmlSrc,["content"=>"_(Thanks for submitting. We will contact you soon.)"]);        
+        $row["htmlSrc"]=$htmlSrc;
+        $row["content"]="";
         return $row;        
     }	
     function loadSecret($file,$isArray=false) {     

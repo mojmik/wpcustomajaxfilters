@@ -1,9 +1,18 @@
 <?php
 namespace CustomAjaxFilters\Majax\MajaxWP;
-
+use \CustomAjaxFilters\Admin as MajaxAdmin;
 use stdClass;
 
 Class MajaxHtmlElements {	
+    private $templatePath;
+    public function __construct() {
+        $this->templatePath=plugin_dir_path( __FILE__ ) ."templates/";
+    }
+    public function checkPath() {
+        if (!file_exists($this->templatePath)) {
+            mkdir($this->templatePath, 0777, true);
+        } 
+    }
     function showBackButton() {
         ?>
         <div style='display:none;' id="majaxback">
@@ -221,50 +230,28 @@ Class MajaxHtmlElements {
                     </div>                
                 </div>";
         }
+        return $this->loadTemplate($templateName);
+    }
+    function loadTemplate($templateName) {
+        $html=file_get_contents($this->templatePath.$templateName.".html");
+        
+        return $html;
     }
     function formTemplate($templateName,$params=[]) {
+        $postType="";
         if (isset($params["title"])) $postTitle=$params["title"];
         if (isset($params["type"])) $postType=$params["type"];
+        if (isset($params["output"])) $output=$params["output"];
         $innerForm="";
+        $html=$this->loadTemplate($templateName);        
         if ($templateName=="contactForm") {
-            ?>
-            <div class="mpagination">
-            <div class="row frameGray">
-                <div class="col-md-11 col-xs-12 mcent">
-                    <form id="majaxContactForm" data-group="staticForms" method="post">
-                                                <div class="row formGroup">
-                                                    <div class="col-sm-6">                                    
-                                                        <input type="text" class="form-control" id="fname" name="fname" placeholder="Jméno">
-                                                    </div>
-                                                    <div class="col-sm-6">                                                                        
-                                                        <input type="text" class="form-control email" id="email" name="email" placeholder="Email*">
-                                                    </div>                                
-                                                </div>
-                                                <div class="row formGroup">                                                                                    
-                                                    <div class="col-sm-12">                                    
-                                                        <textarea class="form-control" id="txtmsg" name="msg" placeholder="Vaše zpráva*"></textarea>
-                                                    </div>
-                                                </div>
-                                                <div class="row formGroup">                                                                                    
-                                                    <div class="col-sm-12">
-                                                        anti-spam                                                                                            
-                                                        <div id="myCaptcha"></div>
-                                                    </div>
-                                                </div>                                                                                                
-                                                <div class="row3">	
-                                                        <div class="col-sm-3 pullRight col-xs-12">
-                                                            <input type="submit" class="btn btn-primary btn-block" name="submit" id="submit" value="Potvrdit">
-                                                                <input type="Button" class="btn btn-primary btn block" value="Processing.." id="divprocessing" style="display: none;">
-                                                        </div>
-                                                </div>                                                
-                                                <input type='hidden' name='postTitle' value='<?= $postType?>' />
-                                                <input type='hidden' name='postType' value='<?= $postType?>' />
-                                                
-                        </form>
-                    </div>
-                </div>
-            </div>
-            <?php
+            $requiredFields="
+             <input type='hidden' name='postTitle' value='$postType' />
+             <input type='hidden' name='postType' value='$postType' />
+            ";            
+            $html=str_replace("{contactFormRequired}",$requiredFields,$html);            
+            $html=$this->processTemplate($html);
+            echo $html;
             return "";
         }
         if ($templateName=="defaultForm") {
@@ -358,8 +345,61 @@ Class MajaxHtmlElements {
         if ($type=="post") {
             return $this->postTemplate($templateName,$params);
         }
-        if ($type=="form") {
+        if ($type=="form") {            
             return $this->formTemplate($templateName,$params);
         }  
     }
+    static function loadTranslation($what) {
+        $tran=$what;
+        $file=plugin_dir_path( __FILE__ ) ."translations/translations.txt";
+        $importCSV=new MajaxAdmin\ImportCSV();	
+		$importCSV->setParam("separator","^")
+        ->setParam("colsOnFirstLine",false);
+        $languages=["sk" => 2, "cz" => 1, "en" => 0];
+        $rows=$importCSV->loadCsvValuesFromColumnWithKey($file,0,$what,$languages["sk"]);
+        if (count($rows)) $tran=$rows[count($rows)-1];
+        //MajaxAdmin\AutaPlugin::logWrite("",$rows);
+        return $tran;
+    }
+    static function processTemplate($htmlSrc,$params=[]) {
+        //translate _(texts) 
+        preg_match_all('/_\((.*?)\)/s', $htmlSrc, $matches);
+        for ($i = 0; $i < count($matches[1]); $i++) {
+            $key = $matches[0][$i];
+            $m = $matches[1][$i];            
+            $repl=MajaxHtmlElements::loadTranslation($m);            
+            $htmlSrc=str_replace($key,$repl,$htmlSrc);
+        }
+        //translate _(texts) values of params 
+        foreach ($params as $paramKey => $value) {
+            preg_match_all('/_\((.*?)\)/s', $value, $matches);
+            for ($i = 0; $i < count($matches[1]); $i++) {
+                $key = $matches[0][$i];
+                $m = $matches[1][$i];
+                $repl=MajaxHtmlElements::loadTranslation($m);            
+                $params[$paramKey]=str_replace($key,$repl,$params[$paramKey]);
+            }
+        }
+        //replace ${params}
+        preg_match_all('/\${(.*?)}/s', $htmlSrc, $matches);
+        for ($i = 0; $i < count($matches[1]); $i++) {
+            $key = $matches[0][$i];
+            $m = $matches[1][$i];
+            $repl="";
+            if (isset($params[$m])) $repl=$params[$m];
+            $htmlSrc=str_replace($key,$repl,$htmlSrc);
+        }
+        //replace {params}
+        preg_match_all('/{(.*?)}/s', $htmlSrc, $matches);
+        for ($i = 0; $i < count($matches[1]); $i++) {
+            $key = $matches[0][$i];
+            $m = $matches[1][$i];
+            $repl="";
+            if (isset($params[$m])) $repl=$params[$m];
+            $htmlSrc=str_replace($key,$repl,$htmlSrc);
+        }
+        return $htmlSrc;
+        
+    }
+
 }

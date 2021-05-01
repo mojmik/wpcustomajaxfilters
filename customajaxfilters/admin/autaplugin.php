@@ -1,5 +1,6 @@
 <?php
 namespace CustomAjaxFilters\Admin;
+use \CustomAjaxFilters\Majax\MajaxWP as MajaxWP;
 
 class AutaPlugin {		
 	private $customPost=[];
@@ -83,6 +84,8 @@ class AutaPlugin {
 		if ( ! wp_next_scheduled( 'caf_cronhook' ) ) {
 			wp_schedule_event( time(), 'daily', 'caf_cronhook' );
 		}
+		$templating=new MajaxWP\MajaxHtmlElements();
+		$templating->checkPath();
 	}
 	function caf_plugin_uninstall() {
 		wp_clear_scheduled_hook( 'caf_cronhook' );
@@ -110,8 +113,28 @@ class AutaPlugin {
 		add_submenu_page($parent_slug, $page_title, $menu_title, $capability, $menu_slug, $function);
 		
 	}
+	function editPluginSettings() {
+		global $wpdb;
+		$settingsMap=["captchasecret","from","sitekey"];
+		$setting=[];
+		if (!isset($_POST["cafActionEditSettings"])) {
+			return;
+		}
+		$table=AutaPlugin::getTable("settings");			
+		foreach ($settingsMap as $s) {
+			$setting[$s]=filter_input( INPUT_POST, $s, FILTER_SANITIZE_STRING );  	 			
+			if (isset($setting[$s])) {
+				$sql = $wpdb->prepare("DELETE FROM `$table` WHERE `opt` like '%s'",$s);
+				$wpdb->query($sql);
+				$sql = $wpdb->prepare("INSERT INTO `$table` (`opt`, `val`) values (%s,%s)",$s,$setting[$s]);				
+				$wpdb->query($sql);
+			}			
+		}
+		echo "saved";
+	}
 	function mainSettings() {
 		global $wpdb;
+		$this->editPluginSettings();
 		$query = "SELECT * FROM `".AutaPlugin::getTable("settings")."`";	
 		$settings=[];
 		$settingsMap=["captchasecret","from","sitekey"];		
@@ -128,7 +151,7 @@ class AutaPlugin {
 			<?php
 		}
 		?>			
-				<div><input name='cafActionEdit' type='submit' value='Edit' /></div>
+				<div><input name='cafActionEditSettings' type='submit' value='Edit' /></div>
 			</form>
 		<?php
 	}
@@ -164,7 +187,7 @@ class AutaPlugin {
 		if (isset($_POST["cafActionEdit"])) {
 			$wpdb->update(AutaPlugin::getTable("main"), array('singular' => $singular, 'plural' => $plural), array('slug' => $slug));
 			foreach ($this->customPost as $cpt ) {
-				if ($cpt->customPostType==$slug) {
+				if ($cpt->getCustomPostType()==$slug) {
 					$cpt->singular=$singular;
 					$cpt->plural=$plural;					  
 				}
@@ -173,7 +196,7 @@ class AutaPlugin {
 		if (isset($_POST["cafActionRemove"])) {
 			$wpdb->delete( AutaPlugin::getTable("main"), array( 'slug' => $slug ) );			
 			foreach ($this->customPost as $key=>$cpt ) {
-				if ($cpt->customPostType==$slug) {
+				if ($cpt->getCustomPostType()==$slug) {
 					$keyDel=$key;	
 					$cpt->autaFields->makeTable("fields",true,true);
 				}
@@ -213,11 +236,11 @@ class AutaPlugin {
 				<div><div><label>singular name</label></div><input type='text' name='singular' value='<?= $cpt->singular?>' /></div>	
 				<div><div><label>plural name</label></div><input type='text' name='plural' value='<?= $cpt->plural?>' /></div>
 				<div><input name='cafActionEdit' type='submit' value='Edit' /></div>
-				<input name='slug' type='hidden' value='<?= $cpt->customPostType?>' />
+				<input name='slug' type='hidden' value='<?= $cpt->getCustomPostType();?>' />
 			</form>
 			<form method='post' class='removeCPT'>
 				<input name='cafActionRemove' type='submit' value='Remove' />
-				<input name='slug' type='hidden' value='<?= $cpt->customPostType?>' />
+				<input name='slug' type='hidden' value='<?= $cpt->getCustomPostType();?>' />
 			</form>			
 			<?php
 			}
@@ -231,7 +254,12 @@ class AutaPlugin {
 		<?php
 	}
 	
-	static function logWrite($val) {
+	static function logWrite($val,$arr=[]) {
+	 if (is_array($arr) && count($arr)>0) {
+		ob_start();
+        var_dump($arr);
+        $val .= ob_get_clean();
+	 }
 	 file_put_contents(plugin_dir_path( __FILE__ ) . "log.txt",date("d-m-Y h:i:s")." ".$val."\n",FILE_APPEND | LOCK_EX);
 	}
 }

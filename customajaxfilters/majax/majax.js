@@ -19,6 +19,10 @@ const mStrings = {
 	isNonEmptyStr: (mVar) => {
 		if ((typeof mVar === 'string' || mVar instanceof String) && mVar) return true;
 		return false;
+	},
+	stringOrDefault: (mVar,mDefault="") => {
+		if ((typeof mVar === 'string' || mVar instanceof String) && mVar) return mVar;
+		return mDefault;
 	}
 }
 

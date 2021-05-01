@@ -237,10 +237,12 @@ var majaxModule=(function (my) {
                 if (jsonObj.htmlSrc) {
                     let htmlOut=htmlTemplate.renderHtml(jsonObj.htmlSrc,jsonObj);
                     jQuery('#majaxmain').append(htmlOut);
-                }                
-                my.majaxViewComponents.majaxContactForm.initDefault("majaxContactForm",jsonObj.fields,jsonObj.siteKey);                                                    
-                majaxRender.showBack();                
-            }
+                }             
+                if (jsonObj.flag=="form-show") {
+                    my.majaxViewComponents.majaxContactForm.initDefault("majaxContactForm",jsonObj.fields,jsonObj.siteKey);
+                }         
+                if (jsonObj.flag!="form-ok") majaxRender.showBack();                
+            }            
             else if (jsonObj.title=="empty") {
                 thisHtml=majaxRender.postTemplateEmpty(thisId,jsonObj.content);
                 majaxRender.animateMajaxBox(thisHtml,thisId);			

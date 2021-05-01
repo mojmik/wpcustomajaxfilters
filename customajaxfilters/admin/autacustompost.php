@@ -22,7 +22,9 @@ class AutaCustomPost {
 		 add_action( 'save_post_'.$this->customPostType, [$this,'saveCPT'] ); 
 		 
 	 }
-
+	 public function getCustomPostType() {
+		 return $this->customPostType;
+	 }
 	 public function saveCPT() {			
 		AutaCustomPost::sendMessageToMajax("deletecache");		
 	 }
@@ -95,10 +97,13 @@ class AutaCustomPost {
 		$do=filter_input( INPUT_GET, "do", FILTER_SANITIZE_STRING );
 		if ($do=="csv") {
 			
-			$importCSV=new ImportCSV($this->customPostType);		
-			$importCSV->loadCsvFile(plugin_dir_path( __FILE__ )."recsout.txt","csvtab","^","",null,true,"cp852");		  
-			$importCSV->createPostsFromTable("csvtab",$this->autaFields->fieldsList);	
-
+			$importCSV=new ImportCSV($this->customPostType);	
+			$importCSV->setParam("separator","^")
+			->setParam("encoding","cp852");
+			if ($importCSV->importCSVfromWP("csvtab")=="imported") { 
+				echo "imported";
+				$importCSV->createPostsFromTable("csvtab",$this->autaFields->fieldsList);	
+			}
 		  }
 		  if ($do=="removecsv") {
 			$importCSV=new ImportCSV($this->customPostType);
@@ -171,25 +176,13 @@ class AutaCustomPost {
 		  $exportCsv->exportTable($thisTable);
 	  }
 	  if ($do=="importfields") {	    		
-		if(isset($_FILES['mfilecsv']) && ($_FILES['mfilecsv']['size'] > 0)) {
-			$upload_overrides = array( 'test_form' => false ); 
-			$uploaded_file = wp_handle_upload($_FILES['mfilecsv'], $upload_overrides);
-			$fn = $uploaded_file['file'];
-			if(isset($fn) && wp_check_filetype($uploaded_file['file'],"text/csv")) {									
-					$importCSV=new ImportCSV($this->customPostType);	
-					$thisTable=AutaPlugin::getTable("fields",$this->customPostType);
-					$importCSV->loadCsvFile($fn,$thisTable,";","",null,false,"",true,true);		  	  								
-					$this->autaFields->loadFromSQL();				
-					echo "imported";
-			}
-		} else {
-			?>
-			<form method="post" enctype="multipart/form-data"> 
-				<input type="file" name="mfilecsv" id="mfilecsv" />
-				<input type="submit" name="html-upload" id="html-upload" class="button" value="Upload" />
-			</form>
-			<?php	
-		}				
+		$thisTable=AutaPlugin::getTable("fields",$this->customPostType);
+		$importCSV=new ImportCSV($this->customPostType);
+		$importCSV->setParam("separator",";");			
+		if ($importCSV->importCSVfromWP($thisTable)=="imported") { 
+			echo "imported";
+			$this->autaFields->loadFromSQL();
+		}
 	  }
 	  $this->autaFields->procEdit();
 	  $this->autaFields->printNewField();

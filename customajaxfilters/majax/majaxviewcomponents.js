@@ -145,11 +145,16 @@ var majaxModule=(function (my) {
             addInputs(fieldSet) {
                 fieldSet.forEach(function(fields, key) {
                     //mUrl.params[key]=decodeURIComponent(value);
-                    majaxViewComponents.mForms.addInput(fields[0],fields[1],fields[2],fields[3]);      
+                    majaxViewComponents.mForms.addInput(fields);      
                 });
                 
             },
-            addInput: function (idName, inputType, mRequired=true, sameLikeName=false) {
+            addInput: function (fields) {
+                idName=my.mStrings.stringOrDefault(fields["idName"]);
+                inputType=my.mStrings.stringOrDefault(fields["inputType"]);
+                mRequired=my.mStrings.stringOrDefault(fields["mRequired"],true);
+                sameLikeName=my.mStrings.stringOrDefault(fields["sameLikeName"],false);
+            
                 this.postedFields.push({"name": idName,"type": inputType,"required": mRequired, "sameLikeName" : sameLikeName});                                  
             },
             check: function(postedFieldKey,val) {

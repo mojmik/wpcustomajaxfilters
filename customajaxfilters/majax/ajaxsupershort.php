@@ -27,12 +27,13 @@ require_once(plugin_dir_path( __FILE__ ) . '/majaxwp/majaxitem.php');
 require_once(plugin_dir_path( __FILE__ ) . '/majaxwp/caching.php');
 require_once(plugin_dir_path( __FILE__ ) . '/majaxwp/mikdb.php');
 require_once(plugin_dir_path( __FILE__ ) . '/majaxwp/imagecache.php');
-
+require_once(plugin_dir_path( __FILE__ ) . '../admin/importcsv.php');
+define('CAF_TAB_PREFIX','mauta_');
 
 $action=$_POST["action"];
 if ($action=="formInit") {
-	$renderer = new MajaxWP\MajaxRender(true); //use false pro preloading hardcoded fields (save one sql query)
-	$renderer->showFormFields("contactFilled","kontakt form");	
+	$renderer = new MajaxWP\MajaxRender(false); //use false pro preloading hardcoded fields (save one sql query)
+	$renderer->showFormFields($_POST["type"]);	
 }
 if ($action=="contact_filled") {
 	$renderer = new MajaxWP\MajaxRender(true); //use false pro preloading hardcoded fields (save one sql query)

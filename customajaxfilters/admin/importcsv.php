@@ -5,8 +5,10 @@ class ImportCSV {
 	public $fieldsList=array();
 	private $postCustomFields;	
 	private $customPostType;	
-    private $settings=array();	
-	public function __construct($cpt) {
+    private $settings=array();	 
+	private $separator;
+	
+	public function __construct($cpt="") {
 		$this->customPostType=$cpt;
 		$this->settings=[		
 		 "createpost" => true,
@@ -32,9 +34,23 @@ class ImportCSV {
 			"Ne" => "0"
 		 ]
 		];
-		
-		
+		$this->initDefaults();	
 	}	
+	private function initDefaults() {
+		$this->params["separator"]=";";
+		$this->params["encoding"]="";
+		$this->params["emptyFirst"]=false;
+		$this->params["skipCols"]=null;
+		$this->params["createTable"]=false;
+		$this->params["colsOnFirstLine"]=true;
+		$this->params["mColNames"]=[];
+
+	}
+	public function setParam($name,$val) {
+		$this->params[$name]=$val;
+		return $this;
+	}	
+	
 	public function removePreviousPosts($table,$brute=false) {
 		global $wpdb;	
 		
@@ -187,8 +203,56 @@ class ImportCSV {
 		if ($encoding=="cp852") return iconv('CP852', 'UTF-8', $s);
 		return $s;
 	}
-	public function loadCsvFile($file,$table,$sep="^",$enc='"',$skipCols=null,$createTable=false,$encoding="",$emptyFirst=false,$colsOnFirstLine=true,$mCols=[]) {
+	public function loadCsvValuesFromColumn($file,$selectColNum) {
+		//output values from selected column in csv file
+		$sep=$this->params["separator"];
+		$encoding=$this->params["encoding"];
+		$colsOnFirstLine=$this->params["colsOnFirstLine"];
+		$fh = fopen($file, "r"); 
+		$lineNum=0;
+		$out=[];	
+		while ($line = $this->fgetcsvUTF8($fh, 8000, $sep,$encoding)) {		
+			$lineNum++;			
+			//echo "line:".$line[1];
+			if ($colsOnFirstLine && $lineNum===1) {		
+			 $mCols=$line;
+			}
+			else {			 			
+				$n=0;
+				$out[]=$line[$selectColNum];
+			}							 
+		}		
+		return $out;
+	}
+	public function loadCsvValuesFromColumnWithKey($file,$keyCol,$keyVal,$selectColNum) {
+		//output values from selected column in csv file
+		$sep=$this->params["separator"];
+		$encoding=$this->params["encoding"];
+		$colsOnFirstLine=$this->params["colsOnFirstLine"];
+		$fh = fopen($file, "r"); 
+		$lineNum=0;
+		$out=[];	
+		while ($line = $this->fgetcsvUTF8($fh, 8000, $sep,$encoding)) {		
+			$lineNum++;			
+			//echo "line:".$line[1];
+			if ($colsOnFirstLine && $lineNum===1) {		
+			 $mCols=$line;
+			}
+			else {			 			
+				if ($line[$keyCol]==$keyVal) $out[]=$line[$selectColNum];
+			}							 
+		}		
+		return $out;
+	}
+	public function loadCsvFile($file,$table) {
 		global $wpdb;
+		$sep=$this->params["separator"];
+		$encoding=$this->params["encoding"];
+		$emptyFirst=$this->params["emptyFirst"];
+		$skipCols=$this->params["skipCols"];
+		$createTable=$this->params["createTable"];
+		$colsOnFirstLine=$this->params["colsOnFirstLine"];
+		$mCols=$this->params["mColNames"];
 		$fh = fopen($file, "r"); 
 		$lineNum=0;
 		$mInserted=0;		
@@ -211,8 +275,7 @@ class ImportCSV {
 				$mInserted++;			 
 			}			
 				 
-		}
-		
+		}		
 	}
 	function createTable($tabName,$mCols) {	
 		global $wpdb;	
@@ -257,5 +320,25 @@ class ImportCSV {
 						IGNORE 1 LINES (@category,@temple) SET category = @category, temple = @temple;"
                 )
         );
+	}
+	public function importCSVfromWP($thisTable) {
+		if(isset($_FILES['mfilecsv']) && ($_FILES['mfilecsv']['size'] > 0)) {
+			$upload_overrides = array( 'test_form' => false ); 
+			$uploaded_file = wp_handle_upload($_FILES['mfilecsv'], $upload_overrides);
+			$fn = $uploaded_file['file'];
+			if(isset($fn) && wp_check_filetype($uploaded_file['file'],"text/csv")) {									
+					$importCSV=new ImportCSV($this->customPostType);	
+					
+					$importCSV->loadCsvFile($fn,$thisTable,false,"",true,true);		  	  																	
+					return "imported";
+			}
+		} else {			
+			?>
+			<form method="post" enctype="multipart/form-data"> 
+				<input type="file" name="mfilecsv" id="mfilecsv" />
+				<input type="submit" name="html-upload" id="html-upload" class="button" value="Upload" />
+			</form>
+			<?php	
+		}				
 	}
 }

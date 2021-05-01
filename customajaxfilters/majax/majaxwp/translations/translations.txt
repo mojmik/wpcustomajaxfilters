@@ -1,0 +1,4 @@
+Thanks for submitting. We will contact you soon.^Díky za odeslání. Budeme vás brzy kontaktovat.^Vďaka za odoslanie. Budeme vás čoskoro kontaktovať.
+Name^Jméno^Meno
+Your message^Vaše zpráva^Vaša zprava
+Submit^Potvrdit^Potvrdiť
