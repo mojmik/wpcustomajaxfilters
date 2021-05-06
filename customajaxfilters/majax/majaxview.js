@@ -34,6 +34,7 @@ var majaxModule=(function (my) {
     }    
     const majaxRender = {   
         customType : "",
+        language: "",
         getType: function() {
             if (majaxRender.customType=="") {                
                 majaxRender.customType=jQuery('input[name="type"]').val();
@@ -224,7 +225,8 @@ var majaxModule=(function (my) {
             if (jsonObj.title=="majaxcounts") thisHtml=majaxRender.postTemplateCounts(thisId,jsonObj);
             else if (jsonObj.title=="buildInit") {
                 my.metaMisc.addMetaMisc(jsonObj.misc);
-                htmlTemplate.addTemplate(jsonObj.htmltemplate)
+                htmlTemplate.addTemplate(jsonObj.htmltemplate);
+                majaxRender.language=jsonObj.language;
                 //update sliders min-max
                 my.majaxSlider.initSlidersMinMax(); 
             }

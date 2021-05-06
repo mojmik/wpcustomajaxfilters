@@ -9,8 +9,8 @@ Class Caching {
     private static $cachePath;    
     private static $compressJson=0;    
     private static $recreateCache=false;   
-    static function checkPath() {
-        $path=Caching::getCachePath();
+    static function checkPath($cpt="") {
+        $path=Caching::getCachePath($cpt);
         if (!file_exists($path)) {
             mkdir($path, 0777, true);
         } 
@@ -86,7 +86,7 @@ Class Caching {
             Caching::loadCacheMap();
         }         
         foreach (Caching::$cacheMap as $row) {
-            if ($row["query"] == $query) return $row["fnId"];
+            if (isset($row["query"]) && $row["query"] == $query) return $row["fnId"];
         }
         return false;
     }
@@ -126,7 +126,8 @@ Class Caching {
         $rows=explode("^",$txt);
         foreach ($rows as $row) {
             $ex=explode("|",$row);
-            Caching::$cacheMap[]=["query" => $ex[0], "fnId" => $ex[1]];
+            Caching::$cacheMap[]=[];
+            if (!empty($ex[0]) && !empty($ex[1])) Caching::$cacheMap= ["query" => $ex[0], "fnId" => $ex[1]];
         }
     }
     static function logWrite($val,$fn="caching.txt") {

@@ -174,7 +174,7 @@ class CustomField {
 	}
 	public function getFieldFilterSQL() {
 		//$val=$_POST[$this->name];			   
-		if ($this->fixFilter) return "`{$this->name}` {$this->compare} '{$this->fixFilter}'";
+		if (isset($this->fixFilter)) return "`{$this->name}` {$this->compare} '{$this->fixFilter}'";
 
 		$val=$this->postedValue;			   
 		if ($val=="") {
@@ -212,7 +212,7 @@ class CustomField {
 		}
 	}
 	public function loadPostedValue() {
-		$val=$_POST[$this->name];	
+		$val=isset($_POST[$this->name]) ? $_POST[$this->name] : "";	
 		$val=filter_var($val, FILTER_SANITIZE_STRING);
 		$this->postedValue=$val;
 	}

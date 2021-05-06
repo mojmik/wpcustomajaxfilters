@@ -1,5 +1,6 @@
 <?php
 namespace CustomAjaxFilters\Majax\MajaxWP;
+use \CustomAjaxFilters\Admin as MajaxAdmin;
    
 Class Majax {
 	private $ajaxHandler;
@@ -25,7 +26,17 @@ Class Majax {
 		add_action( 'wp_enqueue_scripts', [$this,'mAjaxEnqueueScripts'] );			
 		add_action( 'wp_enqueue_scripts', [$this,'majaxEnqueueStyle'], 11);
 
-		
+		//fronted posts
+		$cptAdmin=new MajaxAdmin\AutaCustomPost("zajezd");
+		add_action( 'pre_get_posts', [$this,'addCptToQuery'] );			
+	}
+
+	function addCptToQuery( $query ) {
+		//if ( is_home() && $query->is_main_query() )
+		if (  $query->is_main_query() && is_home()  )			
+			//$query->set( 'post_type', array( 'post', 'zajezd' ) );
+			$query->set( 'post_type', array( 'post', 'zajezd' ) );
+		return $query;
 	}
 
 	function majaxEnqueueStyle() {		
@@ -67,7 +78,8 @@ Class Majax {
 			$src = (isset($value["src"])) ? $value["src"] : $value["srcCdn"];
 			$version= (isset($value["version"])) ? $value["version"] : '';
 			$inFooter= (isset($value["inFooter"])) ? $value["inFooter"] : false;
-			wp_enqueue_script($key,$src,$value["depends"],$version,$inFooter);
+			$depends= (isset($value["depends"])) ? $value["depends"] : [];
+			wp_enqueue_script($key,$src,$depends,$version,$inFooter);
 			if (isset($value["localizeObj"])) {
 				wp_localize_script( $key, $value["localizeObj"],$value["localizeArray"]);		
 			}

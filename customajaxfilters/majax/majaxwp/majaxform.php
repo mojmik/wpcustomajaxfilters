@@ -1,22 +1,31 @@
 <?php
 namespace CustomAjaxFilters\Majax\MajaxWP;
+use \CustomAjaxFilters\Admin as MajaxAdmin;
 
 class MajaxForm {   
     private $postType;
     private $postedFields; //fields reporting in emails etc.
     private $inputFields; //fields appearing in forms
-    function __construct($type="",$title="",$fields=[]) {            
+    private $htmlSrc;
+    private $htmlElements;
+    function __construct($type="",$title="") {            
         $this->postType=$type;
         $this->postTitle=$title;
-        $this->addFields($type);        
+        $this->addFields($type);      
     }
+   public function setTemplate($htmlElements,$templateName,$templateType="") {
+    //$mForm->setTemplate($this->htmlElements,"contactFormMessage");
+    $this->htmlElements=$htmlElements;
+    $this->htmlSrc=$this->htmlElements->getTemplate($templateName,$templateType);
+   }
+   
    function checkCaptcha() {
        $captchaResponse=$_POST["captcha"];
        if (!$captchaResponse) { 
         $this->logWrite("CAPTCHA blank ","filledform.txt");
         return false;
        }               
-       $secret=$this->loadSecret("captchakey");       
+       $secret=MajaxAdmin\Settings::loadSecret("captchakey");       
        //$verify=file_get_contents($url);
 
        $ch = curl_init();
@@ -81,27 +90,27 @@ class MajaxForm {
         "caption"=>$f["caption"]);
     }   
    }
-   function renderForm($htmlSrc="") {
+   function renderForm() {
     $row=[];
     $row["title"]="action";
     $row["content"]="";
     $row["postTitle"]=$this->postTitle;
     $row["postType"]=$this->postType;
-    $row["htmlSrc"]=$htmlSrc;
+    $row["htmlSrc"]=(!empty($this->htmlSrc)) ? $this->htmlSrc : "";
     $row["name"]="majaxContactForm";
-    $row["siteKey"]="6LdBeIYaAAAAAKca7Xx8-xEHujjD6XbdIj3Q5mUb";
+    $row["siteKey"]=MajaxAdmin\Settings::loadSecret("sitekey");
     $row["flag"]="form-show";
     //idName, inputType, mRequired=true, sameLikeName=false    
     $row["fields"]=$this->postedFields;
     //$row["fields"]=[["neco" => "cau", "neco2" => "as"],["aneco" => "cau", "aneco2" => "as"]];
     return $row;
    }
-   function runForm($htmlSrc="") {		
+   function runForm() {		
         $row=[];                  
         if (!$this->checkCaptcha()) {
             $row["title"]="action";
             $row["flag"]="form-not-ok";
-            $row["htmlSrc"]=$htmlSrc;
+            $row["htmlSrc"]=$this->htmlSrc;
             $row["content"]="Antispam ověření selhalo, vraťte se zpět a zkuste znova."; 
             return $row;
         }
@@ -120,7 +129,7 @@ class MajaxForm {
         }			
         $outHtml="<table>$outHtml</table>";			
         
-        $to = $this->loadSecret("emailydefault",false);            
+        $to = MajaxAdmin\Settings::loadSecret("emailydefault"); 
         $subject = 'objednavka z '.$_SERVER['SERVER_NAME'];
         $body = "<h1>Objednavka z webu</h1> <h3>Typ: {$this->postType}</h3> <br /><br />{$outHtml}";      	
         $headers = 'Content-Type: text/html; charset=UTF-8';	
@@ -128,16 +137,12 @@ class MajaxForm {
         $this->logWrite("".$outTxt." replyto $replyTo.","filledform.txt");
         $row["title"]="action";
         $row["flag"]="form-ok";        
-        $htmlSrc=MajaxHtmlElements::processTemplate($htmlSrc,["content"=>"_(Thanks for submitting. We will contact you soon.)"]);        
+        $htmlSrc=$this->htmlElements->processTemplate($this->htmlSrc,["content"=>"_(Thanks for submitting. We will contact you soon.)"]);        
         $row["htmlSrc"]=$htmlSrc;
         $row["content"]="";
         return $row;        
     }	
-    function loadSecret($file,$isArray=false) {     
-     $out=@file_get_contents(plugin_dir_path( __FILE__ ) ."secret/$file.txt");      
-     if (!$isArray) return $out;
-     else return explode(";",$out);
-    }
+   
     function logWrite($val,$file="log.txt") {
         file_put_contents(plugin_dir_path( __FILE__ ) . $file,date("d-m-Y h:i:s")." ".$val."\n",FILE_APPEND | LOCK_EX);
        }

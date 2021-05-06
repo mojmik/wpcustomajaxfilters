@@ -4,7 +4,7 @@
    Plugin URI: https://www.ttj.cz
    description: Adds custom post option, adds custom fields to administration interface v2
   mAuta plugin
-   Version: 1.2
+   Version: 1.3c
    Author: Mik
    Author URI: https://www.ttj.cz
    License: GPL2

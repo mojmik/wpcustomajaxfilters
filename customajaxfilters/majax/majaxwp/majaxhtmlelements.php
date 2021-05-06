@@ -5,12 +5,14 @@ use stdClass;
 
 Class MajaxHtmlElements {	
     private $templatePath;
-    public function __construct() {
+    private $translating;
+    public function __construct($translating=null) {
         $this->templatePath=plugin_dir_path( __FILE__ ) ."templates/";
+        $this->translating=$translating;
     }
     public function checkPath() {
         if (!file_exists($this->templatePath)) {
-            mkdir($this->templatePath, 0777, true);
+            mkdir($this->templatePath, 0744, true);
         } 
     }
     function showBackButton() {
@@ -92,7 +94,7 @@ Class MajaxHtmlElements {
             if ($metaIcon) $metaIcon="<img src='$metaIcon' />";
             else $metaIcon="<span>{$metaMisc["title"]}</span>";	
 
-            if ($metaMisc["virtVal"]) { //virtual values; first character .. # - clone value from other field, otherwise fix value
+            if (!empty($metaMisc["virtVal"])) { //virtual values; first character .. # - clone value from other field, otherwise fix value
                 if (substr($metaMisc["virtVal"],0,1) == "#") { 
                     //clone from other field
                     $cloneVar=substr($metaMisc["virtVal"],1);
@@ -113,8 +115,7 @@ Class MajaxHtmlElements {
            
            
             if ($displayOrder<20) {
-                if ($metaMisc["type"]=="NUMERIC") $metaOut[0]=$metaOut[0] . "<div class='col meta col-md-2'>$metaIcon"."$metaVal</div>";
-                else $metaOut[0]=$metaOut[0] . "<div class='col meta'>$metaIcon"."$metaVal</div>";
+                $metaOut[0]=$metaOut[0] . "<div class='col meta'>$metaIcon"."$metaVal</div>";
             }
             if ($displayOrder>=20 && $displayOrder<=30) {
                 $metaOut[1]=$metaOut[1] . $metaVal;                
@@ -136,55 +137,30 @@ Class MajaxHtmlElements {
                 $featuredText[]=$metaVal;
             }
         }
-  
-        if ($image!="") {
-            $image="<img class='pct80' src='$image' />";
-        }  else {
-            $image=""; //image missing
+        
+        $image=(empty($image)) ? "" : "<img class='' src='$image' />";
+        
+        $params=[];
+        $n=1;
+        foreach ($featuredText as $f) {        
+          $params["featuredHtml"].="<div class='stripes stripe$n'>$f</div>";
+            $n++;
         }
-        ?>
-        <div class='majaxout majaxoutStatic' id='majaxout<?=$id?>'>
-                                  
-                        <div class='row mcontent mtitle'>			    
-                            <span><?= $title?></span>
-                        </div>
-                        <div class='row flex-grow-1 bort'>
-                            <div class='col title'>                        
-                                <?= $image?>
-                                <?php
-                                    $n=1;
-                                    foreach ($featuredText as $f) {
-                                    ?>
-                                     <div class='stripes stripe<?= $n?>'><?= $f?></div>
-                                    <?php
-                                     $n++;
-                                    }
-                                ?>
-
-                            </div>
-                        </div>                        
-                        <div class='row mcontent'>			    
-                            <span><?= $content?></span>
-                        </div>
-                        <div class='row bors'>			
-                            <?=$metaOut[0]?>
-                        </div>
-                        <div class='row bort'>			
-                            <?=$metaOut[1]?>
-                            <?=$metaOut[2]?>                                
-                        </div>
-                        <div class='row borb'>
-                            <div class='col action'>
-                                <a class='mButtonA' data-slug='<?=$name?>' href='?id=<?=$name?>'>Objednat</a>
-                            </div>
-                        </div>
-                    </div>
-        <?php
+        $params["id"]=$id;
+        $params["content"]=$content;
+        $params["title"]=$title;
+        $params["image"]=$image;
+        $params["name"]=$name;
+        $params["metaOut"]=$metaOut;
+        $params["mainClass"]="majaxoutStatic";
+        $html=$this->loadTemplate("multi"); 
+        echo $this->processTemplate($html,$params);
+        //echo $html;
     }    
     function postTemplate($templateName,$params=[]) {        
         if ($templateName=="multi") {
             return "
-            <div class='majaxout' id='majaxout{id}'>         
+            <div class='majaxout' id='majaxout{id}'>       
                         <div class='row flex-grow-1 bort'>
                             <div class='col title'>                        
                                 {image}{featuredHtml}                                                        
@@ -232,145 +208,53 @@ Class MajaxHtmlElements {
         }
         return $this->loadTemplate($templateName);
     }
-    function loadTemplate($templateName) {
-        $html=file_get_contents($this->templatePath.$templateName.".html");
-        
+    function loadTemplate($templateName) {        
+        $html=file_get_contents($this->templatePath.$templateName.".html");        
         return $html;
     }
     function formTemplate($templateName,$params=[]) {
-        $postType="";
-        if (isset($params["title"])) $postTitle=$params["title"];
+        $postType="";        
         if (isset($params["type"])) $postType=$params["type"];
-        if (isset($params["output"])) $output=$params["output"];
-        $innerForm="";
-        $html=$this->loadTemplate($templateName);        
-        if ($templateName=="contactForm") {
-            $requiredFields="
-             <input type='hidden' name='postTitle' value='$postType' />
-             <input type='hidden' name='postType' value='$postType' />
-            ";            
-            $html=str_replace("{contactFormRequired}",$requiredFields,$html);            
-            $html=$this->processTemplate($html);
+        if (isset($params["title"])) $postTitle=$params["title"];
+        else $postTitle=$postType;
+        $html=$this->loadTemplate($templateName);   
+        $requiredFields="
+            <input type='hidden' name='postTitle' value='$postTitle' />
+            <input type='hidden' name='postType' value='$postType' />
+        ";  
+        $html=str_replace("{contactFormRequired}",$requiredFields,$html);                 
+        $html=$this->processTemplate($html);
+
+        if ($templateName=="contactForm") {            
             echo $html;
             return "";
         }
         if ($templateName=="defaultForm") {
-            $innerForm='
-            <div class="row formGroup">
-                                        <div class="col-sm-6">                                    
-                                            <input type="text" class="form-control" id="fname" name="fname" placeholder="Jméno*">
-                                        </div>
-                                        <div class="col-sm-6">                                    
-                                            <input type="text" class="form-control" id="lname" name="lname" placeholder="Příjmení*">
-                                        </div>
-                                    </div>
-                                    <div class="row formGroup">                                
-                                        <div class="col-sm-6">                                                                        
-                                            <input type="text" class="form-control email" id="email" name="email" placeholder="Email*">
-                                        </div>                                
-                                        <div class="col-sm-6">                                    
-                                            <input type="text" class="form-control email" id="remail" name="cemail" placeholder="Email*">
-                                        </div>
-                                    </div>
-                                    <div class="row formGroup">
-                                        <div class="col-sm-3">
-                                            <input type="text" class="form-control cal pointerEvent" id="pickDate" placeholder="Začátek pronájmu*" name="start_date" readonly="readonly">
-                                        </div>
-                                        <div class="col-sm-3">
-                                            <input type="text" class="form-control cal pointerEvent" id="dropDate" placeholder="Konec pronájmu*" name="end_date" readonly="readonly">
-                                        </div>
-                                        <div class="col-sm-6">
-                                            <input type="text" class="form-control tel" id="phone_no" name="phone_no" placeholder="Telefon*">
-                                        </div>
-                                    </div>
-                                    <div class="row formGroup">
-                                        <div class="col-sm-6">
-                                            <input type="text" class="form-control mileage" id="mileage" placeholder="Předpoklad najetých kilometrů*" name="expected_mileage">
-                                        </div>
-                                        <div class="col-sm-6 p-spc-0">
-                                                    <label for="business" id="leasing-for-leisure" class="leisLabel">
-                                                        <input name="business" id="businessChBox" type="checkbox" class="leisCheck">
-                                                        <em id="businessBox" class="sprite"></em>
-                                                        Jste již naším firemním zákazníkem*
-                                                    </label>
-                                        </div>
-                                    </div>
-                                    <div class="row formGroup">                                                                                    
-                                                    <div class="col-sm-12">
-                                                        anti-spam                                    
-                                                        <div id="myCaptcha"></div>
-                                                    </div>
-                                    </div> 
-                                    <div class="row formGroup">
-                                        <div class="col-sm-12">* Povinné pole</div>
-                                    </div>                                 
-                                    <div class="row3">	
-                                            <div class="col-sm-3 pullRight col-xs-12">
-                                                <input type="submit" class="btn btn-primary btn-block" name="submit" id="submit" value="Potvrdit">
-                                                    <input type="Button" class="btn btn-primary btn block" value="Processing.." id="divprocessing" style="display: none;">
-                                            </div>
-                                    </div>
-                                    ';
-        }
-        
-        return '
-            <div class="mpagination">     
-                <div class="row frameGray">                        
-                    <div class="col-md-11 col-xs-12 mcent">
-                        <div class="row">
-                            <div class="yellowBand" id="enquiryP">
-                                Pokud potřebujete více informací nebo se zajímáte o pronájem vozu na delší dobu, vyplňte prosím níže uvedený formulář a my vás budeme kontaktovat.
-                            </div>
-                        </div>
-                        <div class="col-md-12 col-xs-12">
-                                <div class="row">
-                                    <div class="col-xs-12">
-                                        <p class="formhead">
-                                        
-                                        </p>								
-                                    </div>
-                                </div>
-                            <form id="{name}" method="post">'.$innerForm.'
-                                
-                                <input type="hidden" name="postTitle" value="'.$postTitle.'" />
-                                <input type="hidden" name="postType" value="'.$postType.'" />
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        ';
+            return $html;
+        }        
     }
     function getTemplate($templateName,$type="post",$params=[]) {
-        if ($type=="post") {
+        if (empty($type) || $type=="post") {
             return $this->postTemplate($templateName,$params);
         }
         if ($type=="form") {            
             return $this->formTemplate($templateName,$params);
         }  
     }
-    static function loadTranslation($what) {
-        $tran=$what;
-        $file=plugin_dir_path( __FILE__ ) ."translations/translations.txt";
-        $importCSV=new MajaxAdmin\ImportCSV();	
-		$importCSV->setParam("separator","^")
-        ->setParam("colsOnFirstLine",false);
-        $languages=["sk" => 2, "cz" => 1, "en" => 0];
-        $rows=$importCSV->loadCsvValuesFromColumnWithKey($file,0,$what,$languages["sk"]);
-        if (count($rows)) $tran=$rows[count($rows)-1];
-        //MajaxAdmin\AutaPlugin::logWrite("",$rows);
-        return $tran;
-    }
-    static function processTemplate($htmlSrc,$params=[]) {
+   
+    function processTemplate($htmlSrc,$params=[]) {
         //translate _(texts) 
+        $matches=null;
         preg_match_all('/_\((.*?)\)/s', $htmlSrc, $matches);
         for ($i = 0; $i < count($matches[1]); $i++) {
             $key = $matches[0][$i];
             $m = $matches[1][$i];            
-            $repl=MajaxHtmlElements::loadTranslation($m);            
+            $repl=$this->translating->loadTranslation($m);            
             $htmlSrc=str_replace($key,$repl,$htmlSrc);
         }
         //translate _(texts) values of params 
+        /*
+        $matches=null;
         foreach ($params as $paramKey => $value) {
             preg_match_all('/_\((.*?)\)/s', $value, $matches);
             for ($i = 0; $i < count($matches[1]); $i++) {
@@ -380,7 +264,11 @@ Class MajaxHtmlElements {
                 $params[$paramKey]=str_replace($key,$repl,$params[$paramKey]);
             }
         }
+        */
+        $params=$this->translating->translateArrayRecursive($params);
+
         //replace ${params}
+        $matches=null;
         preg_match_all('/\${(.*?)}/s', $htmlSrc, $matches);
         for ($i = 0; $i < count($matches[1]); $i++) {
             $key = $matches[0][$i];
@@ -390,12 +278,16 @@ Class MajaxHtmlElements {
             $htmlSrc=str_replace($key,$repl,$htmlSrc);
         }
         //replace {params}
+        $matches=null;
         preg_match_all('/{(.*?)}/s', $htmlSrc, $matches);
-        for ($i = 0; $i < count($matches[1]); $i++) {
+        for ($i = 0; $i < count($matches[1]); $i++) {            
             $key = $matches[0][$i];
-            $m = $matches[1][$i];
-            $repl="";
-            if (isset($params[$m])) $repl=$params[$m];
+            $m = $matches[1][$i];        
+            $repl="";              
+            if (preg_match_all('/(.*?)\[(.*?)\]/s', $m, $matchesArr)) { // there is a single dim array like something[index] in params
+                 $repl=$params[$matchesArr[1][0]][$matchesArr[2][0]];
+            }            
+            else if (isset($params[$m])) $repl=$params[$m];            
             $htmlSrc=str_replace($key,$repl,$htmlSrc);
         }
         return $htmlSrc;

@@ -6,21 +6,22 @@ class AutaCustomPost {
 	private $customPostType;
 	public $singular;
 	public $plural;
+
 	 public function __construct($postType="",$singular="",$plural="") {		 	
 		 $this->singular=$singular;
 		 $this->plural=$plural;
-		 $this->customPostType=$postType;
+		 $this->customPostType=$postType;		 
 		 add_action( 'init', [$this,'custom_post_type'] , 0 );
-		 
-		 //admin
-		 add_action('admin_menu' , [$this,'add_to_admin_menu']); 
-		 
-		 //init custom fields
-		 $this->autaFields = new AutaFields($this->customPostType);		
-		 $this->autaFields->loadFromSQL();
-		 
-		 add_action( 'save_post_'.$this->customPostType, [$this,'saveCPT'] ); 
-		 
+	 }
+	 public function adminInit() {
+		//admin
+		add_action('admin_menu' , [$this,'add_to_admin_menu']); 
+				
+		//init custom fields
+		$this->autaFields = new AutaFields($this->customPostType);		
+		$this->autaFields->loadFromSQL();
+
+		add_action( 'save_post_'.$this->customPostType, [$this,'saveCPT'] ); 
 	 }
 	 public function getCustomPostType() {
 		 return $this->customPostType;
@@ -54,7 +55,7 @@ class AutaCustomPost {
 			'label'               =>  $this->plural,
 			'description'         => $this->plural." ".__( 'in stock', $textDomain ),
 			'labels'              => $labels,			
-			'supports'            => array( 'title', 'editor', 'excerpt', 'author', 'thumbnail', 'comments', 'revisions', 'custom-fields', ),			
+			'supports'            => array( 'title', 'editor', 'excerpt', 'author', 'thumbnail', 'comments', 'revisions', 'custom-fields' ),			
 			'hierarchical'        => false,
 			'public'              => true,
 			'show_ui'             => true,
@@ -66,6 +67,8 @@ class AutaCustomPost {
 			'has_archive'         => true,
 			'exclude_from_search' => false,
 			'publicly_queryable'  => true,
+			'rewrite' => array('slug' => $this->customPostType),
+			//'rewrite' => false,
 			'capability_type'     => 'post',
 			'show_in_rest' => true,
 	 
@@ -125,13 +128,17 @@ class AutaCustomPost {
 		$menu_title='Import';
 		add_submenu_page($parent_slug, $page_title, $menu_title, $capability, $menu_slug, $function);
 
-		//adds menu item
-		$page_title = CAF_SHORT_TITLE.' - settings';   		
+		//adds sub menu item
+		$page_title = CAF_SHORT_TITLE.' - fields';   		
 		$menu_title = "Fields";   
 		$capability = 'manage_options';   
 		$menu_slug  = $this->customPostType.'-plugin-settings';   
-		$function   =  [$this,'mauta_plugin_actions_page'];   
+		$function   =  [$this,'caf_cpt_fields_page'];   
 		add_submenu_page($parent_slug, $page_title, $menu_title, $capability, $menu_slug, $function);
+
+		$attachments=new Attachments($this->customPostType); 
+		$attachments->addToAdminMenu($parent_slug,$capability);
+		
 	} 
 	static function sendMessageToMajax($message) {
 		$fn=wp_upload_dir()["basedir"]."/$message.txt";				
@@ -141,10 +148,10 @@ class AutaCustomPost {
 		}
 	}
 
-	function mauta_plugin_actions_page() {
+	function caf_cpt_fields_page() {
 	  //renders menu actions & settings page in backend
 	  ?>
-	  <h1>Pluing settings and actions below</h1>
+	  <h1><?= $this->singular?> fields actions </h1>
 	  <?php
 	  $setUrl = [
 					["recreate",add_query_arg( 'do', 'recreate'),"remove all"],
@@ -188,4 +195,6 @@ class AutaCustomPost {
 	  $this->autaFields->printNewField();
 	  $this->autaFields->printFields();		 
 	}	
+
+	
 }

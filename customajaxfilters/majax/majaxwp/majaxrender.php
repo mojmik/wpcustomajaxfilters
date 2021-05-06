@@ -1,28 +1,39 @@
 <?php
 namespace CustomAjaxFilters\Majax\MajaxWP;
+use \CustomAjaxFilters\Admin as MajaxAdmin;
 
 use stdClass;
 
-Class MajaxRender {	
-	private $callFromAjax;	
+Class MajaxRender {		
 	private $postType;
 	private $htmlElements;
 	private $subType;
+	private $language;
+	private $translating;
 	
 
-	function __construct($ajax=false,$atts=[]) {				
+	function __construct($preparePost=false,$atts=[]) {			
+			$this->language="";				
+			
+
 			if (!empty($atts)) { 
 				if (isset($atts["type"])) $this->setPostType($atts["type"]);
-				if (isset($atts["typ"])) $this->subType=$atts["typ"];				
+				if (isset($atts["typ"])) $this->subType=$atts["typ"];	
+				if (isset($atts["language"])) $this->language=$atts["language"];							
 			} 
-			$this->htmlElements=new MajaxHtmlElements();
-			$this->callFromAjax=$ajax;
+			if (empty($this->language)) $this->language=MajaxAdmin\Settings::loadSetting("language","site");
+			$this->translating=new Translating($this->language);			
+			$this->htmlElements=new MajaxHtmlElements($this->translating);			
 			//init custom fields			
-			if ($this->callFromAjax) { 
+			if ($preparePost) { 
 				$this->setPostType();				
 				$this->loadFields();
 			}
 	}
+
+		
+
+		
 	function loadFields() {
 		//$this->logWrite("cpt!@ {$this->getPostType()}");
 		$this->fields=new CustomFields();
@@ -36,7 +47,7 @@ Class MajaxRender {
 	function setPostType($cpt="") {		
 		if ($cpt) $this->postType=$cpt;	
 		else $this->postType=filter_var($_POST['type'], FILTER_SANITIZE_STRING); 	
-		Caching::setPostType($this->getPostType());
+		Caching::setPostType($this->getPostType());		
 	}
 
 	
@@ -48,20 +59,22 @@ Class MajaxRender {
 		}
 					
 		$this->htmlElements->showMainPlaceHolderStatic(true,$this->postType);
-		$postId=filter_var($_GET['id'], FILTER_SANITIZE_STRING);
+		$postId=isset($_GET['id']) ? filter_var($_GET['id'], FILTER_SANITIZE_STRING) : "";
 		if ($postId) { 
 			$query=$this->buildSingle($postId);
 			$this->htmlElements->showIdSign();
 		}
 		else $query=$this->buildQuerySQL();
 		$rows=Caching::getCachedRows($query);
-		
+		$excerpt=(count($rows)>1) ? true : false;
+		$n=0;
 		foreach ($rows as $row) {			
+			$n++;
 			$metaMisc=$this->buildInit();
 			$item=[];
-			$item=$this->buildItem($row,"","",0);		
+			$item=$this->buildItem($row,[],0,$excerpt);		
 			$this->logWrite("rowimg ".$item["image"]);				
-			$this->htmlElements->showPost(1,$row["post_name"],$row["post_title"],$item["image"],$item["content"],$metaMisc["misc"],$item["meta"]);
+			$this->htmlElements->showPost($n,$row["post_name"],$row["post_title"],$item["image"],$item["content"],$metaMisc["misc"],$item["meta"]);
 		}
 
 		$this->htmlElements->showMainPlaceHolderStatic(false);		
@@ -75,8 +88,8 @@ Class MajaxRender {
 	}
 	function showFormFilled($templateName) {
 		$mForm=new MajaxForm($this->getPostType());
-		$htmlSrc=$this->htmlElements->getTemplate("contactFormMessage");
-		echo json_encode($mForm->runForm($htmlSrc)).PHP_EOL;
+		$mForm->setTemplate($this->htmlElements,"contactFormMessage");
+		echo json_encode($mForm->runForm()).PHP_EOL;
 	}
 	function showFormFields($type) {
 		$mForm=new MajaxForm($type);
@@ -114,7 +127,7 @@ Class MajaxRender {
 				$filters=$this->addToStr(" AND ",$filter,$filters);				
 			}
 			if (strpos($fieldName,"cena")!==false) { 
-				$orderBy="cast(pm1.".$fieldName." AS unsigned)";
+				$orderBy="cast(pm1.`".$fieldName."` AS unsigned)";
 				$orderDir='ASC';
 			}
 		}
@@ -139,7 +152,55 @@ Class MajaxRender {
 			WHERE post_id=id 
 			AND post_status like 'publish' 
 			AND post_type like '$mType'			
-			GROUP BY ID, post_title
+			GROUP BY ID
+			) AS pm1
+			$filters
+			ORDER BY $orderBy $orderDir
+		";
+		return $query;
+	}
+	function produceSQLWithAttachments($id="") {
+		//grabs post,metas and external related tables (attachments)
+		$mType = $this->getPostType();
+		$col="";
+		$filters="";
+		$colSelect="";
+
+		foreach ($this->fields->getFieldsFilteredOrDisplayed() as $field) {			
+			$fieldName=$field->outName();		
+			$col.=$this->getSqlFilterMeta($fieldName);
+			$colSelect.=$this->getSqlSelectMeta($fieldName);
+			$filter=$field->getFieldFilterSQL();
+			if ($filter && !$field->typeIs("select")) {
+				$filters=$this->addToStr(" AND ",$filter,$filters);				
+			}
+			if (strpos($fieldName,"cena")!==false) { 
+				$orderBy="cast(pm1.`".$fieldName."` AS unsigned)";
+				$orderDir='ASC';
+			}
+		}
+		if (!$orderBy) { 
+			$orderBy="post_title";
+			$orderDir="ASC";
+		}
+		$additionalMetas=["_thumbnail_id"];
+		foreach ($additionalMetas as $fieldName) {			
+			$col.=$this->getSqlFilterMeta($fieldName);
+			$colSelect.=$this->getSqlSelectMeta($fieldName);
+		}
+
+		if ($id) $filters=$this->addToStr(" AND ","post_name like '$id'",$filters);
+		if ($filters) $filters=" WHERE $filters";
+		$query=
+		"
+		SELECT post_title,post_name,post_content{$colSelect}  FROM
+		(SELECT post_title,post_name,post_content 
+			$col
+			FROM wp_posts LEFT JOIN wp_postmeta pm1 ON ( pm1.post_id = ID) 
+			WHERE post_id=id 
+			AND post_status like 'publish' 
+			AND post_type like '$mType'			
+			GROUP BY ID
 			) AS pm1
 			$filters
 			ORDER BY $orderBy $orderDir
@@ -182,22 +243,25 @@ Class MajaxRender {
 		return $outRows;
 	}		
 	
-	function buildItem($row,$addFieldKey="",$addFieldValue="",$getJson=1) {
+	function buildItem($row,$addFields=[],$getJson=1,$excerpt=false) {
 		$ajaxItem=new MajaxItem();
 		$ajaxItem->addField("title",$row["post_title"])
 		->addField("name",$row["post_name"])
-		->addField("id",$row["ID"])
 		->addField("neco","neco2") //test virtual fix field
-		->addField("content",$row["post_content"])->addField("url",$row["slug"])
-		->addField("image",ImageCache::getImageUrlFromId($row["_thumbnail_id"]));
-		if ($addFieldKey && $addFieldValue) $ajaxItem->addField($addFieldKey,$addFieldValue);
+		->addField("content",$row["post_content"]);
+		if (isset($row["ID"])) $ajaxItem->addField("id",$row["ID"]);
+		if (isset($row["slug"])) $ajaxItem->addField("url",$row["slug"]);		
+		$ajaxItem->addField("image",ImageCache::getImageUrlFromId($row["_thumbnail_id"]));
+		if ($excerpt) $ajaxItem->shrinkField("content");
+		foreach ($addFields as $key => $value) {
+			$ajaxItem->addField($key,$value);
+		}
 		foreach ($this->fields->getFieldsDisplayed() as $field) {
 		 $ajaxItem->addMeta($field->outName(),$row[$field->outName()]);
 		}	
 		//$ajaxItem->addMeta("neco","neco2");
 
 		$out=$ajaxItem->expose($getJson);
-		$this->logWrite("exposed: ".$out);
 		return $out;					
 	}
 	function buildInit($templateName="") {
@@ -228,11 +292,10 @@ Class MajaxRender {
 		}
 		//$row["misc"]["neco"]["virtVal"]="#mauta_cenaden"; //first character .. # - clone value from other field, ! - fix value
 		//$row["misc"]["neco"]["title"]="Cena bez dph";
-		
-
 		if ($templateName<>"") {
 			$row["htmltemplate"][$templateName]=$this->htmlElements->getTemplate($templateName);				
 		}
+		$row["language"]=$this->language;
 		return $row;	
 	}
 	function buildCounts($rows,$cachedJson) {
@@ -309,18 +372,19 @@ Class MajaxRender {
 					echo json_encode($this->buildInit($templateName)).PHP_EOL;						
 					if ($miscAction) { 
 						//send form
-						$mForm=new MajaxForm($this->getPostType(),$row["post_title"]);
-						if ($miscAction=="action") {							
-							echo json_encode($mForm->renderForm($this->htmlElements->getTemplate("defaultForm","form"))).PHP_EOL;	
+						$mForm=new MajaxForm($this->getPostType(),$row["post_title"],$this->translating);
+						if ($miscAction=="action") {
+							$mForm->setTemplate($this->htmlElements,"defaultForm","form");								
+							echo json_encode($mForm->renderForm()).PHP_EOL;	
 						}
 						if ($miscAction=="contactFilled") {	
-							$htmlSrc=$this->htmlElements->getTemplate("contactFormMessage");						
-							echo json_encode($mForm->runForm($htmlSrc)).PHP_EOL;	
+							$mForm->setTemplate($this->htmlElements,"contactFormMessage");													
+							echo json_encode($mForm->runForm()).PHP_EOL;	
 						}						
 					}					
 				 }
 				 if ($showPosts) {
-					echo $this->buildItem($row,"templateName",$templateName).PHP_EOL;					
+					echo $this->buildItem($row,["templateName"=>$templateName]).PHP_EOL;					
 				 }
 				 
 				 if ($n==count($rows)-1) { 

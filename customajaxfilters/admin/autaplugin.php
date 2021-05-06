@@ -25,15 +25,18 @@ class AutaPlugin {
 		global $wpdb;
 		$query = "SELECT * FROM `".AutaPlugin::getTable("main")."`";	
 		foreach( $wpdb->get_results($query) as $key => $row) {					
-			$this->customPost[]=new AutaCustomPost($row->slug,$row->singular,$row->plural); 
+			$acp=new AutaCustomPost($row->slug,$row->singular,$row->plural); 
+			$acp->adminInit();
+			$this->customPost[]=$acp; 
+			
 			\CustomAjaxFilters\Majax\MajaxWP\Caching::checkPruneCacheNeeded($row->slug);											
 		}	
 	}
 	function initWP() {
-		add_action( 'admin_enqueue_scripts', [$this,'mautaEnqueueStyle'], 11);
-		wp_enqueue_script( 'autapluginjs', plugin_dir_url( __FILE__ ) . 'auta-plugin.js', array('jquery') );		
+		add_action( 'admin_enqueue_scripts', [$this,'mautaEnqueueStylesAndScripts'], 11);
+		
 	}
-	function mautaEnqueueStyle() {				
+	function mautaEnqueueStylesAndScripts() {				
 		$mStyles=[
 			 'mauta' => ['src' => plugin_dir_url( __FILE__ ) . 'mauta.css']			 
 		];
@@ -44,6 +47,7 @@ class AutaPlugin {
 			wp_register_style($key, $src);
 			wp_enqueue_style($key);
 		}
+		wp_enqueue_script( 'autapluginjs', plugin_dir_url( __FILE__ ) . 'auta-plugin.js', array('jquery') );		
 	}
 
 	public static function getTable($tab,$cpt="") {
@@ -51,6 +55,8 @@ class AutaPlugin {
 	  if ($tab=="main") return $wpdb->prefix.CAF_TAB_PREFIX."plugin_main";
 	  if ($tab=="settings") return $wpdb->prefix.CAF_TAB_PREFIX."plugin_settings";
 	  if ($tab=="fields") return $wpdb->prefix.CAF_TAB_PREFIX.$cpt."_fields";
+	  if ($tab=="attachments") return $wpdb->prefix.CAF_TAB_PREFIX."attachments";
+	  return $wpdb->prefix.CAF_TAB_PREFIX.$tab;
 	}
 
 	function caf_plugin_install() {
@@ -86,6 +92,7 @@ class AutaPlugin {
 		}
 		$templating=new MajaxWP\MajaxHtmlElements();
 		$templating->checkPath();
+		Settings::checkPath();
 	}
 	function caf_plugin_uninstall() {
 		wp_clear_scheduled_hook( 'caf_cronhook' );
@@ -113,47 +120,9 @@ class AutaPlugin {
 		add_submenu_page($parent_slug, $page_title, $menu_title, $capability, $menu_slug, $function);
 		
 	}
-	function editPluginSettings() {
-		global $wpdb;
-		$settingsMap=["captchasecret","from","sitekey"];
-		$setting=[];
-		if (!isset($_POST["cafActionEditSettings"])) {
-			return;
-		}
-		$table=AutaPlugin::getTable("settings");			
-		foreach ($settingsMap as $s) {
-			$setting[$s]=filter_input( INPUT_POST, $s, FILTER_SANITIZE_STRING );  	 			
-			if (isset($setting[$s])) {
-				$sql = $wpdb->prepare("DELETE FROM `$table` WHERE `opt` like '%s'",$s);
-				$wpdb->query($sql);
-				$sql = $wpdb->prepare("INSERT INTO `$table` (`opt`, `val`) values (%s,%s)",$s,$setting[$s]);				
-				$wpdb->query($sql);
-			}			
-		}
-		echo "saved";
-	}
-	function mainSettings() {
-		global $wpdb;
-		$this->editPluginSettings();
-		$query = "SELECT * FROM `".AutaPlugin::getTable("settings")."`";	
-		$settings=[];
-		$settingsMap=["captchasecret","from","sitekey"];		
-		foreach( $wpdb->get_results($query) as $key => $row) {								
-			$settings[$row->opt]=$row->val;
-		}	
-
-		?>
-		<form method='post' class='caf-editFieldRow editSettings'>		
-		<?php
-		foreach ($settingsMap as $s) {
-			?>
-				<div><div><label><?= $s?></label></div><input type='text' name='<?= $s?>' value='<?= ($settings[$s] == "" ? "" : $settings[$s])?>' /></div>	
-			<?php
-		}
-		?>			
-				<div><input name='cafActionEditSettings' type='submit' value='Edit' /></div>
-			</form>
-		<?php
+	
+	function mainSettings() {		
+		Settings::adminAllSettings(AutaPlugin::getTable("settings"));		
 	}
 	function createCPTproc() {
 		global $wpdb;
@@ -174,6 +143,7 @@ class AutaPlugin {
 			$cpt->autaFields->makeTable("fields");
 			$cpt->autaFields->saveFields("fields");					
 			$this->customPost[]=$cpt;		
+			\CustomAjaxFilters\Majax\MajaxWP\Caching::checkPath($cpt);
 			$mess="created!";
 		}	
 		echo "ok, created";
@@ -253,6 +223,8 @@ class AutaPlugin {
 		</div>
 		<?php
 	}
+
+
 	
 	static function logWrite($val,$arr=[]) {
 	 if (is_array($arr) && count($arr)>0) {

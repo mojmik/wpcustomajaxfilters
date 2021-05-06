@@ -145,6 +145,7 @@ var majaxModule=(function (my) {
                               action: actionFunction,
                               category: objCategory,
                               type: my.majaxRender.getType(),                              
+                              language: my.majaxRender.language,
                               aktPage: aktPage,
                               security: majax.nonce
                         },

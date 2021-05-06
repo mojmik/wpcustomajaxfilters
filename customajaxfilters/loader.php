@@ -5,6 +5,7 @@ class Loader {
 
     public function __construct() {	        
         spl_autoload_register([$this,"mLoadClass"]);        
+        define('CAF_MAJAX_PATH',plugin_dir_path( __FILE__ ). "majax/");  
     }
     public function initAdmin() {
         $mautawp=new Admin\AutaPlugin(); 
