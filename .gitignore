@@ -4,3 +4,5 @@
 log.txt
 /customajaxfilters/majax/majaxwp/cache
 /customajaxfilters/majax/majaxwp/secret
+/customajaxfilters/settings
+secret-*
