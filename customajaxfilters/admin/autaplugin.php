@@ -140,13 +140,11 @@ class AutaPlugin {
 				) 
 			);
 			$cpt=new AutaCustomPost($slug,$singular,$plural); 				
-			$cpt->autaFields->makeTable("fields");
-			$cpt->autaFields->saveFields("fields");					
+			$cpt->autaFields->makeTable("fields");						
 			$this->customPost[]=$cpt;		
-			\CustomAjaxFilters\Majax\MajaxWP\Caching::checkPath($cpt);
-			$mess="created!";
+			\CustomAjaxFilters\Majax\MajaxWP\Caching::checkPath($slug);
 		}	
-		echo "ok, created";
+		echo "ok, created ".$cpt->editCptHtml();
 	}
 	function editCPTproc() {
 		global $wpdb;
@@ -172,13 +170,15 @@ class AutaPlugin {
 				}
 			}
 			if (isset($keyDel)) array_splice($this->customPost,$key,1);
-		}
-	
+			echo json_encode(["id"=>"mAutaEdit".$cpt->getCustomPostType()]);
+			wp_die();
+		}	
 	}
+	
 	function customposts_settings_page() {  
 		global $wpdb;
 		?>
-		<div>
+		<div id="mAutaCustomPosts">
 		Custom posts definition
 		<?php 
 		if (isset($mess)) { ?>		
@@ -201,18 +201,7 @@ class AutaPlugin {
 			<h3>Custom post edit</h3>
 			<?php
 			foreach ($this->customPost as $cpt) {			
-			?>
-			<form method='post' class='caf-editFieldRow editCPT'>
-				<div><div><label>singular name</label></div><input type='text' name='singular' value='<?= $cpt->singular?>' /></div>	
-				<div><div><label>plural name</label></div><input type='text' name='plural' value='<?= $cpt->plural?>' /></div>
-				<div><input name='cafActionEdit' type='submit' value='Edit' /></div>
-				<input name='slug' type='hidden' value='<?= $cpt->getCustomPostType();?>' />
-			</form>
-			<form method='post' class='removeCPT'>
-				<input name='cafActionRemove' type='submit' value='Remove' />
-				<input name='slug' type='hidden' value='<?= $cpt->getCustomPostType();?>' />
-			</form>			
-			<?php
+			 echo $cpt->editCptHtml();
 			}
 		} else {
 		?>

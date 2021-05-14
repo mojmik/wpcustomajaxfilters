@@ -10,7 +10,36 @@ function saveAndAdd() {
 	return false;  
 }
 
+
 jQuery(function($){
+
+	function addRemoveListener() {
+		jQuery("form.removeCPT").submit(function() {	
+			var thisForm=$(this);
+			var formData={};
+			thisForm.find( '[name]' ).each( function( i , v ){
+				let input = $( this ); // resolves to current input element.
+				let name = input.attr( 'name' );
+				let value = input.val();
+				formData[name] = value;
+			});
+	
+			jQuery.ajax({
+				   type: "POST",
+				   url: ajaxurl,
+				   data: {
+					action: "editCPT",
+					slug: formData["slug"],
+					cafActionRemove: formData["cafActionRemove"]
+				  },
+				success: function( data ) {
+					let jsonObj=JSON.parse(data);
+					jQuery("#"+jsonObj.id).remove();
+				 }
+		   });
+		   return false;
+		 });
+	}
 
 	jQuery("form.createCPT").submit(function() {	
 		var singular = $("input[name='singular']").val();		
@@ -26,7 +55,9 @@ jQuery(function($){
 				plural: plural,
 			  },
 			success: function( data ) {
-				window.location.reload();
+				//window.location.reload();
+				jQuery("#mAutaCustomPosts").append(data);
+				addRemoveListener();
 			 }
 	   });
 	   return false;
@@ -60,30 +91,7 @@ jQuery(function($){
 	   return false;
 	 });
 
-	 jQuery("form.removeCPT").submit(function() {	
-		var thisForm=$(this);
-		var formData={};
-		thisForm.find( '[name]' ).each( function( i , v ){
-			let input = $( this ); // resolves to current input element.
-			let name = input.attr( 'name' );
-			let value = input.val();
-			formData[name] = value;
-		});
-
-		jQuery.ajax({
-			   type: "POST",
-			   url: ajaxurl,
-			   data: {
-				action: "editCPT",
-				slug: formData["slug"],
-				cafActionRemove: formData["cafActionRemove"]
-			  },
-			success: function( data ) {
-				window.location.reload();
-			 }
-	   });
-	   return false;
-	 });
+	 addRemoveListener();
 
 // on upload button click
 $('body').on( 'click', '.icon-upl', function(e){

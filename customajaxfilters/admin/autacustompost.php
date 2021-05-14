@@ -12,13 +12,13 @@ class AutaCustomPost {
 		 $this->plural=$plural;
 		 $this->customPostType=$postType;		 
 		 add_action( 'init', [$this,'custom_post_type'] , 0 );
+		 $this->autaFields = new AutaFields($this->customPostType);
 	 }
 	 public function adminInit() {
 		//admin
 		add_action('admin_menu' , [$this,'add_to_admin_menu']); 
 				
-		//init custom fields
-		$this->autaFields = new AutaFields($this->customPostType);		
+		//init custom fields				
 		$this->autaFields->loadFromSQL();
 
 		add_action( 'save_post_'.$this->customPostType, [$this,'saveCPT'] ); 
@@ -195,6 +195,19 @@ class AutaCustomPost {
 	  $this->autaFields->printNewField();
 	  $this->autaFields->printFields();		 
 	}	
-
+	function editCptHtml() {
+		?>
+			<form id="mAutaEdit<?= $this->getCustomPostType();?>" method='post' class='caf-editFieldRow editCPT'>
+				<div><div><label>singular name</label></div><input type='text' name='singular' value='<?= $this->singular?>' /></div>	
+				<div><div><label>plural name</label></div><input type='text' name='plural' value='<?= $this->plural?>' /></div>
+				<div><input name='cafActionEdit' type='submit' value='Edit' /></div>
+				<input name='slug' type='hidden' value='<?= $this->getCustomPostType();?>' />
+			</form>
+			<form method='post' class='removeCPT'>
+				<input name='cafActionRemove' type='submit' value='Remove' />
+				<input name='slug' type='hidden' value='<?= $this->getCustomPostType();?>' />
+			</form>			
+			<?php
+	}
 	
 }
