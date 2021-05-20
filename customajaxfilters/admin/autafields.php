@@ -3,12 +3,18 @@ namespace CustomAjaxFilters\Admin;
 use \CustomAjaxFilters\Majax\MajaxWP as MajaxWP;
 
 class AutaFields {
-	private $fieldsList=array();
+	private $fieldsList;
 	private $customPostType;
 	public function __construct($postType) {					
-		add_action( 'add_meta_boxes_'.$postType, [$this,'mauta_metaboxes'] );		
-		add_action( 'save_post_'.$postType, [$this,'mauta_save_post'] ); 
+		add_action( 'add_meta_boxes_'.$postType, [$this,'mauta_metaboxes'] );				
 		$this->customPostType=$postType;				
+		$this->fieldsList=array();
+	}
+	public function getList() {
+		return $this->fieldsList;
+	}
+	public function initList() {
+		$this->fieldsList=array();
 	}
 	public function loadFromSQL($tabName="fields") {
 		global $wpdb;		
@@ -19,6 +25,29 @@ class AutaFields {
 			$this->fieldsList[] = $this->createField($row->name,$row->type,$row->compare,$row->title,$row->value,$row->filterorder,$row->displayorder,$row->icon,$row->fieldformat,$row->htmlTemplate);
 		}	
 		return true;
+	}
+	public function addFields($rows) {
+		foreach ($rows as $r) {
+			if (!empty($r["name"])) { 
+				$newName=$r["name"];
+				$type=(empty($r["type"])) ? "" : $r["type"];
+				$compare=(empty($r["compare"])) ? "=" : $r["compare"];
+				$title=(empty($r["title"])) ? $newName : $r["title"];
+				$options=(empty($r["options"])) ? "" : $r["options"];
+				$filterorder=(empty($r["filterorder"])) ? "" : $r["filterorder"];
+				$displayorder=(empty($r["displayorder"])) ? "" : $r["displayorder"];
+				$icon=(empty($r["icon"])) ? "" : $r["icon"];
+				$fieldformat=(empty($r["fieldformat"])) ? "" : $r["fieldformat"];
+				$htmlTemplate=(empty($r["htmlTemplate"])) ? "" : $r["htmlTemplate"];
+				$virtVal=(empty($r["virtVal"])) ? "" : $r["virtVal"];
+				$this->addField($newName,$type,$compare,$title,$options,$filterorder,$displayorder,$icon,$fieldformat,$htmlTemplate,$virtVal);
+			} 
+		}
+	}
+	public function addField($newName,$type,$compare,$title,$options,$filterorder,$displayorder,$icon,$fieldformat,$htmlTemplate,$virtVal) {
+		$f = $this->createField($newName,$type,$compare,$title,$options,$filterorder,$displayorder,$icon,$fieldformat,$htmlTemplate,$virtVal);
+		$this->fieldsList[] = $f;
+		$f->saveToSQL();
 	}
 	public function procEdit() {
 		//edit field
@@ -57,10 +86,8 @@ class AutaFields {
 		//new field
 		if (isset($_POST["newField"])) {			
 				//create table if not exists
-			 	$newName=CAF_TAB_PREFIX.sanitize_title($title);
-				$f = $this->createField($newName,$type,$compare,$title,$options,$filterorder,$displayorder,$icon,$fieldformat,$htmlTemplate,$virtVal);
-				$this->fieldsList[] = $f;
-				$f->saveToSQL();				
+			 	$newName=CAF_TAB_PREFIX.sanitize_title($title);				
+				$this->addField($newName,$type,$compare,$title,$options,$filterorder,$displayorder,$icon,$fieldformat,$htmlTemplate,$virtVal);												
 				echo "created $name";
 				MajaxWP\Caching::pruneCache(true,$this->customPostType);
 		}
@@ -138,18 +165,15 @@ class AutaFields {
 		<button onclick='javascipt:saveAndAdd();'>Add another</a>				 
 		<?php
 	}
-	function mauta_save_post()	{		
-		if(empty($_POST)) return; //tackle trigger by add new 
-		MajaxWP\Caching::pruneCache(true,$this->customPostType);
-		foreach ($this->fieldsList as $f) {
-		  $f->saveField();	
-		}			
-	}   
+	  
 	function saveFields($destinationTab="fields")	{		
 		foreach ($this->fieldsList as $f) {			
 		  $f->saveToSQL($destinationTab);	
 		}			
 	}   
+	function dropAll() {
+
+	}
 	function makeTable($tabName="fields",$rebuild=false,$dropOnly=false) {
 		global $wpdb;
 		$tableName=AutaPlugin::getTable($tabName,$this->customPostType);
@@ -178,10 +202,9 @@ class AutaFields {
 		  virtVal text,
 		  PRIMARY KEY  (id)
 		) $charset_collate;";
-
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 		maybe_create_table($tableName, $sql );
-		$wpdb->query("TRUNCATE TABLE `{$tableName}`");		
+		$this->fieldsList=array();	
 	}	
 	function initMinMax() {		
 		foreach ($this->fieldsList as $f) {

@@ -31,7 +31,7 @@ class Attachment {
         $this->cpt=$cpt;
         $this->name=$name;
         $this->tableName = AutaPlugin::getTable($this->cpt."_".$this->name); 		
-        if ($createTable) MajaxWP\MikDb::createTableIfNotExist($this->tableName,$this->fieldsDef,["debug" => false]);
+        if ($createTable) MajaxWP\MikDb::createTableIfNotExists($this->tableName,$this->fieldsDef,["debug" => false]);
     }
     public function recreate() {
         MajaxWP\MikDb::createTable($this->tableName,$this->fieldsDef,["drop" => true,"debug" => false]);

@@ -8,7 +8,7 @@ Class ImageCache {
     public static function loadImageCache($postType) {
         ImageCache::$imageCache=array();
         ImageCache::$imageCache=Caching::getCachedJson("allimages".$postType);
-        if (!ImageCache::$imageCache) {     
+        if (ImageCache::$imageCache===false) {     
             ImageCache::$imageCache=ImageCache::loadFromSQL($postType);
             Caching::addCache("allimages".$postType,ImageCache::$imageCache,"allimages".$postType);                         
         }

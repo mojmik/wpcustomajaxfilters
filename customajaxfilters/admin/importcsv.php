@@ -1,5 +1,6 @@
 <?php
 namespace CustomAjaxFilters\Admin;
+use \CustomAjaxFilters\Majax\MajaxWP as MajaxWP;
 
 class ImportCSV {
 	public $fieldsList=array();
@@ -36,22 +37,29 @@ class ImportCSV {
 		];
 		$this->initDefaults();	
 	}	
+	public function setWPmapping($mapping) {
+		$this->mapping=$mapping;
+	}
 	private function initDefaults() {
 		$this->params["separator"]=";";
 		$this->params["encoding"]="";
+		$this->params["enclosure"]="";
 		$this->params["emptyFirst"]=false;
-		$this->params["skipCols"]=null;
+		$this->params["skipCols"]=[];
 		$this->params["createTable"]=false;
 		$this->params["colsOnFirstLine"]=true;
 		$this->params["mColNames"]=[];
+		$this->params["tableName"]="csvtab";
+		$this->params["cj"]=null;
 
 	}
 	public function setParam($name,$val) {
 		$this->params[$name]=$val;
 		return $this;
 	}	
-	
-	public function removePreviousPosts($table,$brute=false) {
+
+	public function removePreviousPosts($brute=false) {
+		$table=$this->params["tableName"];
 		global $wpdb;	
 		
 		if ($brute) {
@@ -64,7 +72,7 @@ class ImportCSV {
 			";
 			$result = $wpdb->get_results($query);  			
 		}
-		$results = $wpdb->get_results($wpdb->prepare("SELECT * FROM $table"));		
+		$results = $wpdb->get_results("SELECT * FROM $table");		
 		foreach ($results as $r) {			
 			$title=$this->processTemplate($this->mapping["post"]["post_title"],$r);
 			echo "<br />deleted: ".$title;
@@ -130,36 +138,49 @@ class ImportCSV {
 				$out = str_replace("%{$substCnt}",$r->{$templateEx[$substCnt]},$out);
 			}
 		}
-		foreach ($this->mapping["replaceglobally"] as $repl=>$for) {
-			if ($out==$repl) $out=$for;
-		}
+		if (!empty($this->mapping["replaceglobally"])) {
+			foreach ($this->mapping["replaceglobally"] as $repl=>$for) {
+				if ($out==$repl) $out=$for;
+			}
+		}		
 		return $out;
 	}
-	public function createPostsFromTable($table,$fields) {
-		global $wpdb;		
-		$results = $wpdb->get_results($wpdb->prepare("SELECT * FROM $table"));	
-		
+	public function removeExtraSpaces($c) {
+		$c=preg_replace('!\s+!', ' ', $c);
+		$c=trim($c);
+		return $c;
+	}
+	public function createPostsFromTable($fields,$from=null,$to=null,$extras=[]) {
+		global $wpdb;	
+		$table=$this->params["tableName"];		
+		$limit="";
+		if (!empty($to)) {
+			if (!$from) $from="0";
+			$limit="LIMIT ".$from.",".($to-$from);
+		}
+		$results = $wpdb->get_results("SELECT * FROM $table $limit");	
+
 		//get columns of csvtab
 		//get columns of wp_mauta_fields
-
+		$terms=[];
 		foreach ($results as $r) {
 			//create post
-			$postArr=array();
+			$postArr=[];
 			if ($this->settings["createpost"]) {
+				
+
 				foreach ($this->mapping["post"] as $key=>$template) {
-				 //$postArr[$key] = $r->$field;	
 				 $postArr[$key]=$this->processTemplate($template,$r);				 
 				}								
 				$postArr["post_status"]="publish";
 				$postArr["post_type"]=$this->customPostType;
-				//print_r($postArr);
 				$postId=wp_insert_post($postArr);
-				echo "<br />inserted {$postArr["post_title"]} $postId";
+				//echo "<br />inserted {$postArr["post_title"]} $postId";
+				echo json_encode(["result"=>"inserted {$postArr["post_title"]} $postId"]).PHP_EOL;
 				
 				//create metas
 				if ($this->settings["createmeta"]) {								
 					foreach ($this->mapping["meta"] as $key=>$template) {						
-					 //echo "<br />addmeta $postId $key $template ".$r->$template."--".$this->processTemplate($template,$r);					 
 					 add_post_meta($postId,$key,$this->processTemplate($template,$r));
 					}					
 				}
@@ -169,10 +190,27 @@ class ImportCSV {
 					$name=$f->name;
 					$title=$f->title;
 					$metaValue=$r->$title;
-					//echo "<br />$name $title $metaValue";
-					if (isset($metaValue)) {						
+					$createMeta=true;
+					//extras-apply filters like trim to all values
+					if (!empty($extras[$name])) {
+						foreach ($extras[$name] as $operation) {							
+								if (!empty($operation["removeExtraSpaces"])) $metaValue=$this->removeExtraSpaces($metaValue);							
+								if (!empty($operation["createSlug"])) { 
+									$metaValue=$this->removeExtraSpaces($metaValue);
+									$metaValueSlug=sanitize_title($metaValue);
+									add_post_meta($postId,$operation["createSlug"],$metaValueSlug);
+									$terms[$metaValueSlug]=$metaValue;
+									/*
+									$createMeta=false;
+									$wpdocs_cat = array('taxonomy' => $operation["createSlug"], 'cat_name' => $metaValue, 'category_description' => "", 'category_nicename' => $metaValueSlug);	 
+									$wpdocs_cat_id = wp_insert_category($wpdocs_cat,false);
+									*/
+
+								}
+						}
+					}
+					if (isset($metaValue) && $createMeta) {						
 						add_post_meta($postId,$name,$metaValue);
-						//echo "<br />added meta detected ".$name." value ".$metaValue;
 					}
 				}
 						
@@ -186,15 +224,24 @@ class ImportCSV {
 					$wpdocs_cat_id = wp_insert_category($wpdocs_cat,false);
 				}
 			}
-			
-			
 		}
 
+		//create special tables like terms or categories
+		if (!empty($this->params["cjCatsTable"])) {			
+			foreach ($terms as $term => $value) {
+				$row=["slug" => $term, "name" => $value, "postType" => $this->customPostType, "flag" => "1" ];
+				MajaxWP\MikDb::insertRow($this->params["cjCatsTable"],$row);
+			}
+		}
+		
 	}
-	private function fgetcsvUTF8(&$handle, $length, $separator = ';',$encoding="") {
+	private function fgetcsvUTF8(&$handle, $length) {
+		$separator=$this->params["separator"];
+		$encoding=$this->params["encoding"];
+		$enclosure=$this->params["enclosure"];
 		if (($buffer = fgets($handle, $length)) !== false)    {
 			$buffer = $this->autoUTF($buffer,$encoding);			
-			return str_getcsv($buffer, $separator,"","\\");
+			return str_getcsv($buffer, $separator,$enclosure,"\\");
 		}
 		return false;	
 	}
@@ -205,13 +252,11 @@ class ImportCSV {
 	}
 	public function loadCsvValuesFromColumn($file,$selectColNum) {
 		//output values from selected column in csv file
-		$sep=$this->params["separator"];
-		$encoding=$this->params["encoding"];
 		$colsOnFirstLine=$this->params["colsOnFirstLine"];
 		$fh = fopen($file, "r"); 
 		$lineNum=0;
 		$out=[];	
-		while ($line = $this->fgetcsvUTF8($fh, 8000, $sep,$encoding)) {		
+		while ($line = $this->fgetcsvUTF8($fh, 8000)) {		
 			$lineNum++;			
 			//echo "line:".$line[1];
 			if ($colsOnFirstLine && $lineNum===1) {		
@@ -226,13 +271,11 @@ class ImportCSV {
 	}
 	public function loadCsvValuesFromColumnWithKey($file,$keyCol,$keyVal,$selectColNum) {
 		//output values from selected column in csv file
-		$sep=$this->params["separator"];
-		$encoding=$this->params["encoding"];
 		$colsOnFirstLine=$this->params["colsOnFirstLine"];
 		$fh = fopen($file, "r"); 
 		$lineNum=0;
 		$out=[];	
-		while ($line = $this->fgetcsvUTF8($fh, 8000, $sep,$encoding)) {		
+		while ($line = $this->fgetcsvUTF8($fh, 8000)) {		
 			$lineNum++;			
 			//echo "line:".$line[1];
 			if ($colsOnFirstLine && $lineNum===1) {		
@@ -244,24 +287,24 @@ class ImportCSV {
 		}		
 		return $out;
 	}
-	public function loadCsvFile($file,$table) {
-		global $wpdb;
-		$sep=$this->params["separator"];
-		$encoding=$this->params["encoding"];
+	public function loadCsvFile($file) {
+		global $wpdb;		
+		$table=$this->params["tableName"];
 		$emptyFirst=$this->params["emptyFirst"];
 		$skipCols=$this->params["skipCols"];
 		$createTable=$this->params["createTable"];
 		$colsOnFirstLine=$this->params["colsOnFirstLine"];
 		$mCols=$this->params["mColNames"];
+		$cj=$this->params["cj"];
 		$fh = fopen($file, "r"); 
 		$lineNum=0;
 		$mInserted=0;		
-		if ($emptyFirst) $wpdb->query("TRUNCATE TABLE `$table`");
-		while ($line = $this->fgetcsvUTF8($fh, 8000, $sep,$encoding)) {		
+		if ($emptyFirst) MajaxWP\MikDb::clearTable($table);
+		while ($line = $this->fgetcsvUTF8($fh, 8000)) {		
 			$lineNum++;			
 			if ($colsOnFirstLine && $lineNum===1) {		
 			 $mCols=$line;
-			 if ($createTable) $this->createTable($table,$line);
+			 if ($createTable) $this->createTable($line);
 			}
 			else {			 			
 				$n=0;
@@ -269,16 +312,17 @@ class ImportCSV {
 					$colName=$mCols[$n];
 					$mRow[$colName]=$mVal;
 					$n++;
-				}									
-				$query=$this->getInsertQueryFromArray($table,$mRow,$skipCols);
-				$result = $wpdb->get_results($query);
+				}		
+				if (!empty($cj)) $mRow=$cj->produceRecord($mRow);			
+				MajaxWP\MikDb::insertRow($table,$mRow,$skipCols);	
 				$mInserted++;			 
 			}			
 				 
 		}		
 	}
-	function createTable($tabName,$mCols) {	
+	function createTable($mCols) {	
 		global $wpdb;	
+		$tabName=$this->params["tableName"];
 		$charset_collate = $wpdb->get_charset_collate();
 		$wpdb->query( "DROP TABLE IF EXISTS {$tabName}");
 		$cols="";
@@ -291,21 +335,10 @@ class ImportCSV {
 		  PRIMARY KEY  (id)
 		) $charset_collate;";		
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+		AutaPlugin::logWrite($sql);
 		dbDelta( $sql );
 	}
-	function getInsertQueryFromArray($table,$mArr,$skipCols) {
-	 $query="INSERT INTO `$table` SET ";
-	 $n=0;
-	 foreach ($mArr as $colName => $mVal) {   
-	   //echo "<br />colname:$colName value:$mVal";
-	   if (!is_array($skipCols) || !in_array($colName,$skipCols)) {
-		 if ($n>0) $query.=",";   
-		 $query.="`$colName`='$mVal'";
-		 $n++;
-	  }
-	 }
-	 return $query;
-	}
+	
 
 	public function loadFileLoadData($file,$sep="^",$enc='"') {
 		//tohle nepude, protoze to je zakazany kvuli securiyu
@@ -321,24 +354,36 @@ class ImportCSV {
                 )
         );
 	}
-	public function importCSVfromWP($thisTable) {
-		if(isset($_FILES['mfilecsv']) && ($_FILES['mfilecsv']['size'] > 0)) {
-			$upload_overrides = array( 'test_form' => false ); 
-			$uploaded_file = wp_handle_upload($_FILES['mfilecsv'], $upload_overrides);
-			$fn = $uploaded_file['file'];
-			if(isset($fn) && wp_check_filetype($uploaded_file['file'],"text/csv")) {									
-					$importCSV=new ImportCSV($this->customPostType);	
-					
-					$importCSV->loadCsvFile($fn,$thisTable,false,"",true,true);		  	  																	
-					return "imported";
-			}
-		} else {			
+	public function gotUploadedFile() {
+		if(isset($_FILES['mfilecsv']) && ($_FILES['mfilecsv']['size'] > 0)) return true;
+		return false;
+	}
+	public function doImportCSVfromWP() {
+		$upload_overrides = array( 'test_form' => false ); 
+		$uploaded_file = wp_handle_upload($_FILES['mfilecsv'], $upload_overrides);
+		$fn = $uploaded_file['file'];
+		if(isset($fn) && wp_check_filetype($uploaded_file['file'],["text/csv"])) {									
+				$this->loadCsvFile($fn);		  	  																	
+				return "imported";
+		}
+	}
+	public function showImportCSV() {							
 			?>
 			<form method="post" enctype="multipart/form-data"> 
 				<input type="file" name="mfilecsv" id="mfilecsv" />
 				<input type="submit" name="html-upload" id="html-upload" class="button" value="Upload" />
 			</form>
-			<?php	
-		}				
+			<?php					
 	}
+	public function showMakePosts($type,$table,$total) {							
+		?>
+		<form id="mautaAddCSV" method="post"> 			
+			<input type="hidden" name="totalRecords" value="<?= $total?>" />
+			<input type="hidden" name="table" value="<?= $table?>" />
+			<input type="hidden" name="csvtype" value="<?= $type?>" />
+			<input type="hidden" name="doajax" value="makeposts" />
+			<input type="submit" name="html-upload" id="html-upload" class="button" value="Process" />
+		</form>
+		<?php					
+}
 }

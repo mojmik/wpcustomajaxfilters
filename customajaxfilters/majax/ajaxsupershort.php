@@ -36,16 +36,18 @@ define('CAF_MAJAX_PATH',plugin_dir_path( __FILE__ ));
 
 $action=$_POST["action"];
 $atts["language"]=(empty($_POST["language"])) ? "" : $_POST["language"];
+$atts["type"]=(empty($_POST["mautaCPT"])) ? "" : $_POST["mautaCPT"];
+
 if ($action=="formInit") {
 	$renderer = new MajaxWP\MajaxRender(false,$atts); //use false pro preloading hardcoded fields (save one sql query)
-	$renderer->showFormFields($_POST["type"]);	
+	$renderer->showFormFields($_POST["mautaCPT"]);	
 }
 if ($action=="contact_filled") {
 	$renderer = new MajaxWP\MajaxRender(true,$atts); //use false pro preloading hardcoded fields (save one sql query)
 	MajaxWP\MikDb::init(DB_HOST,DB_USER,DB_PASSWORD,DB_NAME);		
 	if (isset($_POST["category"])) {
 		$postId=$_POST["category"];	
-		$query=$renderer->buildSingle($postId);
+		$query=$renderer->produceSQL($postId);
 		$rows=MajaxWP\Caching::getCachedRows($query);
 		$renderer->showRows($rows,0,"single",9,0,"contactFilled");		
 	}    
@@ -58,7 +60,7 @@ if ($action=="contact_filled") {
 if ($action=="single_row") {
 	$renderer = new MajaxWP\MajaxRender(true,$atts); //use false pro preloading hardcoded fields (save one sql query)
 	MajaxWP\MikDb::init(DB_HOST,DB_USER,DB_PASSWORD,DB_NAME);		
-    $query=$renderer->buildSingle($_POST["category"]);
+    $query=$renderer->produceSQL($_POST["category"]);
 	$rows=MajaxWP\Caching::getCachedRows($query);
 	$renderer->showRows($rows,0,"single",9,0,"action");		
 	exit;
@@ -67,7 +69,7 @@ if ($action=="filter_rows") {
 	$renderer = new MajaxWP\MajaxRender(true,$atts); //use false pro preloading hardcoded fields (save one sql query)
 	MajaxWP\MikDb::init(DB_HOST,DB_USER,DB_PASSWORD,DB_NAME);	
 
-    $query=$renderer->buildQuerySQL();
+    $query=$renderer->produceSQL();
 	$rows=MajaxWP\Caching::getCachedRows($query);
 	$countsJson=MajaxWP\Caching::getCachedJson("json_$query");
 	$countsRows=$renderer->buildCounts($rows,$countsJson);	

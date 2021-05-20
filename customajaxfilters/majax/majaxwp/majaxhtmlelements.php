@@ -84,7 +84,8 @@ Class MajaxHtmlElements {
             $metaOut[$n]="";
         }        
         foreach ($metas as $metaName => $metaMisc) {
-            //iterate fields           
+            //iterate fields        
+            if (empty($metaMisc["displayorder"])) continue;
             $metaIcon=$metaMisc["icon"];
             $displayOrder=$metaMisc["displayorder"];
             $fieldFormat=$metaMisc["fieldformat"];

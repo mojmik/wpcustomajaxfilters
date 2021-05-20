@@ -31,4 +31,44 @@
     padding: 5px;    
     background: #fff;
 }
-
+/* loader */
+.majax-loader {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-box-align: center;
+    z-index: 10000; 
+    overflow: hidden;  
+    width: 100%;
+    /*
+    animation: hide 0.4s forwards;
+    animation-iteration-count: 10;
+    animation-delay: 100s;
+    */
+  }
+  .majax-loader-disappear-anim {
+    animation: hide 0.4s forwards;
+    animation-iteration-count: 1;
+    animation-delay: 1s;
+  }
+  .majax-loader svg {
+    animation: spin 0.5s linear infinite;
+  }
+  
+  @keyframes hide {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+      z-index: -1;
+    }
+  }
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }

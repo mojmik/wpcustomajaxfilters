@@ -22,6 +22,15 @@ class CustomField {
 	 $this->virtVal=$virtVal;
 	 $this->postedValue="";
 	}	
+	public function setVirtField($settings=[]) {
+		if (!empty($settings["name"])) $this->name=$settings["name"];
+		if (!empty($settings["filterOrder"])) $this->filterOrder=$settings["filterOrder"];
+		if (!empty($settings["postedValue"])) $this->postedValue=$settings["postedValue"];
+		if (!empty($settings["postType"])) $this->postType=$settings["postType"];
+		if (!empty($settings["compare"])) $this->compare=$settings["compare"];
+		
+		
+	}
 	public function setFixFilter($filter) {
 		$this->fixFilter=$filter;
 	}
@@ -139,39 +148,7 @@ class CustomField {
 				   );
 			   }
 	}
-	public function checkValueInField($row) {
-		//not used		
-		$rowVal=$row[$this->outName()];
-		$val=$this->postedValue;
-		if ($val=="") {
-			return true;	
-		}
-		//$val=filter_var($val, FILTER_SANITIZE_STRING);
-		if (strpos($val,"|")>0) {
-			$vals=explode("|",$val);
-			if ($this->typeIs("NUMERIC")) { 				 
-				 return ($rowVal>=$vals[0] && $rowVal<=$vals[1]);
-			} else {			
-				foreach ($vals as $v) {		
-				 if ($v===$rowVal) return true;			
-				}
-			}				
-		}
-		else if ($this->typeIs("bool")) {				
-			if ($val=="on" || $val=="1") $val="1";				
-			else $val="0";
-			if ($val===$rowVal) return true;	
-		}
-		else {				
-			//single value
-			if ($this->compare == ">") return ($rowVal > $val);
-			if ($this->compare == "<") return ($rowVal < $val);
-			if ($this->compare == "=") return ($rowVal == $val);
-			if ($this->compare == "<=") return ($rowVal <= $val);
-			if ($this->compare == ">=") return ($rowVal >= $val);
-			return ($rowVal == $val);		
-		}
-	}
+	
 	public function getFieldFilterSQL() {
 		//$val=$_POST[$this->name];			   
 		if (isset($this->fixFilter)) return "`{$this->name}` {$this->compare} '{$this->fixFilter}'";

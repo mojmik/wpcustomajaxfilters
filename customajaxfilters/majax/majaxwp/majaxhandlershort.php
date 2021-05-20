@@ -1,5 +1,6 @@
 <?php
 namespace CustomAjaxFilters\Majax\MajaxWP;
+use \CustomAjaxFilters\Admin as MajaxAdmin;
 
 Class MajaxHandlerShort {	
 	const ACTION = 'majax';
@@ -7,9 +8,10 @@ Class MajaxHandlerShort {
 
 	public $ajaxRender;
 	public $shortInit=true;
+	private $cjActive;
 
 	function __construct() {		
-				
+		
 	}
 
 	public function register()  {				
@@ -37,13 +39,14 @@ Class MajaxHandlerShort {
 	function printContent($atts = []) {	
 		ob_start();	
 		$this->initRender($this->setAtts($atts));
-		$this->ajaxRender->printContent();
+		$params=["showSomePostsForStart" => true];
+		$this->ajaxRender->printContent($params);
 		return ob_get_clean();
 	}
 	function showStaticContent($atts = []) {	
 		ob_start();	
 		$this->initRender($this->setAtts($atts));
-		$this->ajaxRender->showStaticContent();
+		$this->ajaxRender->showStaticContent($atts);
 		return ob_get_clean();
 	}
 	function showStaticForm($atts = []) {	

@@ -1,7 +1,7 @@
 <?php
 namespace CustomAjaxFilters\Majax\MajaxWP;
 use \CustomAjaxFilters\Admin as MajaxAdmin;
-   
+
 Class Majax {
 	private $ajaxHandler;
 	function __construct() {
@@ -22,13 +22,14 @@ Class Majax {
 				
 		
 		//init actions		
-	
+		
 		add_action( 'wp_enqueue_scripts', [$this,'mAjaxEnqueueScripts'] );			
 		add_action( 'wp_enqueue_scripts', [$this,'majaxEnqueueStyle'], 11);
 
-		//fronted posts
+		//fronted posts (aby to bralo custom posty jako obyc. posty, tohle tady nebude potreba)
 		$cptAdmin=new MajaxAdmin\AutaCustomPost("zajezd");
-		add_action( 'pre_get_posts', [$this,'addCptToQuery'] );			
+		add_action( 'pre_get_posts', [$this,'addCptToQuery'] );	
+				
 	}
 
 	function addCptToQuery( $query ) {

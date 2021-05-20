@@ -16,6 +16,10 @@ Class Caching {
         } 
     }
     static function checkPruneCacheNeeded($cpts) {
+        if (!is_array($cpts)) {
+            $cptsArr[]=$cpts;
+            $cpts=$cptsArr;
+        } 
         $fn=wp_upload_dir()["basedir"]."/deletecache.txt";
         if (file_exists($fn)) {
             foreach ($cpts as $cpt) {
@@ -61,7 +65,7 @@ Class Caching {
         if (!$fnId) {
             $fnId=date("d-m-y-h-i-s").rand(10000,99999).".txt";            
         }        
-        $cacheMap[] = ["query" => $query, "fnId" => $fnId];
+        Caching::$cacheMap[] = ["query" => $query, "fnId" => $fnId];
         file_put_contents(Caching::getCachePath() . "cachemap.txt",$query."|".$fnId."^",FILE_APPEND | LOCK_EX);
         Caching::cacheWrite($fnId,$rows);
         Caching::logWrite("$query added to cache");
@@ -123,11 +127,11 @@ Class Caching {
         Caching::$cacheMap=array();
         $txt=@file_get_contents(Caching::getCachePath() . "cachemap.txt");
         if ($txt === false) return false;
+        Caching::$cacheMap=[];
         $rows=explode("^",$txt);
         foreach ($rows as $row) {
-            $ex=explode("|",$row);
-            Caching::$cacheMap[]=[];
-            if (!empty($ex[0]) && !empty($ex[1])) Caching::$cacheMap= ["query" => $ex[0], "fnId" => $ex[1]];
+            $ex=explode("|",$row);            
+            if (!empty($ex[0]) && !empty($ex[1])) Caching::$cacheMap[]= ["query" => $ex[0], "fnId" => $ex[1]];
         }
     }
     static function logWrite($val,$fn="caching.txt") {

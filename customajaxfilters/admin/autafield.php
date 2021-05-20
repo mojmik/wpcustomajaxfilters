@@ -2,6 +2,8 @@
 namespace CustomAjaxFilters\Admin;
 
 class AutaField {
+ public $name;
+ public $type;
  public function __construct($name,$type="",$title="",$options="",$postType="",$compare="",$filterorder="",$displayorder="",$icon="",$fieldformat="",$htmlTemplate="",$virtVal="") {
 	  $this->name=$name;	 
 	  $this->type=$type;	
@@ -16,6 +18,8 @@ class AutaField {
 	  $this->fieldformat=$fieldformat;
 	  $this->htmlTemplate=$htmlTemplate;
 	  $this->virtVal=$virtVal;
+	  $this->valMin=null;
+	  $this->valMax=null;
  } 
  public function addMetaBox($val) {
 	$this->val=$val;
@@ -51,14 +55,7 @@ class AutaField {
 		<?php
 		}
  }
- function saveField() {
-	global $post; 
-	$val=$_POST[$this->name];
-	if ($this->type=="bool" && $val!="on") $val="0";
-	if ($this->type=="bool" && $val=="on") $val="1";	
-    AutaPlugin::logWrite("save: {$this->name} {$val}");	
-	update_post_meta($post->ID, $this->name, $val);
- }
+ 
  public function printFieldEdit() {
 	 ?>
 	

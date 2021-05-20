@@ -6,6 +6,19 @@ class Loader {
     public function __construct() {	        
         spl_autoload_register([$this,"mLoadClass"]);        
         define('CAF_MAJAX_PATH',plugin_dir_path( __FILE__ ). "majax/");  
+
+        $cjActive=true;
+		if ($cjActive)	{
+
+            /*
+            *   There we need to load all pages with category/brands structure for permalink rewriting
+            */
+
+            $cj=new Admin\ComissionJunction();
+            $page=["link" => "", "id" => 26132];
+            $cj->handleRewriteRules($page); 
+            $cj->addShortCodes();                
+		}
     }
     public function initAdmin() {
         $mautawp=new Admin\AutaPlugin(); 

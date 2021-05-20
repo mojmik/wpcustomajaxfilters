@@ -144,7 +144,7 @@ var majaxModule=(function (my) {
                         data: {
                               action: actionFunction,
                               category: objCategory,
-                              type: my.majaxRender.getType(),                              
+                              mautaCPT: my.majaxRender.getType(),                              
                               language: my.majaxRender.language,
                               aktPage: aktPage,
                               security: majax.nonce

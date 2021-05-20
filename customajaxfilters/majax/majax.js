@@ -122,6 +122,7 @@ const metaMisc = {
 jQuery(document).ready(function($) {	
 	let hasFilterForm=false;
 	let hasIdSign=false;
+	let instaLoad=false;
 	if ($('#majaxform').length>0)  hasFilterForm=true;
 	if ($('#idSign').length>0)  hasIdSign=true;
 	//handle static forms
@@ -180,7 +181,7 @@ jQuery(document).ready(function($) {
 	my.majaxSlider.initSliders(); 
 	
 	//load
-	if (hasFilterForm || hasIdSign) my.majaxPrc.runAjax(false);
+	if ((instaLoad) && (hasFilterForm || hasIdSign)) my.majaxPrc.runAjax(false);
 }); 
 
 

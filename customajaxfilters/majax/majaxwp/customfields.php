@@ -43,18 +43,24 @@ class CustomFields {
 	  } 
 	  return $rows;
   }
-  public function setFixFilter($name,$value) {
+  public function setFixFilter($name,$value,$compare="=") {
 	foreach ($this->fieldsList as $f) {		
 		if ($f->name == $name) { 
 			$f->setFixFilter($value);
 			return "set";
 		}
 	} 
-  }
-  public function getFixFilter($name) {
-	foreach ($this->fieldsList as $f) {		
-		if ($f->name == $name) return $f->fixFilter;
-	} 
+	//not found field
+	$virtField=new CustomField();
+	$virtField->setVirtField(
+		["name" => $name, 
+		"postType" => $this->customPostType, 
+		"postedValue" => $value, 
+		"filterOrder" => 1,
+		"compare" => $compare
+		]
+	);
+	$this->addField($virtField);
   }
   public function getFieldsFilteredOrDisplayed() {
 	$rows=[];

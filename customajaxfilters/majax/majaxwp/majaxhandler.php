@@ -81,7 +81,7 @@ Class MajaxHandler {
 	function showStaticContent($atts = []) {	
 		ob_start();	
 		$this->initRender($this->setAtts($atts));
-		$this->ajaxRender->showStaticContent();
+		$this->ajaxRender->showStaticContent($atts);
 		return ob_get_clean();
 	}
 	function showStaticForm($atts = []) {	

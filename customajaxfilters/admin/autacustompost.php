@@ -1,5 +1,6 @@
 <?php
 namespace CustomAjaxFilters\Admin;
+use \CustomAjaxFilters\Majax\MajaxWP as MajaxWP;
 
 class AutaCustomPost {	
 	public $autaFields;
@@ -12,6 +13,8 @@ class AutaCustomPost {
 		 $this->plural=$plural;
 		 $this->customPostType=$postType;		 
 		 add_action( 'init', [$this,'custom_post_type'] , 0 );
+		 add_action( 'save_post_'.$postType, [$this,'mauta_save_post'] ); 
+		 add_action( 'wp_ajax_importCSV', [$this,'importCSVprocAjax'] );
 		 $this->autaFields = new AutaFields($this->customPostType);
 	 }
 	 public function adminInit() {
@@ -78,12 +81,98 @@ class AutaCustomPost {
 		register_post_type( $this->customPostType, $args );
 	 
 	 }
-	 
+	 public function removeAll() {
+		global $wpdb;
+		$query="
+				DELETE a,b,c
+				FROM wp_posts a
+				LEFT JOIN wp_term_relationships b ON ( a.ID = b.object_id )
+				LEFT JOIN wp_postmeta c ON ( a.ID = c.post_id )
+				WHERE a.post_type like '".$this->customPostType."';
+			";
+			$result = $wpdb->get_results($query);  				
+	}	
+	function importCSVprocAjax() {
+		$do=filter_input( INPUT_POST, "doajax", FILTER_SANITIZE_STRING );
+		$type=filter_input( INPUT_POST, "csvtype", FILTER_SANITIZE_STRING );
+		$tabName=filter_input( INPUT_POST, "table", FILTER_SANITIZE_STRING );
+		$from=filter_input( INPUT_POST, "from", FILTER_SANITIZE_STRING );
+		$to=filter_input( INPUT_POST, "to", FILTER_SANITIZE_STRING );
+		if ($do=="makeposts") {
+			$extras=[];
+			$importCSV=new ImportCSV($this->customPostType);	
+			if ($type=="cjcsv") {
+				$cj=new ComissionJunction(); 
+				$importCSV->setWPmapping($cj->getWPmapping());	
+				$extras=$cj->getFieldsExtras();		
+				$categoriesTab=MajaxWP\MikDb::getTablePrefix().$cj->getCatsTabName();
+				$importCSV->setParam("cjCatsTable",$categoriesTab);	
+			}			
+			$importCSV->setParam("tableName",$tabName);					
+			$importCSV->createPostsFromTable($this->autaFields->getList(),$from,$to,$extras);	
+			echo json_encode(["result"=>"imported"]).PHP_EOL;
+			wp_die();
+		}		
+	}
+	function importCSVproc() {
+		$do=filter_input( INPUT_GET, "do", FILTER_SANITIZE_STRING );
+		if ($do=="removeall") {
+			$this->removeAll();
+		} else {
+			$importCSV=new ImportCSV($this->customPostType);
+		}	
+		if ($do=="removecsv") {			
+			$importCSV->removePreviousPosts();	
+		}	
+		if ($do=="genthumbs") {			
+			$importCSV->preInsertThumbs();	
+		}			  
+		
+		if ($do=="csv") {			
+			$tabName=MajaxWP\MikDb::getTablePrefix()."csvtab";	
+			if ($importCSV->gotUploadedFile()) {
+				$importCSV->setParam("separator","^")
+						->setParam("encoding","cp852");
+				if ($importCSV->doImportCSVfromWP()=="imported") {
+					
+				}
+			} 		
+		  }
+		  if ($do=="cjcsv") {
+			$tabName=MajaxWP\MikDb::getTablePrefix()."cjtab";
+			if ($importCSV->gotUploadedFile()) {				
+				$cj=new ComissionJunction(); 
+				$categoriesTab=MajaxWP\MikDb::getTablePrefix().$cj->getCatsTabName();
+				$cj->createCjTables($tabName,$categoriesTab);							
+				$importCSV->setParam("separator",",")
+				->setParam("tableName",$tabName)
+				->setParam("encoding","UTF-8")
+				->setParam("enclosure","\"")
+				->setParam("cj",$cj)
+				->setParam("createTable",false);
+				$importCSV->setWPmapping($cj->getWPmapping());
+				if ($importCSV->doImportCSVfromWP()=="imported") {					
+					$this->autaFields->makeTable("fields");
+					$this->autaFields->addFields($cj->getMautaFields());										
+				}
+			} 
+		  }
+		  if ($do=="csv" || $do=="cjcsv") {
+			$importCSV->showImportCSV();	
+			$countReadyCSV=MajaxWP\MikDb::wpdbTableCount($tabName);
+			if ($countReadyCSV>0) { 
+				echo "<br />$countReadyCSV csv rows ready";
+				$importCSV->showMakePosts($do,$tabName,$countReadyCSV);			
+			}
+		  }
+	}
 	function csvMenu() {
 		$setUrl = [	
 			["csv import",add_query_arg( 'do', 'csv'),"import csv file"],
+			["cj csv import",add_query_arg( 'do', 'cjcsv'),"import cj csv file"],
 			["csv remove",add_query_arg( 'do', 'removecsv'),"remove csv imports"],
 			["prefill thumbnails",add_query_arg( 'do', 'genthumbs'),"prefill thumbnails"],
+			["remove all",add_query_arg( 'do', 'removeall'),"remove all posts of this type"],
 		];
 		?>
 		<h1>CSV options</h1>
@@ -96,26 +185,27 @@ class AutaCustomPost {
 		}
 		?>
 		</ul>
+		<div id="ajaxprogress"></div>
+		<div class="majax-loader" data-component="loader" style="display: none;">
+			<svg width="38" height="38" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg">
+			<defs>
+			<linearGradient x1="8.042%" y1="0%" x2="65.682%" y2="23.865%" id="gradient">
+			<stop stop-color="#ffc107" stop-opacity="0" offset="0%"></stop>
+			<stop stop-color="#ffc107" stop-opacity=".631" offset="63.146%"></stop>
+			<stop stop-color="#ffc107" offset="100%"></stop>
+			</linearGradient>
+			</defs>
+			<g fill="none" fill-rule="evenodd">
+			<g transform="translate(1 1)">
+			<path d="M36 18c0-9.94-8.06-18-18-18" stroke="url(#gradient)" stroke-width="3"></path>
+			<circle fill="#fff" cx="36" cy="18" r="1"></circle>
+			</g>
+			</g>
+			</svg>
+		</div>
+		<div id="mautaCSVimportResults"></div>
 		<?php	
-		$do=filter_input( INPUT_GET, "do", FILTER_SANITIZE_STRING );
-		if ($do=="csv") {
-			
-			$importCSV=new ImportCSV($this->customPostType);	
-			$importCSV->setParam("separator","^")
-			->setParam("encoding","cp852");
-			if ($importCSV->importCSVfromWP("csvtab")=="imported") { 
-				echo "imported";
-				$importCSV->createPostsFromTable("csvtab",$this->autaFields->fieldsList);	
-			}
-		  }
-		  if ($do=="removecsv") {
-			$importCSV=new ImportCSV($this->customPostType);
-			$importCSV->removePreviousPosts("csvtab");	
-		  }	
-		  if ($do=="genthumbs") {
-			$importCSV=new ImportCSV($this->customPostType);
-			$importCSV->preInsertThumbs();	
-		  }	
+		$this->importCSVproc();		
 	}
 
 	 function add_to_admin_menu() {
@@ -127,7 +217,7 @@ class AutaCustomPost {
 		$function = [$this,'csvMenu'];
 		$menu_title='Import';
 		add_submenu_page($parent_slug, $page_title, $menu_title, $capability, $menu_slug, $function);
-
+		
 		//adds sub menu item
 		$page_title = CAF_SHORT_TITLE.' - fields';   		
 		$menu_title = "Fields";   
@@ -175,7 +265,7 @@ class AutaCustomPost {
 	  $this->autaFields->makeTable("fields");
 	  if ($do=="recreate") {		    
 		$this->autaFields->makeTable("fields",true);		
-		$this->autaFields->fieldsList=array();
+		$this->autaFields->initList();
 	  }	 
 	  if ($do=="exportfields") {		    
 		  $exportCsv=new ExportCSV();
@@ -186,10 +276,14 @@ class AutaCustomPost {
 		$thisTable=AutaPlugin::getTable("fields",$this->customPostType);
 		$importCSV=new ImportCSV($this->customPostType);
 		$importCSV->setParam("separator",";");			
-		if ($importCSV->importCSVfromWP($thisTable)=="imported") { 
-			echo "imported";
-			$this->autaFields->loadFromSQL();
-		}
+		$importCSV->setParam("tableName",$thisTable);	
+		$importCSV->showImportCSV();
+		if ($importCSV->gotUploadedFile()) {			
+			if ($importCSV->doImportCSVfromWP()=="imported") {
+				echo "imported";
+				$this->autaFields->loadFromSQL();
+			}
+		} 
 	  }
 	  $this->autaFields->procEdit();
 	  $this->autaFields->printNewField();
@@ -209,5 +303,21 @@ class AutaCustomPost {
 			</form>			
 			<?php
 	}
-	
+
+	function mauta_save_post()	{		
+		global $post; 
+		$somethingChanged=__return_false();
+		if(empty($_POST)) return; //tackle trigger by add new 		
+		//save meta fields
+		foreach ($this->autaFields->getList() as $f) {
+			if (!empty($_POST[$f->name])) {
+				$val=$_POST[$f->name];
+				if ($f->type=="bool" && $val!="on") $val="0";
+				if ($f->type=="bool" && $val=="on") $val="1";					
+				update_post_meta($post->ID, $f->name, $val);	
+				$somethingChanged=true;
+			}								
+		}
+		if ($somethingChanged) MajaxWP\Caching::pruneCache(true,$this->customPostType);				
+	} 
 }

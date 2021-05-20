@@ -10,12 +10,11 @@ Class MajaxRender {
 	private $subType;
 	private $language;
 	private $translating;
+	private $postRowsLimit; //rows limit (static show)
 	
 
 	function __construct($preparePost=false,$atts=[]) {			
 			$this->language="";				
-			
-
 			if (!empty($atts)) { 
 				if (isset($atts["type"])) $this->setPostType($atts["type"]);
 				if (isset($atts["typ"])) $this->subType=$atts["typ"];	
@@ -26,9 +25,9 @@ Class MajaxRender {
 			$this->htmlElements=new MajaxHtmlElements($this->translating);			
 			//init custom fields			
 			if ($preparePost) { 
-				$this->setPostType();				
 				$this->loadFields();
 			}
+			$this->postRowsLimit=0;
 	}
 
 		
@@ -52,19 +51,37 @@ Class MajaxRender {
 
 	
 	
-	function showStaticContent($atts = []) {								
+	function showStaticContent($atts = []) {		
+		//[majaxstaticcontent type="cj" cj="1"]
+		$this->postRowsLimit=9;								
 		$this->loadFields();				
 		if (isset($this->subType)) { 		 
 			$this->fields->setFixFilter("mauta_typ",$this->subType);					
 		}
 					
 		$this->htmlElements->showMainPlaceHolderStatic(true,$this->postType);
+		//debug cj
+		
+		/*
+		$cj=new MajaxAdmin\ComissionJunction();
+		$cj->outCategoriesTree(["postType" => $this->postType]);
+		*/
+		if (!empty($atts["cj"])) {
+			$cj=new MajaxAdmin\ComissionJunction();
+			$cjBrand=urlDecode(get_query_var("mikbrand"));
+			$cjCat=get_query_var("mikcat");
+			$exactCategoryMatch="%";
+			if ($cjCat) $this->fields->setFixFilter($cj->getTypeSlug(),$cjCat.$exactCategoryMatch,"LIKE");
+			echo "<br />brand: ".urlDecode(get_query_var("mikbrand"));
+			echo "<br />cat: ".get_query_var("mikcat");
+		} 
+
 		$postId=isset($_GET['id']) ? filter_var($_GET['id'], FILTER_SANITIZE_STRING) : "";
 		if ($postId) { 
-			$query=$this->buildSingle($postId);
+			$query=$this->produceSQL($postId);
 			$this->htmlElements->showIdSign();
 		}
-		else $query=$this->buildQuerySQL();
+		else $query=$this->produceSQL();
 		$rows=Caching::getCachedRows($query);
 		$excerpt=(count($rows)>1) ? true : false;
 		$n=0;
@@ -104,8 +121,11 @@ Class MajaxRender {
 		 $this->htmlElements->showFilters($this->postType,$this->fields->getFieldsFiltered());		 		 
 	}	
 	function printContent($atts = []) {	
-		//prints content, run by shortcode majaxcontent				
-		$this->htmlElements->showMainPlaceHolder();		
+		//prints content, run by shortcode majaxcontent		
+		if (!empty($atts["showSomePostsForStart"]) && $atts["showSomePostsForStart"])	{
+			$this->showStaticContent($atts);
+		}	
+		else $this->htmlElements->showMainPlaceHolder();		
 	}	
 	function addToStr($sep,$add,$str) {
 		if ($str) $str.=$sep.$add;
@@ -131,7 +151,7 @@ Class MajaxRender {
 				$orderDir='ASC';
 			}
 		}
-		if (!$orderBy) { 
+		if (empty($orderBy)) { 
 			$orderBy="post_title";
 			$orderDir="ASC";
 		}
@@ -142,7 +162,11 @@ Class MajaxRender {
 		}
 
 		if ($id) $filters=$this->addToStr(" AND ","post_name like '$id'",$filters);
-		if ($filters) $filters=" WHERE $filters";
+		if ($filters) $filters=" WHERE $filters";	
+		$limit="";	
+		if ($this->postRowsLimit>0) {
+		 $limit=" LIMIT ".$this->postRowsLimit;	
+		}
 		$query=
 		"
 		SELECT post_title,post_name,post_content{$colSelect}  FROM
@@ -156,6 +180,7 @@ Class MajaxRender {
 			) AS pm1
 			$filters
 			ORDER BY $orderBy $orderDir
+			$limit
 		";
 		return $query;
 	}
@@ -207,28 +232,20 @@ Class MajaxRender {
 		";
 		return $query;
 	}
-	function buildSingle($id) {					
-		$query=$this->produceSQL($id);
-		$this->logWrite("queryitem {$query}");
-		return $query;
-	}	
+	
 	function getSqlFilterMeta($fieldName) {
 		return ",MAX(CASE WHEN pm1.meta_key = '$fieldName' then pm1.meta_value ELSE NULL END) as `$fieldName`";
 	}
 	function getSqlSelectMeta($fieldName) {
 		return ",pm1.`$fieldName`";
 	}
-	function buildQuerySQL() {	
-		//get all posts and their metas, filter only non selects for multiple selections		
-		$query=$this->produceSQL();
-		$this->logWrite("queryitem {$query}");
-		return $query;		
-	}
+	
 	function filterMetaSelects($rows) {
 		$outRows=[];
 		$fields=$this->fields->getFieldsOfType("select");	
 
 		foreach ($rows as $row) {
+			$skip=false;
 			foreach ($fields as $field) {				
 				$skip=false;
 				
@@ -306,25 +323,28 @@ Class MajaxRender {
 		}
 		else {
 			$out[]=["meta_key" => "clearall", "meta_value" => "clearall", "count" => "0", "post_title" => "" ];
-
-			foreach ($rows as $row) {
-				foreach ($this->fields->getFieldsFiltered() as $field) {			
-					$val=$row[$field->outName()];
-					$c[$field->outName()][$val]++;
-				}	
-				
-			}
-			foreach ($this->fields->getFieldsFiltered() as $field) {			
-				$fieldName=$field->outName();						
-				foreach ($c[$fieldName] as $val => $cnt) {	
-					//$this->logWrite("iter:{$fieldName} {$val} {$cnt} ");				
-						$m["meta_key"]=$fieldName;
-						$m["meta_value"]=$val;
-						$m["count"]=$cnt;
-						$m["post_title"]="counts";
-						$out[]=$m;
+			if (!empty($rows) && count($rows)>0) {
+				foreach ($rows as $row) {
+					foreach ($this->fields->getFieldsFiltered() as $field) {			
+						$val=$row[$field->outName()];
+						$c[$field->outName()][$val]++;
+					}	
+					
 				}
-			}	
+				foreach ($this->fields->getFieldsFiltered() as $field) {			
+					$fieldName=$field->outName();		
+					if (!empty($c[$fieldName])) {
+						foreach ($c[$fieldName] as $val => $cnt) {	
+							//$this->logWrite("iter:{$fieldName} {$val} {$cnt} ");				
+								$m["meta_key"]=$fieldName;
+								$m["meta_value"]=$val;
+								$m["count"]=$cnt;
+								$m["post_title"]="counts";
+								$out[]=$m;
+						}
+					}				
+				}	
+			}
 			
 			$out[]=["meta_key" => "endall", "meta_value" => "endall", "count" => "0", "post_title" => "" ];
 	
