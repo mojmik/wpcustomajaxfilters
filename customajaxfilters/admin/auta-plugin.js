@@ -137,7 +137,7 @@ jQuery(function($){
 		}		
 	}
 
-	var runImportPosts = function(doajax,table,csvtype,from,to) {
+	var runImportPosts = function(doajax,table,csvtype,from=0,to=0) {
 		var data = {
 			action: "importCSV",
 			doajax: doajax,	
@@ -161,6 +161,7 @@ jQuery(function($){
 		for (n=0;n<Math.ceil(totalRecords/100);n++) {
 			runImportPosts(doajax,table,csvtype,n*100,(n+1)*100);
 		}
+		runImportPosts("createCats",table,csvtype);
 		mAutaAjax.requestStack.go();
 	    return false;
 	 });

@@ -229,7 +229,8 @@ class ImportCSV {
 		//create special tables like terms or categories
 		if (!empty($this->params["cjCatsTable"])) {			
 			foreach ($terms as $term => $value) {
-				$row=["slug" => $term, "name" => $value, "postType" => $this->customPostType, "flag" => "1" ];
+				//$row=["slug" => $term, "name" => $value, "postType" => $this->customPostType];
+				$row=["name" => $value, "postType" => $this->customPostType];
 				MajaxWP\MikDb::insertRow($this->params["cjCatsTable"],$row);
 			}
 		}

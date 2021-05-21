@@ -102,17 +102,22 @@ class AutaCustomPost {
 			$extras=[];
 			$importCSV=new ImportCSV($this->customPostType);	
 			if ($type=="cjcsv") {
-				$cj=new ComissionJunction(); 
+				$cj=new ComissionJunction(["postType" => $this->customPostType]); 
 				$importCSV->setWPmapping($cj->getWPmapping());	
-				$extras=$cj->getFieldsExtras();		
-				$categoriesTab=MajaxWP\MikDb::getTablePrefix().$cj->getCatsTabName();
-				$importCSV->setParam("cjCatsTable",$categoriesTab);	
+				$extras=$cj->getFieldsExtras();						
+				$importCSV->setParam("cjCatsTable",$cj->getTempCatsTabName());	
 			}			
 			$importCSV->setParam("tableName",$tabName);					
 			$importCSV->createPostsFromTable($this->autaFields->getList(),$from,$to,$extras);	
 			echo json_encode(["result"=>"imported"]).PHP_EOL;
 			wp_die();
-		}		
+		}	
+		if ($do=="createCats")	{
+			$cj=new ComissionJunction(["postType" => $this->customPostType]); 
+			$cj->createCategories();
+			echo json_encode(["result"=>"categories created"]).PHP_EOL;
+			wp_die();
+		}
 	}
 	function importCSVproc() {
 		$do=filter_input( INPUT_GET, "do", FILTER_SANITIZE_STRING );
@@ -139,12 +144,12 @@ class AutaCustomPost {
 			} 		
 		  }
 		  if ($do=="cjcsv") {
-			$tabName=MajaxWP\MikDb::getTablePrefix()."cjtab";
-			if ($importCSV->gotUploadedFile()) {				
-				$cj=new ComissionJunction(); 
-				$categoriesTab=MajaxWP\MikDb::getTablePrefix().$cj->getCatsTabName();
-				$cj->createCjTables($tabName,$categoriesTab);							
-				$importCSV->setParam("separator",",")
+			$cj=new ComissionJunction(["postType" => $this->customPostType]); 
+			$tabName=$cj->getMainTabName();	
+			if ($importCSV->gotUploadedFile()) {								
+				$cj->createCjTables();				
+				$importCSV
+				->setParam("separator",",")
 				->setParam("tableName",$tabName)
 				->setParam("encoding","UTF-8")
 				->setParam("enclosure","\"")
@@ -165,11 +170,16 @@ class AutaCustomPost {
 				$importCSV->showMakePosts($do,$tabName,$countReadyCSV);			
 			}
 		  }
+		  if ($do=="recreatecats") {
+			$cj=new ComissionJunction(["postType" => $this->customPostType]); 
+			$cj->createCategories();
+		  }
 	}
 	function csvMenu() {
 		$setUrl = [	
 			["csv import",add_query_arg( 'do', 'csv'),"import csv file"],
 			["cj csv import",add_query_arg( 'do', 'cjcsv'),"import cj csv file"],
+			["cj recreate categories",add_query_arg( 'do', 'recreatecats'),"recreate categories (posts import already does) "],
 			["csv remove",add_query_arg( 'do', 'removecsv'),"remove csv imports"],
 			["prefill thumbnails",add_query_arg( 'do', 'genthumbs'),"prefill thumbnails"],
 			["remove all",add_query_arg( 'do', 'removeall'),"remove all posts of this type"],

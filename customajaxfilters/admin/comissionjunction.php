@@ -9,15 +9,28 @@ class ComissionJunction {
  private $brandsSlug;
  private $categorySlug;
  private $categorySeparator;
+ private $dbPrefix;
  private $typeSlug;
- public function __construct() {          
+ private $postType;
+ public function __construct($args=[]) {          
      $this->brandsSlug="brands";
      $this->categorySlug="category";
      $this->categorySeparator=" > ";
-     $this->typeSlug="mauta_cj_type";
-     $this->tableNameCustomCategories="cj_categories";
+     $this->typeSlug="mauta_cj_type";     
+     if (!empty($args["prefix"])) $this->dbPrefix=$args["prefix"];
+     else $this->dbPrefix=MajaxWP\MikDb::getTablePrefix();
+     if (!empty($args["postType"])) $this->setPostType($args["postType"]);
+     
      $this->initCJcols();
      
+ }
+ private function setPostType($postType) {
+    $this->postType=$postType;
+    $this->tableNames=[
+        "main" => $this->dbPrefix."".$this->postType."_cj_import",
+        "tempCats" => $this->dbPrefix."".$this->postType."_cj_tempcats",
+        "cats" => $this->dbPrefix."".$this->postType."_cj_cats"
+ ];
  }
  public function addShortCodes() {
     add_shortcode('cjcategories', [$this,'outCategoriesTree'] );    
@@ -87,35 +100,30 @@ class ComissionJunction {
     }
     return $recRow;
  }
- function createCjTables($mainTab,$catTab,$drop=true) {     
-        /*   
-        global $wpdb;  
-        $charset_collate = $wpdb->get_charset_collate();        
-        if ($drop) $wpdb->query( "DROP TABLE IF EXISTS {$tableName}");
-        //table for cj import
-        $query="CREATE TABLE `".$tableName."` (";
-        foreach ($this->cjCols as $key => $val) {
-            if (!empty($val["sql"])) $query.="`$key` ".$val["sql"].",";
-        }
-        $query.="PRIMARY KEY  (`id`) ) $charset_collate;";      
-        $wpdb->get_results($query);
-        */
-        $args=[];
-        if ($drop) $args["drop"]=true;
-        MajaxWP\MikDb::createTable($mainTab,$this->cjCols,$args);
+ function createCjTables() {     
+        //table for storing cj import from csv
+        MajaxWP\MikDb::createTable($this->getTabName("main"),$this->cjCols,["drop" => true]);
+
+        //table for custom categories
+        $customCatsCols=[
+            "id" => ["sql" => "int(11) NOT NULL AUTO_INCREMENT", "primary" => true],
+            "name" => ["sql" => "text"],
+            "postType" => ["sql" => "text"],
+        ];        
+        MajaxWP\MikDb::createTable($this->getTabName("tempCats"),$customCatsCols,["drop" => true]);
 
         //table for custom categories
         $customCatsCols=[
             "id" => ["sql" => "int(11) NOT NULL AUTO_INCREMENT", "primary" => true],
             "slug" => ["sql" => "text"],
-            "name" => ["sql" => "text"],
-            "desc" => ["sql" => "text"],
-            "counts" => ["sql" => "int(11)"],
+            "path" => ["sql" => "text"],
+            "parent" => ["sql" => "text"],
             "postType" => ["sql" => "text"],
-            "flag" => ["sql" => "int(2)"],
-        ];
-        
-        MajaxWP\MikDb::createTableIfNotExists($catTab,$customCatsCols,["drop" => false]);
+            "desc" => ["sql" => "text"],
+            "counts" => ["sql" => "int(11)"]            
+        ];        
+        MajaxWP\MikDb::createTableIfNotExists($this->getTabName("cats"),$customCatsCols,["drop" => false]);
+
   }
   function handleRewriteRules($basePage=[]) {    
     $this->basePage=$basePage;
@@ -177,10 +185,17 @@ class ComissionJunction {
    public function getTypeSlug() {
     return $this->typeSlug;
    }
-   public function getCatsTabName() {
-    return $this->tableNameCustomCategories;
+   private function getTabName($type) {
+    return $this->tableNames[$type];
    }
-   function countPostsInCats($cats,$postType) {
+   public function getTempCatsTabName() {
+       return  $this->getTabName("tempCats");
+   }
+   public function getMainTabName() {
+    return  $this->getTabName("main");
+}
+
+   function countPostsInCats($cats) {
     global $wpdb;
     $categoryCol=$this->getCategoryCol();
     foreach ($cats as $key => $c) {   
@@ -211,7 +226,7 @@ class ComissionJunction {
             FROM {$wpdb->prefix}posts po LEFT JOIN {$wpdb->prefix}postmeta pm1 ON ( pm1.post_id = ID) 
             WHERE po.ID=pm1.post_id
             AND po.post_status like 'publish' 
-            AND po.post_type like '{$postType}' 
+            AND po.post_type like '{$this->postType}' 
             AND pm1.meta_key = '{$categoryCol}' 
             AND pm1.meta_value LIKE '{$catPath}%'
         ";
@@ -221,7 +236,7 @@ class ComissionJunction {
     }
     return $cats;
    }
-   function createCategories($postType) {
+   function createCategories() {
     global $wpdb;    
     $categoriesSorted=array();
 
@@ -230,17 +245,18 @@ class ComissionJunction {
     $categoryCol=$this->getCategoryCol();	
     $query="SELECT DISTINCT(`meta_value`) AS category FROM ".$wpdb->prefix."postmeta AS pm, ".$wpdb->prefix."posts AS po 
 	WHERE pm.meta_key like '{$categoryCol}' AND po.post_status = 'publish' 
-    AND po.post_type = '{$postType}'";
+    AND po.post_type = '{$this-postType}'";
     */    
-    $catTabName=MajaxWP\MikDb::getTablePrefix().$this->getCatsTabName();    
-    $query="SELECT DISTINCT(`name`) AS category FROM `{$catTabName}` WHERE `postType`='{$postType}' AND `flag`='1';";
+
+    $catTabName=$this->getTabName("tempCats");    
+    $query="SELECT DISTINCT(`name`) AS category FROM `{$catTabName}` WHERE `postType`='{$this->postType}';";
   
 
     $categories = $wpdb->get_results($query);	 
     $catId=0;    
     foreach ($categories as $c) {           
         $thisCatArr=explode($this->categorySeparator,$c->category);
-        $parent="";
+        $parent=null;
         $prevCat="";
         $n=0;
         $thisCatPath="";        
@@ -264,56 +280,57 @@ class ComissionJunction {
             }
             
             $n++;
-        }
-        $catTabName=MajaxWP\MikDb::getTablePrefix().$this->getCatsTabName();    
-        MajaxWP\MikDb::clearTable($catTabName,["flag='2'"]);	
-        $catsFinal=[];
-        foreach ($categoriesSorted as $c) {
-            $row=["slug" => sanitize_title($c["path"]), 
-                    "name" => $c["path"], 
-                    "postType" => $postType, 
-                    "flag" => "2",
-                    "counts"=>$c["postsCount"] 
-                ];
-            MajaxWP\MikDb::insertRow($catTabName,$row);
-            $catsFinal[]=$row;
-        }
-        //write to cache
-        MajaxWP\Caching::addCache("sortedcats".$postType,$catsFinal,"sortedcats".$postType); 
-
-        return $catsFinal;  
+        }      
     }
 
     /*
     SELECT DISTINCT(`meta_value`) AS category FROM ".$wpdb->prefix."postmeta AS pm, ".$wpdb->prefix."posts AS po 
 	WHERE pm.meta_key like '{$categoryCol}' AND po.post_status = 'publish' 
-    AND po.post_type = '{$postType}'
+    AND po.post_type = '{$this->postType}'
     */
 
     //count counts of posts in categories
-    $categoriesSorted=$this->countPostsInCats($categoriesSorted,$postType);
-    return $categoriesSorted;
+    $categoriesSorted=$this->countPostsInCats($categoriesSorted,$this->postType);
+
+    $catTabName=$this->getTabName("cats");    
+    MajaxWP\MikDb::clearTable($catTabName);	
+    $catsFinal=[];
+    $map=[];
+    foreach ($categoriesSorted as $key => $c) {
+        $row=["slug" => sanitize_title($c["path"]), 
+                "path" => $c["path"], 
+                "parent" => ($c["parent"]===null) ? null : $map[$c["parent"]], 
+                "postType" => $this->postType, 
+                "counts"=>$c["postsCount"] 
+            ];        
+        $map[$key]=MajaxWP\MikDb::insertRow($catTabName,$row);
+        $catsFinal[]=$row;
+    }
+    //write to cache
+    MajaxWP\Caching::addCache("sortedcats".$this->postType,$catsFinal,"sortedcats".$this->postType); 
+
+    return $catsFinal;      
    }
-   function getCategoriesArr($postType) {
+   function getCategoriesArr() {
     global $wpdb;
     //during posts import flag 1 are being created, than categories are created
     $cacheOff=true;
-    $catTabName=MajaxWP\MikDb::getTablePrefix().$this->getCatsTabName();    
-
-    /* load from table */
-	$query = "SELECT * FROM `{$catTabName}` WHERE `flag`='2' AND `postType`='$postType' ORDER BY `name`";
-    $catsFinal=$wpdb->get_results($query, ARRAY_A);
-    if (!empty($catsFinal) && count($catsFinal)>0) return $catsFinal;
-    
-    /* load from cache */
+    $catTabName=$this->getTabName("cats");    
+        
     if (!$cacheOff) {
-        $catsFinal=MajaxWP\Caching::getCachedJson("sortedcats".$postType);
+        /* load from cache */
+        $catsFinal=MajaxWP\Caching::getCachedJson("sortedcats".$this->postType);
         if ($catsFinal!==false) {
             return $catsFinal;
         }   
+    } else {
+        /* load from table */
+        $query = "SELECT * FROM `{$catTabName}` WHERE `postType`='$this->postType' ORDER BY `path`";
+        $catsFinal=$wpdb->get_results($query, ARRAY_A);
+        if (!empty($catsFinal) && count($catsFinal)>0) return $catsFinal;
     }
     
-    $catsFinal=$this->createCategories($postType);    
+    $catsFinal=$this->createCategories();    
       	
       
 
@@ -321,23 +338,28 @@ class ComissionJunction {
    }
 
 
-   function getPermaLink($category,$brand="") {
+   function getPermaLink($category,$brand="",$sanitize=false) {
     $mikBrandy=$this->brandsSlug;
     $mikCatSlug=$this->categorySlug;
     $page=$this->basePage["link"];
-    $catSlug=sanitize_title($category);
+    $catSlug=($sanitize) ? sanitize_title($category) : $category;
     $link="{$page}/{$mikCatSlug}/{$catSlug}/";
     if (!empty($brand)) $link.="{$mikBrandy}/{$brand}";
     return $link;
    }
-   function outParentCategory($cats,$thisId) {
-    //recursively output category branch
+   function getCatById($cats,$id) {
+    foreach ($cats as $c) {
+        if ($c["id"]==$id) return $c;
+    }
+   }
+   function outParentCategory($cats,$thisCat) {
+    //recursively output category branch    
     $out="
     <ul>
-        <li><a href='".$this->getPermaLink($cats[$thisId]["path"])."'>{$cats[$thisId]["name"]} ({$cats[$thisId]["postsCount"]})</a>";
+        <li><a href='".$this->getPermaLink($thisCat["slug"])."'>{$thisCat["path"]} ({$thisCat["counts"]})</a>";
         foreach ($cats as $key => $c) {
-            if ($c["parent"]===$thisId) { 
-                $out.=$this->outParentCategory($cats,$key);
+            if ($c["parent"]===$thisCat["id"]) { 
+                $out.=$this->outParentCategory($cats,$c);
             }
         }
     $out.="
@@ -346,10 +368,14 @@ class ComissionJunction {
     return $out;
    }
    function outCategoriesTree($atts=[]) {
-    if (!empty($atts["posttype"])) $cats=$this->getCategoriesArr($atts["posttype"]);
+       
+    if (!empty($atts["posttype"])) { 
+        $this->setPostType($atts["posttype"]);
+        $cats=$this->getCategoriesArr();
+    }
 
-    foreach ($cats as $key => $c) {
-        if ($c["parent"]===null) echo $this->outParentCategory($cats,$key);
+    foreach ($cats as $c) {
+        if (!$c["parent"]) echo $this->outParentCategory($cats,$c);
     }
    }
 }

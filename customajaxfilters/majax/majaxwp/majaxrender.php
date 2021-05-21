@@ -67,7 +67,7 @@ Class MajaxRender {
 		$cj->outCategoriesTree(["postType" => $this->postType]);
 		*/
 		if (!empty($atts["cj"])) {
-			$cj=new MajaxAdmin\ComissionJunction();
+			$cj=new MajaxAdmin\ComissionJunction(["postType" => $this->postType]);
 			$cjBrand=urlDecode(get_query_var("mikbrand"));
 			$cjCat=get_query_var("mikcat");
 			$exactCategoryMatch="%";
