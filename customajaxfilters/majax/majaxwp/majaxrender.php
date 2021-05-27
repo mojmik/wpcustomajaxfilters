@@ -58,9 +58,13 @@ Class MajaxRender {
 		if (isset($this->subType)) { 		 
 			$this->fields->setFixFilter("mauta_typ",$this->subType);					
 		}
-					
-		$this->htmlElements->showMainPlaceHolderStatic(true,$this->postType);
-		//debug cj
+
+		$postId=isset($_GET['id']) ? filter_var($_GET['id'], FILTER_SANITIZE_STRING) : "";
+		if ($postId) { 
+			$query=$this->produceSQL($postId);
+			$this->htmlElements->showIdSign();
+		}
+		else $query=$this->produceSQL();
 		
 		/*
 		$cj=new MajaxAdmin\ComissionJunction();
@@ -71,19 +75,24 @@ Class MajaxRender {
 			$cjBrand=urlDecode(get_query_var("mikbrand"));
 			$cjCat=get_query_var("mikcat");
 			$exactCategoryMatch="%";
-			if ($cjCat) $this->fields->setFixFilter($cj->getTypeSlug(),$cjCat.$exactCategoryMatch,"LIKE");
+			if ($cjCat && !$postId) { 
+				$this->fields->setFixFilter($cj->getTypeSlug(),$cjCat.$exactCategoryMatch,"LIKE");
+				$thisCat=$cj->getCjTools()->getCatBySlug($cjCat);
+ 				$desc=$thisCat["desc"];
+				echo $this->htmlElements->getHtml("cat-header","cat",["desc" => $desc],true);
+			}
+			
 			echo "<br />brand: ".urlDecode(get_query_var("mikbrand"));
 			echo "<br />cat: ".get_query_var("mikcat");
 		} 
-
-		$postId=isset($_GET['id']) ? filter_var($_GET['id'], FILTER_SANITIZE_STRING) : "";
-		if ($postId) { 
-			$query=$this->produceSQL($postId);
-			$this->htmlElements->showIdSign();
-		}
-		else $query=$this->produceSQL();
+		$this->htmlElements->showMainPlaceHolderStatic(true,$this->postType);
+		
 		$rows=Caching::getCachedRows($query);
-		$excerpt=(count($rows)>1) ? true : false;
+		$cntRows=count($rows);
+		$excerpt=($cntRows>1) ? true : false;
+		if ($cntRows>1) $templateName="multi";
+		else $templateName="single";
+
 		$n=0;
 		foreach ($rows as $row) {			
 			$n++;
@@ -91,7 +100,7 @@ Class MajaxRender {
 			$item=[];
 			$item=$this->buildItem($row,[],0,$excerpt);		
 			$this->logWrite("rowimg ".$item["image"]);				
-			$this->htmlElements->showPost($n,$row["post_name"],$row["post_title"],$item["image"],$item["content"],$metaMisc["misc"],$item["meta"]);
+			$this->htmlElements->showPost($n,$row["post_name"],$row["post_title"],$item["image"],$item["content"],$metaMisc["misc"],$item["meta"],$templateName);
 		}
 
 		$this->htmlElements->showMainPlaceHolderStatic(false);		
@@ -99,7 +108,7 @@ Class MajaxRender {
 	function showStaticForm($atts = []) {								
 		$mForm=new MajaxForm($this->getPostType());		
 		$this->htmlElements->showMainPlaceHolderStatic(true,$this->getPostType());
-		$this->htmlElements->getTemplate("contactForm","form",["title"=>"contact title","type" => "dotaz"]);
+		$this->htmlElements->getHtml("contactForm","form",["title"=>"contact title","type" => "dotaz"]);
 		//$mForm->printForm("majaxContactForm",$title);
 		$this->htmlElements->showMainPlaceHolderStatic(false);
 	}
@@ -310,7 +319,7 @@ Class MajaxRender {
 		//$row["misc"]["neco"]["virtVal"]="#mauta_cenaden"; //first character .. # - clone value from other field, ! - fix value
 		//$row["misc"]["neco"]["title"]="Cena bez dph";
 		if ($templateName<>"") {
-			$row["htmltemplate"][$templateName]=$this->htmlElements->getTemplate($templateName);				
+			$row["htmltemplate"][$templateName]=$this->htmlElements->loadTemplate($templateName);				
 		}
 		$row["language"]=$this->language;
 		return $row;	

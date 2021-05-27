@@ -103,12 +103,13 @@ class AutaCustomPost {
 			$importCSV=new ImportCSV($this->customPostType);	
 			if ($type=="cjcsv") {
 				$cj=new ComissionJunction(["postType" => $this->customPostType]); 
-				$importCSV->setWPmapping($cj->getWPmapping());	
-				$extras=$cj->getFieldsExtras();						
-				$importCSV->setParam("cjCatsTable",$cj->getTempCatsTabName());	
+				$extras=$cj->getFieldsExtras();										
+				$cj->getCJtools()->setParam("tableName",$tabName);									
+				$cj->getCJtools()->createPostsFromTable($this->autaFields->getList(),$from,$to,$extras);
+			} else {
+				$importCSV->setParam("tableName",$tabName);					
+				$importCSV->createPostsFromTable($this->autaFields->getList(),$from,$to,$extras);	
 			}			
-			$importCSV->setParam("tableName",$tabName);					
-			$importCSV->createPostsFromTable($this->autaFields->getList(),$from,$to,$extras);	
 			echo json_encode(["result"=>"imported"]).PHP_EOL;
 			wp_die();
 		}	
@@ -116,6 +117,12 @@ class AutaCustomPost {
 			$cj=new ComissionJunction(["postType" => $this->customPostType]); 
 			$cj->createCategories();
 			echo json_encode(["result"=>"categories created"]).PHP_EOL;
+			wp_die();
+		}
+		if ($do=="udpateCatsDesc") {
+			$cj=new ComissionJunction(["postType" => $this->customPostType]);
+			$cj->getCJtools()->updateCatsDescription();
+			echo json_encode(["result"=>"categories description updated"]).PHP_EOL;
 			wp_die();
 		}
 	}
@@ -155,7 +162,6 @@ class AutaCustomPost {
 				->setParam("enclosure","\"")
 				->setParam("cj",$cj)
 				->setParam("createTable",false);
-				$importCSV->setWPmapping($cj->getWPmapping());
 				if ($importCSV->doImportCSVfromWP()=="imported") {					
 					$this->autaFields->makeTable("fields");
 					$this->autaFields->addFields($cj->getMautaFields());										
@@ -174,12 +180,17 @@ class AutaCustomPost {
 			$cj=new ComissionJunction(["postType" => $this->customPostType]); 
 			$cj->createCategories();
 		  }
+		  if ($do=="udpateCatsDesc") {
+			$cj=new ComissionJunction(["postType" => $this->customPostType]);			
+			echo $cj->getCJtools()->updateCatsDescription();
+		  }
 	}
 	function csvMenu() {
 		$setUrl = [	
 			["csv import",add_query_arg( 'do', 'csv'),"import csv file"],
 			["cj csv import",add_query_arg( 'do', 'cjcsv'),"import cj csv file"],
 			["cj recreate categories",add_query_arg( 'do', 'recreatecats'),"recreate categories (posts import already does) "],
+			["cj recreate categories description",add_query_arg( 'do', 'udpateCatsDesc'),"recreate categories description (posts import already does) "],
 			["csv remove",add_query_arg( 'do', 'removecsv'),"remove csv imports"],
 			["prefill thumbnails",add_query_arg( 'do', 'genthumbs'),"prefill thumbnails"],
 			["remove all",add_query_arg( 'do', 'removeall'),"remove all posts of this type"],

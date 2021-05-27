@@ -76,7 +76,7 @@ Class MajaxHtmlElements {
         if ($fieldFormat) $field=str_replace("%1",$field,$fieldFormat);
         return $field;
     }    
-    function showPost($id,$name,$title,$image="",$content="",$metas=[],$itemDetails="") {      
+    function showPost($id,$name,$title,$image="",$content="",$metas=[],$itemDetails="",$templateName="multi") {      
         //used for static content output   
         $metaOut=[];     
         $featuredText=[];
@@ -154,61 +154,11 @@ Class MajaxHtmlElements {
         $params["name"]=$name;
         $params["metaOut"]=$metaOut;
         $params["mainClass"]="majaxoutStatic";
-        $html=$this->loadTemplate("multi"); 
+        $html=$this->loadTemplate($templateName); 
         echo $this->processTemplate($html,$params);
         //echo $html;
     }    
-    function postTemplate($templateName,$params=[]) {        
-        if ($templateName=="multi") {
-            return "
-            <div class='majaxout' id='majaxout{id}'>       
-                        <div class='row flex-grow-1 bort'>
-                            <div class='col title'>                        
-                                {image}{featuredHtml}                                                        
-                            </div>
-                        </div>
-                        <div class='row mcontent borb'>			    
-                            <span>{content}</span>
-                        </div>
-                        <div class='row bors'>			
-                            {metaOut[0]}                    
-                        </div>
-                        <div class='row bort'>			
-                                {metaOut[1]}
-                                {metaOut[2]}	
-                        </div>
-                        <div class='row borb'>
-                            <div class='col action'>
-                                <a class='mButtonA' data-slug='{name}' href='?id={name}'>Objednat</a>
-                            </div>
-                        </div>
-                    </div>";
-        }
-        if ($templateName=="single") {
-            return "
-				<div class='majaxout row2' id='majaxout{id}'>
-                    <div class='row mcontent mtitle'>			    
-                            <span>{title}</span>
-                        </div>
-                    <div class='row flex-grow-1'>
-                        <div class='col title borf'>                        
-                            {image}{featuredHtml}                        
-                        </div>
-                    </div>
-                    <div class='row mcontent'>			    
-                        <span>{content}</span>
-                    </div>
-                    <div class='row bors'>			
-                         {metaOut[0]}                    
-                    </div>
-                    <div class='row bort'>			
-                            {metaOut[1]}
-                            {metaOut[2]}	
-                    </div>                
-                </div>";
-        }
-        return $this->loadTemplate($templateName);
-    }
+   
     function loadTemplate($templateName) {        
         $html=file_get_contents($this->templatePath.$templateName.".html");        
         return $html;
@@ -234,13 +184,10 @@ Class MajaxHtmlElements {
             return $html;
         }        
     }
-    function getTemplate($templateName,$type="post",$params=[]) {
-        if (empty($type) || $type=="post") {
-            return $this->postTemplate($templateName,$params);
-        }
-        if ($type=="form") {            
-            return $this->formTemplate($templateName,$params);
-        }  
+    function getHtml($templateName,$type="post",$params=[],$process=false) {
+        if ($type=="form") return $this->formTemplate($templateName,$params);        
+        if ($process) return $this->processTemplate($this->loadTemplate($templateName),$params);
+        return $this->loadTemplate($templateName);
     }
    
     function processTemplate($htmlSrc,$params=[]) {

@@ -194,19 +194,7 @@ class ImportCSV {
 					//extras-apply filters like trim to all values
 					if (!empty($extras[$name])) {
 						foreach ($extras[$name] as $operation) {							
-								if (!empty($operation["removeExtraSpaces"])) $metaValue=$this->removeExtraSpaces($metaValue);							
-								if (!empty($operation["createSlug"])) { 
-									$metaValue=$this->removeExtraSpaces($metaValue);
-									$metaValueSlug=sanitize_title($metaValue);
-									add_post_meta($postId,$operation["createSlug"],$metaValueSlug);
-									$terms[$metaValueSlug]=$metaValue;
-									/*
-									$createMeta=false;
-									$wpdocs_cat = array('taxonomy' => $operation["createSlug"], 'cat_name' => $metaValue, 'category_description' => "", 'category_nicename' => $metaValueSlug);	 
-									$wpdocs_cat_id = wp_insert_category($wpdocs_cat,false);
-									*/
-
-								}
+								if (!empty($operation["removeExtraSpaces"])) $metaValue=$this->removeExtraSpaces($metaValue);															
 						}
 					}
 					if (isset($metaValue) && $createMeta) {						
@@ -223,15 +211,6 @@ class ImportCSV {
 					$wpdocs_cat = array('taxonomy' => 'hp_listing_category', 'cat_name' => $nameKat, 'category_description' => $nameKat, 'category_nicename' => $slugKat, 'category_parent' => $parentKatId);	 
 					$wpdocs_cat_id = wp_insert_category($wpdocs_cat,false);
 				}
-			}
-		}
-
-		//create special tables like terms or categories
-		if (!empty($this->params["cjCatsTable"])) {			
-			foreach ($terms as $term => $value) {
-				//$row=["slug" => $term, "name" => $value, "postType" => $this->customPostType];
-				$row=["name" => $value, "postType" => $this->customPostType];
-				MajaxWP\MikDb::insertRow($this->params["cjCatsTable"],$row);
 			}
 		}
 		

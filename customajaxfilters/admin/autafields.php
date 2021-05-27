@@ -60,7 +60,7 @@ class AutaFields {
 		$displayorder=filter_input( INPUT_POST, "displayorder", FILTER_SANITIZE_STRING );
 		$icon=filter_input( INPUT_POST, "icon", FILTER_SANITIZE_STRING );
 		$fieldformat=filter_input( INPUT_POST, "fieldformat", FILTER_SANITIZE_STRING );
-		$htmlTemplate=$_POST["htmlTemplate"];//filter_input( INPUT_POST, "htmlTemplate", FILTER_SANITIZE_STRING );
+		$htmlTemplate=(empty($_POST["htmlTemplate"])) ? "" : $_POST["htmlTemplate"];		
 		$virtVal=filter_input( INPUT_POST, "virtVal", FILTER_SANITIZE_STRING );
 		
 		if (isset($_POST["editField"])) {						

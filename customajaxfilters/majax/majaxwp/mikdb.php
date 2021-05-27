@@ -162,11 +162,56 @@ class MikDb {
 		$count = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$tableName} WHERE %s",$where)); 
 		return $count;
 	}
-	public static function getTablePrefix() {
+	public static function wpdbGetRows($tableNames,$cols="*",$where=[]) {
+		//MikDb::wpdbGetRows($this->params["cjCatsTable"],["id","path","counts"],["name"=>"parent","type" =>"%s", "value" => $parentId ]);
 		global $wpdb;	
+		$values=[];
+		if (is_array($cols)) $cols=implode(",",$cols);	
+		if (is_array($tableNames)) $tableNames=implode(",",$tableNames);	
+			
+		if (!empty($where)) {		  			  
+			  $where1="";
+			  for ($n=0;$n<count($where);$n++) {
+				$operator=(empty($where[$n]["operator"])) ? "=" : $where[$n]["operator"];
+				$type=(empty($where[$n]["type"])) ? "%s" : $where[$n]["type"];
+				if ($n>0) $where1.=",";
+				$where1.="`".$where[$n]["name"]."`".$operator.$type;
+				$values[]=$where[$n]["value"];
+			  }
+		  	return $wpdb->get_results($wpdb->prepare("SELECT $cols FROM {$tableNames} WHERE $where1",$values),ARRAY_A); 
+		} else {
+	      	return $wpdb->get_results("SELECT $cols FROM {$tableNames}",ARRAY_A); 
+		}
+	}
+	public static function wpdbUpdateRows($tableName,$fields=[],$where=[]) {
+		//MikDb::wpdbGetRows($this->params["cjCatsTable"],["id","path","counts"],["name"=>"parent","type" =>"%s", "value" => $parentId ]);
+		global $wpdb;	
+		$sql="UPDATE `$tableName` SET ";	
+		$params=[];
+		for ($n=0;$n<count($fields);$n++) {
+			$type=(empty($fields[$n]["type"])) ? "%s" : $fields[$n]["type"];
+			if ($n>0) $sql.=",";
+			$sql.="`".$fields[$n]["name"]."` = ".$type;
+			$params[]=$fields[$n]["value"];
+		}
+		$sql.=" WHERE ";
+		for ($n=0;$n<count($where);$n++) {
+			$type=(empty($where[$n]["type"])) ? "%s" : $where[$n]["type"];
+			if ($n>0) $sql.=",";
+			$sql.="`".$where[$n]["name"]."` = ".$type;
+			$params[]=$where[$n]["value"];
+		}
+		$sql=$wpdb->prepare($sql,$params);
+		return $wpdb->get_results($sql,ARRAY_A); 
+	}
+	public static function getWPprefix() {
+		global $wpdb;	
+		if (!empty($wpdb)) return $wpdb->prefix;
+		return "";
+	}
+	public static function getTablePrefix() {		
 		$fixPrefix="mauta_";
-		if (!empty($wpdb)) return $wpdb->prefix.$fixPrefix;
-		return $fixPrefix;
+		return MikDb::getWPprefix().$fixPrefix;
 	}
 	public static function  getInsertQueryFromArray($table,$mArr,$skipCols=[]) {
 		$query="INSERT INTO `$table` SET ";
