@@ -16,7 +16,7 @@ class MajaxForm {
    public function setTemplate($htmlElements,$templateName,$templateType="") {
     //$mForm->setTemplate($this->htmlElements,"contactFormMessage");
     $this->htmlElements=$htmlElements;
-    $this->htmlSrc=$this->htmlElements->getTemplate($templateName,$templateType);
+    $this->htmlSrc=$this->htmlElements->getHtml($templateName,$templateType);
    }
    
    function checkCaptcha() {

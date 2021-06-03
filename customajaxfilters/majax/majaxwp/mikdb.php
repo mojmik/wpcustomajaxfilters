@@ -114,12 +114,16 @@ class MikDb {
             return true;
         }
       	MikDb::createTable($tableName,$fieldsDef,$args);
-    }
+	}
+	public static function dropTable($tableName) {
+		global $wpdb;			
+		$wpdb->query( "DROP TABLE IF EXISTS {$tableName}");
+	}
     public static function createTable($tableName,$fieldsDef,$args=[]) {
         global $wpdb;			
 		
         $charset_collate = $wpdb->get_charset_collate();
-        if (!empty($args["drop"])) $wpdb->query( "DROP TABLE IF EXISTS {$tableName}");
+        if (!empty($args["drop"])) MikDb::dropTable($tableName);
         //check table exists
 
         $sql = "CREATE TABLE `{$tableName}` (";

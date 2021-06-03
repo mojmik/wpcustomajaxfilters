@@ -1,25 +1,30 @@
 <div class='majaxout {mainClass}' id='majaxout{id}'>   
-						<div class='row mcontent mtitle'>			    
-                            <span>{title}</span>
-                        </div>    
-                        <div class='row flex-grow-1 bort'>
+						  
+                        <div class='row flex-grow-1 '>
                             <div class='col title'>                        
-                                {image}{featuredHtml}                                                        
+                                {image}{featuredHtml}    
+								{metaOut[imageurl]}
+								<div class='price2'>
+									<span class='discount'>{metaOut[price]}</span>
+									<span class='priceTag'>{metaOut[priceDiscount]}</span>								
+								</div>
                             </div>
                         </div>
-                        <div class='row mcontent borb'>			    
-                            <span>{content}</span>
+						<div class='row mtitle'>			    
+                            <span>{title}</span>
+                        </div>  
+                        <div class='row mcontent mpad '>		
+						
+								{content}
+						
+                        </div>                   
+                        <div class='row mpad'>			
+                                od {metaOut[brand]}
                         </div>
-                        <div class='row bors'>			
-                            {metaOut[0]}                    
-                        </div>
-                        <div class='row bort'>			
-                                {metaOut[1]}
-                                {metaOut[2]}	
-                        </div>
-                        <div class='row borb'>
+                        <div class='row '>
                             <div class='col action'>
                                 <a class='mButtonA' data-slug='{name}' href='?id={name}'>_(Order)</a>
                             </div>
                         </div>
+						
 </div>

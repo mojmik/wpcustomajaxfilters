@@ -92,7 +92,10 @@ const metaMisc = {
 	},
 	formatMetaVal: (val1 , val2=0, format=2, direction="toFormat", oneVal=false) => {		
 		if (direction=="toFormat") {			
-			if (oneVal) return format.replace("%1",val1);
+			if (oneVal) { 
+				if (format.indexOf("%1") !== -1) return format.replace("%1",val1);
+				else return val1;
+			}
 			if (format===2) return ""	+ val1 + " - " + "" + val2 + "";
 			else {
 			 return format.replace("%1",val1) + " - " + format.replace("%1",val2);

@@ -161,6 +161,8 @@
 	align-items: stretch;
   width: 100%;	 
   color:#000;
+  background-image: linear-gradient(135deg, #DADADA 0%, #FFF 100%);
+  border:1px solid #000;
 }
 span.select2-selection.select2-selection--single {
   border: 1px solid #ccc;
@@ -219,7 +221,7 @@ button.select2-selection__clear {
 .majaxout .bors {
   border-left: 1px solid #ffdd00;
   border-right: 1px solid #ffdd00;
-  background-image: linear-gradient(135deg, #eee 0%, #FFF 100%);
+  /*background-image: linear-gradient(135deg, #eee 0%, #FFF 100%);*/
 }
 .majaxout .bort {
   border-top: 1px solid #ffdd00;
@@ -229,18 +231,18 @@ button.select2-selection__clear {
 .majaxout .borb {
   border-bottom: 1px solid #ffdd00;
   border-left: 1px solid #ffdd00;
-  border-right: 1px solid #ffdd00;
+  border-right: 1px solid #ffdd00;  
 }
 .majaxout .row {
-  width:100%;
-  padding:0;
+  width:100%;  
   margin:0;
 }
-.majaxout .mcontent {
-  padding:0 0 0 5px;  
+.majaxout .mcontent {  
+  margin-bottom: auto;
+  margin-top: auto;
 }
-.majaxout .mcontent span {
-  padding:0px;  
+.majaxout .mpad {
+  padding:0 5px 0 5px;  
 }
 .majaxout .mcontent .sikmaCara  {
   height: 53px;
@@ -256,6 +258,7 @@ button.select2-selection__clear {
   background: #ffdd00;
   font-size: 18px;
   font-weight: 900;
+  padding:0 5px 0 5px; 
 }
 .majaxout .mBckGray {
   background:#DADADA;
@@ -342,6 +345,27 @@ button.select2-selection__clear {
 .majaxout .price .priceTag {
   font-size:18px;
   font-weight: 700;
+}
+.majaxout .price2 {  
+  position: absolute;
+  bottom: 5px;
+  right: 5px; 
+}
+.majaxout .price2 .priceTag {
+  font-size:18px;
+  font-weight: 700;
+  background-color: rgba(255,209,0,0.6);    
+  padding:0 5px 0 5px;
+}
+.majaxout .price2 .discount {
+  font-size:18px;
+  background-color: rgba(255,255,255,0.6);   
+  text-decoration: line-through;
+  
+}
+.majaxout .vertical-auto {
+  margin-bottom: auto;
+  margin-top: auto;
 }
 .majaxmain .mpagination {
   width:100%;
@@ -545,4 +569,15 @@ button.select2-selection__clear {
   top: -20px;
   width: 16px;
   height: 16px;
+}
+.widget-area ul {
+  margin-bottom:5px;
+  padding:0 0 0 10px;
+  list-style-type: disc;
+}
+.widget-area ul li {
+  padding:0px;
+}
+.textwidget .search-submit {
+ display:none;
 }

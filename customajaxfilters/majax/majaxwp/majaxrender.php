@@ -11,7 +11,7 @@ Class MajaxRender {
 	private $language;
 	private $translating;
 	private $postRowsLimit; //rows limit (static show)
-	
+	private $additionalFilters;
 
 	function __construct($preparePost=false,$atts=[]) {			
 			$this->language="";				
@@ -23,11 +23,13 @@ Class MajaxRender {
 			if (empty($this->language)) $this->language=MajaxAdmin\Settings::loadSetting("language","site");
 			$this->translating=new Translating($this->language);			
 			$this->htmlElements=new MajaxHtmlElements($this->translating);			
+			$this->htmlElements->setPostType($this->postType);
 			//init custom fields			
 			if ($preparePost) { 
 				$this->loadFields();
 			}
 			$this->postRowsLimit=0;
+			$additionalFilters=[];
 	}
 
 		
@@ -58,51 +60,67 @@ Class MajaxRender {
 		if (isset($this->subType)) { 		 
 			$this->fields->setFixFilter("mauta_typ",$this->subType);					
 		}
-
 		$postId=isset($_GET['id']) ? filter_var($_GET['id'], FILTER_SANITIZE_STRING) : "";
-		if ($postId) { 
-			$query=$this->produceSQL($postId);
-			$this->htmlElements->showIdSign();
-		}
-		else $query=$this->produceSQL();
-		
-		/*
-		$cj=new MajaxAdmin\ComissionJunction();
-		$cj->outCategoriesTree(["postType" => $this->postType]);
-		*/
+		$aktPage=filter_input( INPUT_GET, "aktPage", FILTER_SANITIZE_NUMBER_INT );
+		$showCjCat=false;
 		if (!empty($atts["cj"])) {
 			$cj=new MajaxAdmin\ComissionJunction(["postType" => $this->postType]);
 			$cjBrand=urlDecode(get_query_var("mikbrand"));
 			$cjCat=get_query_var("mikcat");
 			$exactCategoryMatch="%";
-			if ($cjCat && !$postId) { 
-				$this->fields->setFixFilter($cj->getTypeSlug(),$cjCat.$exactCategoryMatch,"LIKE");
-				$thisCat=$cj->getCjTools()->getCatBySlug($cjCat);
- 				$desc=$thisCat["desc"];
-				echo $this->htmlElements->getHtml("cat-header","cat",["desc" => $desc],true);
-			}
-			
+			//ted jeste aby to filtrovalo i podle brandu			
+			if (!$postId) {
+				if ($cjCat) { 
+					$this->fields->setFixFilter($cj->getTypeSlug(),$cjCat.$exactCategoryMatch,"LIKE");
+					$thisCat=$cj->getCjTools()->getCatBySlug($cjCat);
+					$desc=$thisCat["desc"];
+					$cntRows=$thisCat["counts"];
+					$showCjCat=true;
+					
+				}
+				if ($cjBrand) {
+					$this->fields->setFixFilter($cj->getMautaFieldName("brand"),$cjBrand,"LIKE");
+				}
+			}			
+			/*
 			echo "<br />brand: ".urlDecode(get_query_var("mikbrand"));
 			echo "<br />cat: ".get_query_var("mikcat");
+			*/
+			//tohle pujde do widgetu
+			//echo $cj->getCjTools()->showBrandyNav();
 		} 
 		$this->htmlElements->showMainPlaceHolderStatic(true,$this->postType);
 		
-		$rows=Caching::getCachedRows($query);
-		$cntRows=count($rows);
+		if ($postId) { 
+			$query=$this->produceSQL($postId);
+			$this->htmlElements->showIdSign();
+		}
+		else $query=$this->produceSQL(null,$aktPage*$this->postRowsLimit);
+		
+		$rows=Caching::getCachedRows($query);		
+		if (empty($cntRows) || (count($this->additionalFilters)>0)) $cntRows=count($rows);
 		$excerpt=($cntRows>1) ? true : false;
 		if ($cntRows>1) $templateName="multi";
 		else $templateName="single";
 
+		if ($cntRows>1 && $showCjCat) {
+			echo $this->htmlElements->getHtml("cat-header","cat",["desc" => $desc],true);
+		}
 		$n=0;
 		foreach ($rows as $row) {			
 			$n++;
 			$metaMisc=$this->buildInit();
 			$item=[];
 			$item=$this->buildItem($row,[],0,$excerpt);		
-			$this->logWrite("rowimg ".$item["image"]);				
 			$this->htmlElements->showPost($n,$row["post_name"],$row["post_title"],$item["image"],$item["content"],$metaMisc["misc"],$item["meta"],$templateName);
 		}
-
+		if ($cntRows>$this->postRowsLimit) { 			 
+			 $this->htmlElements->showPagination($this->getPagination($cntRows,$aktPage,$this->postRowsLimit));			 
+		}
+		if ($cntRows<1) {
+			$html=$this->htmlElements->getHtml("noluck","post",[],true);
+			echo $html;
+		}
 		$this->htmlElements->showMainPlaceHolderStatic(false);		
 	}
 	function showStaticForm($atts = []) {								
@@ -141,7 +159,7 @@ Class MajaxRender {
 		else $str=$add;
 		return $str;
 	}
-	function produceSQL($id="") {
+	function produceSQL($id=null,$from=null) {
 		$mType = $this->getPostType();
 		$col="";
 		$filters="";
@@ -174,8 +192,17 @@ Class MajaxRender {
 		if ($filters) $filters=" WHERE $filters";	
 		$limit="";	
 		if ($this->postRowsLimit>0) {
-		 $limit=" LIMIT ".$this->postRowsLimit;	
+		 if ($from) $limit=" LIMIT $from,".$this->postRowsLimit;	
+		 else $limit=" LIMIT ".$this->postRowsLimit;	
 		}
+		//customSearch
+		$customSearch="";
+		if (!empty($_GET['mSearch'])) {
+			$this->additionalFilters[]="mSearch";
+			$contentSearch=filter_var($_GET['mSearch'], FILTER_SANITIZE_STRING); 	
+			if ($contentSearch) $customSearch=" AND post_content like '%$contentSearch%' ";
+		}
+		
 		$query=
 		"
 		SELECT post_title,post_name,post_content{$colSelect}  FROM
@@ -184,7 +211,8 @@ Class MajaxRender {
 			FROM wp_posts LEFT JOIN wp_postmeta pm1 ON ( pm1.post_id = ID) 
 			WHERE post_id=id 
 			AND post_status like 'publish' 
-			AND post_type like '$mType'			
+			AND post_type like '$mType'		
+			$customSearch	
 			GROUP BY ID
 			) AS pm1
 			$filters
@@ -294,32 +322,35 @@ Class MajaxRender {
 		$row=[];
 		$row["title"]="buildInit";
 
-		foreach ($this->fields->getFieldsFilteredOrDisplayed() as $field) {								
-			$row["misc"][$field->outName()]["icon"]=$field->icon;
-			$row["misc"][$field->outName()]["fieldformat"]=$field->fieldformat;
-			$row["misc"][$field->outName()]["min"]=$field->valMin;
-			$row["misc"][$field->outName()]["max"]=$field->valMax;			
-			$row["misc"][$field->outName()]["displayorder"]=$field->displayOrder;	
-			$row["misc"][$field->outName()]["title"]=$field->title;	
-			$row["misc"][$field->outName()]["type"]=$field->type;	
-			$row["misc"][$field->outName()]["htmlTemplate"]=$field->htmlTemplate;	
+		foreach ($this->fields->getFieldsFilteredOrDisplayed() as $field) {	
+			$fieldName=$field->outName();							
+			$row["misc"][$fieldName]["icon"]=$field->icon;
+			$row["misc"][$fieldName]["fieldformat"]=$field->fieldformat;
+			$row["misc"][$fieldName]["min"]=$field->valMin;
+			$row["misc"][$fieldName]["max"]=$field->valMax;			
+			$row["misc"][$fieldName]["displayorder"]=$field->displayOrder;	
+			$row["misc"][$fieldName]["title"]=$field->title;	
+			$row["misc"][$fieldName]["type"]=$field->type;	
+			$row["misc"][$fieldName]["htmlTemplate"]=$field->htmlTemplate;	
 		}
 
 		foreach ($this->fields->getFieldsVirtual() as $field) {		
-			$row["misc"][$field->outName()]["icon"]=$field->icon;
-			$row["misc"][$field->outName()]["fieldformat"]=$field->fieldformat;
-			$row["misc"][$field->outName()]["min"]=$field->valMin;
-			$row["misc"][$field->outName()]["max"]=$field->valMax;			
-			$row["misc"][$field->outName()]["displayorder"]=$field->displayOrder;	
-			$row["misc"][$field->outName()]["title"]=$field->title;	
-			$row["misc"][$field->outName()]["type"]=$field->type;	
-			$row["misc"][$field->outName()]["htmlTemplate"]=$field->htmlTemplate;	
-			$row["misc"][$field->outName()]["virtVal"]=$field->virtVal;	//first character .. # - clone value from other field, ! - fix value
+			$fieldName=$field->outName();	
+			$row["misc"][$fieldName]["icon"]=$field->icon;
+			$row["misc"][$fieldName]["fieldformat"]=$field->fieldformat;
+			$row["misc"][$fieldName]["min"]=$field->valMin;
+			$row["misc"][$fieldName]["max"]=$field->valMax;			
+			$row["misc"][$fieldName]["displayorder"]=$field->displayOrder;	
+			$row["misc"][$fieldName]["title"]=$field->title;	
+			$row["misc"][$fieldName]["type"]=$field->type;	
+			$row["misc"][$fieldName]["htmlTemplate"]=$field->htmlTemplate;	
+			$row["misc"][$fieldName]["virtVal"]=$field->virtVal;	//first character .. # - clone value from other field, ! - fix value
 		}
 		//$row["misc"]["neco"]["virtVal"]="#mauta_cenaden"; //first character .. # - clone value from other field, ! - fix value
 		//$row["misc"]["neco"]["title"]="Cena bez dph";
 		if ($templateName<>"") {
-			$row["htmltemplate"][$templateName]=$this->htmlElements->loadTemplate($templateName);				
+			$row["htmltemplate"][$templateName]=$this->htmlElements->loadTemplate($templateName);	
+			$row["htmltemplate"][$templateName]=$this->htmlElements->translateTemplate($row["htmltemplate"][$templateName]);
 		}
 		$row["language"]=$this->language;
 		return $row;	
@@ -361,7 +392,7 @@ Class MajaxRender {
 		}		
 		return $out;
 	}
-	function showPagination($cntTotal,$aktPage,$cntPerPage) {
+	function getPagination($cntTotal,$aktPage,$cntPerPage) {
 		$row=[];
 		$row["title"]="pagination";
 		$pages=ceil($cntTotal/$cntPerPage);				
@@ -378,15 +409,18 @@ Class MajaxRender {
 		$showPosts=true;
 		if ($miscAction=="contactFilled") $showPosts=false;
 		$templateName="single"; //default template name
-		if ($totalRows>1) $templateName="multi";
+		$excerpt=false;
+		if ($totalRows>1) { 
+			$templateName="multi";
+			$excerpt=true;
+		}
 
 		if ($custTitle != "majaxcounts") {
 			if ($totalRows<1)	 {
 				$this->sendBlankResponse();
 			}
-			$pagination=$this->showPagination($totalRows,$aktPage,$limit);
+			$pagination=$this->getPagination($totalRows,$aktPage,$limit);
 			$rows=array_slice($rows,$aktPage*$limit,$limit);		
-			$this->logWrite("aktpage ".$aktPage);
 		}
 		
 		foreach ($rows as $row) {
@@ -413,7 +447,7 @@ Class MajaxRender {
 					}					
 				 }
 				 if ($showPosts) {
-					echo $this->buildItem($row,["templateName"=>$templateName]).PHP_EOL;					
+					echo $this->buildItem($row,["templateName"=>$templateName],1,$excerpt).PHP_EOL;					
 				 }
 				 
 				 if ($n==count($rows)-1) { 
@@ -443,6 +477,21 @@ Class MajaxRender {
 		flush();
 		ob_flush();		  
 		exit;
+	}
+	public function showSearchBox() {
+		$lastSearch=$_GET["mSearch"];
+		$actual_link = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+		//$actual_link = "http://ukeacz:8081/category/ratan-na-zahradu/";
+		//$actual_link = "#";
+		?>
+		<form role="search" method="get" class="search-form" action="<?= $actual_link?>">
+				<label>
+					<span class="screen-reader-text">Vyhledávání</span>
+					<input type="search" class="search-field" placeholder="Hledat …" value="<?= $lastSearch?>" name="mSearch">					
+				</label>
+				<input type="submit" class="search-submit" value="Hledat">
+		</form>
+		<?php
 	}
 
 	function logWrite($val,$file="log.txt") {

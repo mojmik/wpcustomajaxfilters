@@ -128,6 +128,13 @@ class AutaCustomPost {
 	}
 	function importCSVproc() {
 		$do=filter_input( INPUT_GET, "do", FILTER_SANITIZE_STRING );
+		if ($do=="removeexttables") {
+			$prefix=MajaxWP\MikDb::getTablePrefix().$this->customPostType."_";
+			MajaxWP\MikDb::dropTable($prefix."cj_import");	
+			MajaxWP\MikDb::dropTable($prefix."cj_cats");	
+			MajaxWP\MikDb::dropTable($prefix."cj_tempcats");	
+			MajaxWP\MikDb::dropTable($prefix."fields");	
+		}
 		if ($do=="removeall") {
 			$this->removeAll();
 		} else {
@@ -184,6 +191,10 @@ class AutaCustomPost {
 			$cj=new ComissionJunction(["postType" => $this->customPostType]);			
 			echo $cj->getCJtools()->updateCatsDescription();
 		  }
+		  if ($do=="createcatpages") {
+			$cj=new ComissionJunction(["postType" => $this->customPostType]);			
+			echo $cj->getCJtools()->createCatPages();
+		  }
 	}
 	function csvMenu() {
 		$setUrl = [	
@@ -194,6 +205,8 @@ class AutaCustomPost {
 			["csv remove",add_query_arg( 'do', 'removecsv'),"remove csv imports"],
 			["prefill thumbnails",add_query_arg( 'do', 'genthumbs'),"prefill thumbnails"],
 			["remove all",add_query_arg( 'do', 'removeall'),"remove all posts of this type"],
+			["remove mauta tables",add_query_arg( 'do', 'removeexttables'),"drop tables for fields and cats"],
+			["create pages",add_query_arg( 'do', 'createcatpages'),"create pages"],
 		];
 		?>
 		<h1>CSV options</h1>
@@ -269,7 +282,8 @@ class AutaCustomPost {
 					["export fields",add_query_arg( ['do'=>'exportfields','noheader'=>'1']),"export fields to csv"],				
 					["import fields",add_query_arg( 'do', 'importfields'),"import fields from csv"],
 				];
-	  ?>
+	  ?>	  
+	  
 	  <ul>
 	  <?php	 
 	  foreach ($setUrl as $s) { 
@@ -279,6 +293,11 @@ class AutaCustomPost {
 	  }
 	  ?>
 	  </ul>
+	  displayorder 51..60 = you can use {metaOut[priceDiscount]} in templates for display<br />
+	  displayorder 1..20 = you can use {metaOut[0]} in templates for display<br />
+	  displayorder 20..30 = you can use {metaOut[1]} in templates for display<br />
+	  displayorder 31..40 = you can use {metaOut[3]} in templates for display<br />
+	  displayorder 41..50 = you can use {featuredHtml} in templates for display<br />
 	  <?php	  
 	  $do=filter_input( INPUT_GET, "do", FILTER_SANITIZE_STRING );
 	  $cpt=filter_input( INPUT_GET, "cpt", FILTER_SANITIZE_STRING );

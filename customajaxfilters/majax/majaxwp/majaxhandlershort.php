@@ -19,6 +19,7 @@ Class MajaxHandlerShort {
 		add_shortcode('majaxcontent', [$this,'printContent'] );
 		add_shortcode('majaxstaticcontent', [$this,'showStaticContent'] );
 		add_shortcode('majaxstaticform', [$this,'showStaticForm'] );
+		add_shortcode('majaxsearchbox', [$this,'showSearchBox'] );
 		add_action('wp_loaded', [$this, 'register_script']);
 	}
 	
@@ -47,6 +48,12 @@ Class MajaxHandlerShort {
 		ob_start();	
 		$this->initRender($this->setAtts($atts));
 		$this->ajaxRender->showStaticContent($atts);
+		return ob_get_clean();
+	}
+	function showSearchBox($atts = []) {	
+		ob_start();	
+		$this->initRender($this->setAtts($atts));
+		$this->ajaxRender->showSearchBox($atts);
 		return ob_get_clean();
 	}
 	function showStaticForm($atts = []) {	

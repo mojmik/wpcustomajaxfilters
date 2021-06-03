@@ -21,8 +21,10 @@ var majaxModule=(function (my) {
                 let valName=extractParams[m].substring(1,extractParams[m].length-1);
                 let val=undefined;
                 if (valName.startsWith("metaOut")) {
-                  let metaCnt=valName.substring(8,valName.length-1);
-                  val=vals["metaOut"][metaCnt];
+                  let metaName=valName.substring(8,valName.length-1);
+                  let metaName2="mauta_" + majaxRender.customType + "_" + metaName;
+                  if (typeof vals["metaOut"][metaName2] !== 'undefined') val=vals["metaOut"][metaName2];
+                  else val=vals["metaOut"][metaName];
                 } else {
                     val=vals[valName];
                     if (typeof val === 'undefined') val=vals["jsonObj"][valName];                
@@ -59,37 +61,45 @@ var majaxModule=(function (my) {
                 let htmlTemplate=my.metaMisc.htmlTemplate[property]; 
                 let virtVal=my.metaMisc.virtVal[property]; 
                 let formattedVal=my.metaMisc.formatMetaVal(meta[property],0,my.metaMisc.fieldformat[property],"toFormat",true);
-                
+                let htmlTemplatePresent=false;
                 if (my.mStrings.isNonEmptyStr(htmlTemplate)) {
                     htmlTemplate=htmlTemplate.replace("${formattedVal}",formattedVal);
                     htmlTemplate=htmlTemplate.replace("${metaIcon}",metaIcon);
+                    metaVal=htmlTemplate;  
+                    htmlTemplatePresent=true;
                 }
+                else metaVal=formattedVal;
+
                 if (typeof metaIcon!== 'undefined' && metaIcon!="") metaIcon=`<img src='${metaIcon}' />`;
                 else metaIcon=`<span>${metaTitle}</span> `;	
                 if (displayOrder<20) {
                     //meta group 0
-                    metaOut[0]=metaOut[0] + `<div class='col meta'>${metaIcon}${meta[property]}</div>`;
+                    if (!htmlTemplatePresent) metaOut[0]=metaOut[0] + `<div class='col meta'>${metaIcon}${metaVal}</div>`;
+                    else metaOut[0]=metaOut[0] + metaVal;
                 }
                 if (displayOrder>=20 && displayOrder<=30) {  
-                    metaOut[1]=metaOut[1] + htmlTemplate;                    
+                    if (!htmlTemplatePresent) metaOut[1]=metaOut[1] + `<div class='col meta'>${metaIcon}${metaVal}</div>`;
+                    else metaOut[1]=metaOut[1] + metaVal;
                 }
                 if (displayOrder>30 && displayOrder<=40) {
-                    //meta group 2
-                    let propVal=meta[property];
-                    if (propVal == null) propVal="neuvedeno";
+                    //meta group 2                  
+                    if (metaVal == null) metaVal="neuvedeno";
                     metaOut[3]=metaOut[3] + `
                     <div class='col-sm-3'>
                         <span>${my.metaMisc.title[property]}</span>
                         <div class='row'>
                             <span>
-                             ${propVal}
+                             ${metaVal}
                             </span>
                         </div> 
                     </div>`
                 }
                 if (displayOrder>40 && displayOrder<=50) {
                  //featured group
-                 featuredText.push(meta[property]);
+                 featuredText.push(metaVal);
+                }
+                if (displayOrder>50 && displayOrder<=60) {
+                    metaOut[property]=metaVal;
                 }
             }	
             
@@ -184,8 +194,7 @@ var majaxModule=(function (my) {
                     }
                 } 
                 else {
-                    if (p==aktPage-3) content+=`..`;
-                    if (p==aktPage+3) content+=`..`;
+                    if ((p==aktPage-3) || (p==aktPage+3)) content+=`..`;
                 }
             }
             return(

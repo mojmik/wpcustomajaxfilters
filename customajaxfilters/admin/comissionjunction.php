@@ -10,7 +10,6 @@ class ComissionJunction {
  private $categorySlug;
  private $categorySeparator;
  private $dbPrefix;
- private $typeSlug;
  private $postType;
  private $cjTools;
  public function __construct($args=[]) {          
@@ -18,7 +17,6 @@ class ComissionJunction {
      $this->categorySlug="category";
      $this->categorySeparator=">";
      $this->separatorVariations=[" > ","&gt;", "> "," >"];
-     $this->typeSlug="mauta_cj_type";     
      if (!empty($args["prefix"])) $this->dbPrefix=$args["prefix"];
      else $this->dbPrefix=MajaxWP\MikDb::getTablePrefix();
      if (!empty($args["postType"])) $this->setPostType($args["postType"]);
@@ -30,9 +28,10 @@ class ComissionJunction {
      if (empty($this->cjTools)) { 
          $this->cjTools=new CJTools($this->postType);
          $this->cjTools->setParam("cjCatsTempTable",$this->getTabName("tempCats"));	
-         $this->cjTools->setParam("cjCatsTable",$this->getTabName("cats"));	
-         $this->cjTools->setParam("catMetaName",$this->getCategoryMetaName());		
+         $this->cjTools->setParam("cjCatsTable",$this->getTabName("cats"));	         
          $this->cjTools->setParam("catSlugMetaName",$this->getTypeSlug());		
+         $this->cjTools->setParam("catSlug",$this->categorySlug);		
+         $this->cjTools->setParam("brandSlug",$this->brandsSlug);	
          
          $this->cjTools->setParam("catSep",$this->categorySeparator);	
      }
@@ -47,47 +46,60 @@ class ComissionJunction {
  ];
  }
  public function addShortCodes() {
-    add_shortcode('cjcategories', [$this,'outCategoriesTree'] );    
+    add_shortcode('cjcategories', [$this,'outCategoriesTreeShortCode'] );    
  }
  private function initCJcols() {
    $this->cjCols=[
        "id" => ["sql" => "int(11) NOT NULL AUTO_INCREMENT", "primary" => true],
-       "buyurl" => ["sql" => "varchar(1000) NOT NULL", "csvPos" => "LINK",  "filterorder" => "0"],
-       "shopurl" => ["sql" => "varchar(500) NOT NULL", "csvPos" => "PROGRAM_NAME",  "filterorder" => "0"],
-       "imageurl" => ["sql" => "varchar(500) NOT NULL", "csvPos" => "IMAGE_LINK",  "filterorder" => "0"],
+       "buyurl" => ["sql" => "varchar(1000) NOT NULL", "csvPos" => "LINK"],
+       "shopurl" => ["sql" => "varchar(500) NOT NULL", "csvPos" => "PROGRAM_NAME"],
+       "imageurl" => ["sql" => "varchar(500) NOT NULL", "csvPos" => "IMAGE_LINK", "displayorder" => "51", 
+            "htmlTemplate" => '<div class="col title">${formattedVal}</div>',
+       ],
        "title" => ["sql" => "varchar(100) NOT NULL", "csvPos" => "TITLE"],
-       "kw" => ["sql" => "TEXT NOT NULL",  "filterorder" => "0"],
-       "type" => ["sql" => "TEXT NOT NULL", "csvPos" => "PRODUCT_TYPE", "mautaname" => "type", 
-            "extra" => ["removeExtraSpaces" => true, "createSlug" => $this->getTypeSlug()] 
+       "kw" => ["sql" => "TEXT NOT NULL"],
+       "type" => ["sql" => "TEXT NOT NULL", "csvPos" => "PRODUCT_TYPE", 
+            "extra" => ["removeExtraSpaces" => true, "createSlug" => "yes"] 
         ],
        "availability" => ["sql" => "TEXT NOT NULL", "csvPos" => "AVAILABILITY"],
-       "description" => ["sql" => "TEXT NOT NULL", "csvPos" => "DESCRIPTION", "filterorder" => "0" ],
-       "price" => ["sql" => "TEXT NOT NULL", "csvPos" => "PRICE",  "type" => "NUMERIC", "fieldformat" => "%1,- Kč", "compare" => ">"],
-       "views" => ["sql" => "int(11) NOT NULL", "filterorder" => "0"],
-       "tran" => ["sql" => "TINYINT(1) NOT NULL", "filterorder" => "0"],
-       "brand" => ["sql" => "varchar(100) NOT NULL", "csvPos" => "BRAND"],
-       "gender" => ["sql" => "varchar(100) NOT NULL", "csvPos" => "GENDER", "filterorder" => "0"],
-       "gtin" => ["sql" => "varchar(100) NOT NULL", "csvPos" => "GTIN", "filterorder" => "0"],
-       "mpn" => ["sql" => "varchar(100) NOT NULL", "csvPos" => "MPN", "filterorder" => "0"],
-       "shipping" => ["sql" => "varchar(100) NOT NULL", "csvPos" => "SHIPPING(COUNTRY:REGION:SERVICE:PRICE)", "filterorder" => "0"]
+       "description" => ["sql" => "TEXT NOT NULL", "csvPos" => "DESCRIPTION" ],
+       "price" => ["sql" => "TEXT NOT NULL", "csvPos" => "PRICE",  "type" => "NUMERIC", "fieldformat" => "%1,- Kč", "compare" => ">", "displayorder" => "51",
+            "extra" => ["removePriceFormat" => true]
+        ],
+        "priceDiscount" => ["sql" => "TEXT NOT NULL", "csvPos" => "PRICEDISCOUNT",  "type" => "NUMERIC", "fieldformat" => "%1,- Kč", "compare" => "!", "displayorder" => "51",
+            "extra" => ["removePriceFormat" => true]
+        ],
+       "views" => ["sql" => "int(11) NOT NULL"],
+       "tran" => ["sql" => "TINYINT(1) NOT NULL"],
+       "brand" => ["sql" => "varchar(100) NOT NULL", "csvPos" => "BRAND", "displayorder" => "51"],
+       "gender" => ["sql" => "varchar(100) NOT NULL", "csvPos" => "GENDER"],
+       "gtin" => ["sql" => "varchar(100) NOT NULL", "csvPos" => "GTIN", "displayorder" => "51"],
+       "mpn" => ["sql" => "varchar(100) NOT NULL", "csvPos" => "MPN", "displayorder" => "51"],
+       "shipping" => ["sql" => "varchar(100) NOT NULL", "csvPos" => "SHIPPING(COUNTRY:REGION:SERVICE:PRICE)"]
    ];   
  }
 
  public function getFieldsExtras() {
      $extras=array();
      foreach ($this->cjCols as $key => $val) {
-         if (!empty($val["extra"])) $extras[$key]["extra"]=$val["extra"];
+         if (!empty($val["extra"])) $extras[$this->getMautaFieldName($key)]["extra"]=$val["extra"];
      }
      return $extras;
  }
+ public function getMautaFieldName($key) {
+    if (!empty($this->cjCols[$key]["mautaname"])) return $this->cjCols[$key]["mautaname"];
+    return "mauta_".$this->postType."_".$key;
+ }
  public function getMautaFields() {
     foreach ($this->cjCols as $key => $val) {        
-         $recRow["name"]=(empty($val["mautaname"])) ? $key : $val["mautaname"];
+         $recRow["name"]=$this->getMautaFieldName($key);
+         $recRow["title"]=$key;
          $recRow["compare"]=empty($val["compare"]) ? "=" : $val["compare"];
-         $recRow["displayorder"]=empty($val["displayorder"]) ? "1" : $val["displayorder"];
-         $recRow["filterorder"]=empty($val["filterorder"]) ? "1" : $val["filterorder"];
+         $recRow["displayorder"]=empty($val["displayorder"]) ? "0" : $val["displayorder"];
+         $recRow["filterorder"]=empty($val["filterorder"]) ? "0" : $val["filterorder"];
          $recRow["type"]=empty($val["type"]) ? "" : $val["type"];
          $recRow["fieldformat"]=empty($val["fieldformat"]) ? "" : $val["fieldformat"];
+         $recRow["htmlTemplate"]=empty($val["htmlTemplate"]) ? "" : $val["htmlTemplate"];         
          $rows[]=$recRow;        
     }
     return $rows;
@@ -96,7 +108,7 @@ class ComissionJunction {
     $recRow=[];
     foreach ($this->cjCols as $key => $val) {
         if (!empty($val["csvPos"])) {
-         $recRow[$key]=$row[$val["csvPos"]];
+         if (!empty($row[$val["csvPos"]])) $recRow[$key]=$row[$val["csvPos"]];
         }        
     }
     foreach ($addInfo as $key => $val) {
@@ -149,7 +161,8 @@ class ComissionJunction {
     $pageId="page_id={$this->basePage["id"]}&";
     //$page="";
     $phpScript="index.php"; //always index.php for wp
-    
+    add_rewrite_rule( "^$page"."$mikBrandy/([^/]*)/([^/]*)/?", $phpScript.'?'.$pageId.'mikbrand=$matches[1]&mikorder=$matches[2]','top' );
+    add_rewrite_rule( "^$page"."$mikBrandy/([^/]*)/?", $phpScript.'?'.$pageId.'mikbrand=$matches[1]','top' );
     add_rewrite_rule( "^$page"."$mikCatSlug/([^/]*)/$mikBrandy/([^/]*)/([^/]*)/?", $phpScript.'?'.$pageId.'mikcat=$matches[1]&mikbrand=$matches[2]&mikorder=$matches[3]','top' );
     add_rewrite_rule( "^$page"."$mikCatSlug/([^/]*)/$mikBrandy/([^/]*)/?", $phpScript.'?'.$pageId.'mikcat=$matches[1]&mikbrand=$matches[2]','top' );
     add_rewrite_rule( "^$page"."$mikCatSlug/([^/]*)/([^/]*)/?", $phpScript.'?'.$pageId.'mikcat=$matches[1]&mikorder=$matches[2]','top' );
@@ -183,14 +196,12 @@ class ComissionJunction {
     }
     return false;
    }
-   public function getCategoryMetaName() {
-       return $this->cjCols["type"]["mautaname"];
-   }   
    public function getTypeSlug() {
-    return $this->typeSlug;
+    return $this->getMautaFieldName("type");
    }
    private function getTabName($type) {
-    return $this->tableNames[$type];
+    if (!empty($this->tableNames[$type])) return $this->tableNames[$type];
+    return false;
    }
    public function getTempCatsTabName() {
        return  $this->getTabName("tempCats");
@@ -352,29 +363,54 @@ class ComissionJunction {
     if (!empty($brand)) $link.="{$mikBrandy}/{$brand}";
     return $link;
    }
-   
+   function getCategoryNameFromPath($path) {
+    $pos=strrpos($path,">");
+    if ($pos>0) return substr($path,$pos+1);
+    return $path;
+   }
    function outParentCategory($cats,$thisCat) {
     //recursively output category branch    
-    $out="
+    ?>    
     <ul>
-        <li><a href='".$this->getPermaLink($thisCat["slug"])."'>{$thisCat["path"]} ({$thisCat["counts"]})</a>";
+        <?php 
+        if ($this->currentCatSlug==$thisCat["slug"]) {
+            ?>
+            <li><strong><?= $this->getCategoryNameFromPath($thisCat["path"])?> (<?= $thisCat["counts"]?>)</strong>
+            <?php
+        }
+        else {
+            ?>
+            <li><a href='<?= $this->getPermaLink($thisCat["slug"])?>'><?= $this->getCategoryNameFromPath($thisCat["path"])?> (<?= $thisCat["counts"]?>)</a>
+            <?php
+        }            
         foreach ($cats as $key => $c) {
             if ($c["parent"]===$thisCat["id"]) { 
-                $out.=$this->outParentCategory($cats,$c);
+                echo $this->outParentCategory($cats,$c);
             }
         }
-    $out.="
+    ?>        
         </li>
-    </ul>"; 
-    return $out;
+    </ul>
+    <?php
    }
-   function outCategoriesTree($atts=[]) {
-       
-    if (!empty($atts["posttype"])) { 
-        $this->setPostType($atts["posttype"]);
+   function outCategoriesTreeShortCode($atts=[]) {
+    if (!empty($atts["type"])) { 
+        $this->setPostType($atts["type"]);
         $cats=$this->getCategoriesArr();
     }
-
+    $this->getCjTools()->showBrandyNav($this->getMautaFieldName("brand"));
+    $slug=$this->getCjTools()->getThisCat(); 
+    $this->currentCatSlug=$slug;
+    if ($slug) {
+        ?>
+                <a href='/'><?= $this->getCjTools()->translating->loadTranslation("(all categories)")?></a>
+        <?php
+    }
+    else {
+        ?>
+                <strong><?= $this->getCjTools()->translating->loadTranslation("(all categories)")?></strong>    
+        <?php
+    }
     foreach ($cats as $c) {
         if (!$c["parent"]) echo $this->outParentCategory($cats,$c);
     }

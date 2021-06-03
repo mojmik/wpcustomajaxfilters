@@ -6,9 +6,13 @@ use stdClass;
 Class MajaxHtmlElements {	
     private $templatePath;
     private $translating;
+    private $postType;
     public function __construct($translating=null) {
         $this->templatePath=plugin_dir_path( __FILE__ ) ."templates/";
         $this->translating=$translating;
+    }
+    public function setPostType($postType) {
+        $this->postType=$postType;
     }
     public function checkPath() {
         if (!file_exists($this->templatePath)) {
@@ -73,7 +77,14 @@ Class MajaxHtmlElements {
 		<?php
     }
     function formatField($field,$fieldFormat) {                
-        if ($fieldFormat) $field=str_replace("%1",$field,$fieldFormat);
+        if ($fieldFormat) {
+            if ($fieldFormat=="%1,- Kč") { 
+                if (strpos($field,".")) $field=str_replace(".",",",$field)."- Kč";
+                else if (strpos($field,",")) $field=$field." Kč";
+                else $field=$field.",- Kč";
+            }
+            else $field=str_replace("%1",$field,$fieldFormat);
+        } 
         return $field;
     }    
     function showPost($id,$name,$title,$image="",$content="",$metas=[],$itemDetails="",$templateName="multi") {      
@@ -107,19 +118,25 @@ Class MajaxHtmlElements {
                 }
                 else $metaVal=$metaMisc["virtVal"];
             }             
-            if ($htmlTemplate) {
+            if ($htmlTemplate) {               
+                //$htmlTemplate=str_replace('${formattedDiscount}',$this->formatField($discountPrice,$fieldFormat),$htmlTemplate);                
                 $htmlTemplate=str_replace('${formattedVal}',$this->formatField($metaVal,$fieldFormat),$htmlTemplate);
-                $htmlTemplate=str_replace('${metaIcon}',$metaIcon,$htmlTemplate);  
+                $htmlTemplate=str_replace('${metaIcon}',$metaIcon,$htmlTemplate);                  
                 $metaVal=$htmlTemplate;              
+            } else {
+                $metaVal=$this->formatField($metaVal,$fieldFormat);
             }
             
            
            
             if ($displayOrder<20) {
-                $metaOut[0]=$metaOut[0] . "<div class='col meta'>$metaIcon"."$metaVal</div>";
+                if (!$htmlTemplate) $metaOut[0]=$metaOut[0] . "<div class='col meta'>$metaIcon"."$metaVal</div>";
+                else $metaOut[0]=$metaOut[0] . $metaVal;
             }
             if ($displayOrder>=20 && $displayOrder<=30) {
-                $metaOut[1]=$metaOut[1] . $metaVal;                
+                //$metaOut[1]=$metaOut[1] . $metaVal;         
+                if (!$htmlTemplate) $metaOut[1]=$metaOut[1] . "<div class='col meta'>$metaIcon"."$metaVal</div>";
+                else $metaOut[1]=$metaOut[1] . $metaVal;       
             }
             if ($displayOrder>30 && $displayOrder<=40) {
                 $propVal=$metaVal;
@@ -136,6 +153,9 @@ Class MajaxHtmlElements {
             }
             if ($displayOrder>40 && $displayOrder<=50) {
                 $featuredText[]=$metaVal;
+            }
+            if ($displayOrder>50 && $displayOrder<=60) {
+                $metaOut[$metaName]=$metaVal;
             }
         }
         
@@ -189,10 +209,50 @@ Class MajaxHtmlElements {
         if ($process) return $this->processTemplate($this->loadTemplate($templateName),$params);
         return $this->loadTemplate($templateName);
     }
-   
-    function processTemplate($htmlSrc,$params=[]) {
-        //translate _(texts) 
-        $matches=null;
+    public function showPagination($pages) {
+        $n=0;
+        $aktPage=0;
+        $cntPage=0;
+        foreach ($pages as $page) { 
+            if ($page=="2") {
+                $aktPage=$n;
+            }
+            if ($page!="pagination") $n++;
+        }            
+        $cntPage=$n;
+        if ($cntPage==1) return false;
+        $p=0;
+        $url="";
+        ?>
+        <div class='mpagination'>
+        <?php
+        for ($p=0;$p<$cntPage;$p++) {
+            if ($p==0 || $p==$cntPage-1 || ($p>$aktPage-3 && $p<$aktPage+3) || $p==$aktPage) {
+                if ($p!=$aktPage) {
+                    if ($p!=0) $url=add_query_arg("aktPage",$p);
+                    else $url=add_query_arg("aktPage",null);
+                    ?>                    
+                    <span><a data-slug='pagination' data-page='<?= $p?>' href='<?= $url?>'><?= ($p+1)?></a></span>
+                    <?php
+                } else {
+                    ?>
+                    <span><?= ($p+1)?></span> 
+                    <?php 
+                }
+            } 
+            else {
+                if (($p==$aktPage-3) || ($p==$aktPage+3)) { 
+                    ?>
+                    ..
+                    <?php
+                }                
+            }
+        }
+        ?>
+        </div>
+        <?php             
+    }
+    function translateTemplate($htmlSrc) {
         preg_match_all('/_\((.*?)\)/s', $htmlSrc, $matches);
         for ($i = 0; $i < count($matches[1]); $i++) {
             $key = $matches[0][$i];
@@ -200,6 +260,12 @@ Class MajaxHtmlElements {
             $repl=$this->translating->loadTranslation($m);            
             $htmlSrc=str_replace($key,$repl,$htmlSrc);
         }
+        return $htmlSrc;
+    }
+    function processTemplate($htmlSrc,$params=[]) {
+        //translate _(texts) 
+        $matches=null;
+        $htmlSrc=$this->translateTemplate($htmlSrc);
         //translate _(texts) values of params 
         /*
         $matches=null;
@@ -233,7 +299,8 @@ Class MajaxHtmlElements {
             $m = $matches[1][$i];        
             $repl="";              
             if (preg_match_all('/(.*?)\[(.*?)\]/s', $m, $matchesArr)) { // there is a single dim array like something[index] in params
-                 $repl=$params[$matchesArr[1][0]][$matchesArr[2][0]];
+                if (!empty($params[$matchesArr[1][0]]["mauta_".$this->postType."_".$matchesArr[2][0]])) $repl=$params[$matchesArr[1][0]]["mauta_".$this->postType."_".$matchesArr[2][0]];
+                else $repl=$params[$matchesArr[1][0]][$matchesArr[2][0]];
             }            
             else if (isset($params[$m])) $repl=$params[$m];            
             $htmlSrc=str_replace($key,$repl,$htmlSrc);
