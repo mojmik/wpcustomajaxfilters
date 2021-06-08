@@ -5,7 +5,11 @@ use \CustomAjaxFilters\Majax\MajaxWP as MajaxWP;
 class Settings {	
     static private $settings=[];	
     static private $settingsMap=[    
-      "site"  => ["language"],
+      "site"  => 
+        ["language", 
+            "clickAction" => ["desc" => "link action- form for form, any other value for standard"],
+            "buildCounts" => ["desc" => "set when form with items counts are to be displayed (not recommended for big sites with many items)"]
+        ],
       "secret" => ["captchasecret","from","sitekey"]
     ];
 
@@ -47,7 +51,8 @@ class Settings {
 			return;
 		}		
 		foreach (Settings::$settingsMap as $settingsType => $settingsSet) {
-            foreach ($settingsSet as $setting) {                
+            foreach ($settingsSet as $aKey => $setting) { 
+                if (is_array($setting)) $setting=$aKey;               
                 $key=Settings::getSettingKey($settingsType,$setting);	 			
                 $val=filter_input( INPUT_POST, $key, FILTER_SANITIZE_STRING );  
                 if (isset($val)) {
@@ -81,10 +86,14 @@ class Settings {
             <h2><?=  $settingsType?>settings</h2>
             <form method='post' class='caf-editFieldRow editSettings'>	
             <?php
-            foreach ($settingsSet as $setting) {
-                $key=Settings::getSettingKey($settingsType,$setting);	
+            foreach ($settingsSet as $key => $setting) {
+                $desc="";
+                if (!empty($setting["desc"])) $desc="<br /><span style='font-size:smaller;'>".$setting["desc"]."</span>";
+                if (is_array($setting)) $setting=$key;
+                $settingKey=Settings::getSettingKey($settingsType,$setting);	
+                $settingValue=(empty(Settings::$settings[$settingKey]) ? "" : Settings::$settings[$settingKey]);
                 ?>
-                    <div><div><label><?= $setting?></label></div><input type='text' name='<?= $key?>' value='<?= (Settings::$settings[$key] == "" ? "" : Settings::$settings[$key])?>' /></div>	
+                    <div><div><label><?= $setting.$desc?></label></div><input type='text' name='<?= $settingKey?>' value='<?= $settingValue?>' /></div>	
                 <?php
             }
             ?>

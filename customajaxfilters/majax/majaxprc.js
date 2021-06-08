@@ -65,6 +65,9 @@ var majaxModule=(function (my) {
         ajaxSeq:0,
         thisFiringObjId:"",
         captcha:"",
+        scrollPage:0,
+        staticPages:0,        
+        ajaxing:false,
         fullResponse: {
             thisId:0,
             fullResp:"",  
@@ -85,6 +88,24 @@ var majaxModule=(function (my) {
             }
         },
         runAjax: function(firingElement,ajaxType="full") {
+            //static inits
+            let staticFields = jQuery('input[data-group="majax-init"]');
+            staticFields.each(function (i,obj) {                
+                let inputName=jQuery(this).attr('name');                 
+                let val=obj.value;
+                if (inputName=="staticPages") majaxPrc.staticPages=val;
+                my.majaxRender.staticFields[inputName]=val;
+            });
+
+            if (ajaxType=="scroll") {
+                if (majaxPrc.ajaxing) return false;
+                let totalPages=my.majaxRender.staticFields["totalPages"];
+                if (typeof totalPages === 'undefined') totalPages=my.majaxRender.totalPages;              
+                if (parseInt(totalPages)>0 && ((parseInt(majaxPrc.scrollPage) + parseInt(majaxPrc.staticPages)) >= parseInt(totalPages))) {                     
+                    return false;
+                }
+            } 
+            majaxPrc.ajaxing=true;
             my.majaxRender.hideBack();             
             mUrl.readUrl(); //load parameters from url           
             var ajaxPar=majaxPrc.getAjaxParams(jQuery(firingElement),ajaxType);	 
@@ -92,6 +113,7 @@ var majaxModule=(function (my) {
             jQuery.ajax(majax.ajax_url, ajaxPar)
                        .done(function(dataOut)			{
                            //console.log('Complete response = ' + dataOut);
+                           majaxPrc.ajaxing=false;
                        })
                        .fail(function(dataOut)			{
                            //console.log('Error: ', dataOut);
@@ -105,7 +127,7 @@ var majaxModule=(function (my) {
          var objCategory="";
          var actionFunction='filter_rows';
          var aktPage=0;
-         if (ajaxType=="full") {
+         if (ajaxType=="full" || ajaxType=="scroll") {
             if (varThisObj.length!=0) {		
                 objCategory=varThisObj.data('slug');
                 let href=varThisObj.attr('href');
@@ -148,8 +170,7 @@ var majaxModule=(function (my) {
                               language: my.majaxRender.language,
                               aktPage: aktPage,
                               security: majax.nonce
-                        },
-                        beforeSend: my.majaxRender.sendClearFunction(actionFunction),
+                        },                  
                         xhrFields: {
                             onprogress: function(e)	{
                                 if (seqNumber === majaxPrc.ajaxSeq) { //check we are processing correct response
@@ -177,7 +198,14 @@ var majaxModule=(function (my) {
                         }
                         
          };			
-        
+
+         if (ajaxType=="scroll") {
+             outObj.beforeSend=null;
+             majaxPrc.scrollPage+=1;
+             outObj.data.aktPage=majaxPrc.scrollPage;             
+         } else {
+            my.majaxRender.sendClearFunction(actionFunction);
+         }
          
          if (my.mStrings.isNonEmptyStr(majaxPrc.captcha)) {            
             outObj.data["captcha"]=majaxPrc.captcha;
@@ -280,6 +308,7 @@ var majaxModule=(function (my) {
                             }
                         
             });
+
          }
          
          mUrl.writeUrl();

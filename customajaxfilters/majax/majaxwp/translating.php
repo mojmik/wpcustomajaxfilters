@@ -15,6 +15,7 @@ class Translating {
         ->setParam("colsOnFirstLine",false);
         $languages=["sk" => 2, "cs" => 1, "en" => 0];
         //$language=substr(get_locale(),0,2);        
+        if (empty($this->lng) || !$this->lng) $this->lng="en";
         $rows=$importCSV->loadCsvValuesFromColumnWithKey($file,0,$what,$languages[$this->lng]);
         if (count($rows)) $tran=$rows[count($rows)-1];
         //MajaxAdmin\AutaPlugin::logWrite("",$rows);

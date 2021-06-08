@@ -43,6 +43,12 @@ class CustomFields {
 	  } 
 	  return $rows;
   }
+  public function setFixFilters($fixFilters) {
+	foreach ($fixFilters as $fixFilter) {
+		$compare = (empty($fixFilter["sqlCompare"])) ? "LIKE" : $fixFilter["sqlCompare"];
+		$this->setFixFilter($fixFilter["name"],$fixFilter["filter"],$compare);
+	}
+  }
   public function setFixFilter($name,$value,$compare="=") {
 	foreach ($this->fieldsList as $f) {		
 		if ($f->name == $name) { 

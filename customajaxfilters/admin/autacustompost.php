@@ -125,6 +125,15 @@ class AutaCustomPost {
 			echo json_encode(["result"=>"categories description updated"]).PHP_EOL;
 			wp_die();
 		}
+		if ($do=="udpateCatsDesc2") {
+			$cj=new ComissionJunction(["postType" => $this->customPostType]);			
+			echo $cj->getCJtools()->updateCatsDescription($from,$to);
+		}
+		if ($do=="getCatsCnt") {
+			$cj=new ComissionJunction(["postType" => $this->customPostType]);			
+			$rows=$cj->getCJtools()->getCats();
+			echo json_encode(["result"=>count($rows)]).PHP_EOL;
+		}
 	}
 	function importCSVproc() {
 		$do=filter_input( INPUT_GET, "do", FILTER_SANITIZE_STRING );
@@ -190,7 +199,7 @@ class AutaCustomPost {
 		  if ($do=="udpateCatsDesc") {
 			$cj=new ComissionJunction(["postType" => $this->customPostType]);			
 			echo $cj->getCJtools()->updateCatsDescription();
-		  }
+		  }		 
 		  if ($do=="createcatpages") {
 			$cj=new ComissionJunction(["postType" => $this->customPostType]);			
 			echo $cj->getCJtools()->createCatPages();
@@ -207,14 +216,16 @@ class AutaCustomPost {
 			["remove all",add_query_arg( 'do', 'removeall'),"remove all posts of this type"],
 			["remove mauta tables",add_query_arg( 'do', 'removeexttables'),"drop tables for fields and cats"],
 			["create pages",add_query_arg( 'do', 'createcatpages'),"create pages"],
+			["cj recreate categories ajax",add_query_arg( 'do', ''),"recreate categories (posts import already does) ", "recreateajax"],
 		];
 		?>
 		<h1>CSV options</h1>
 		<ul>
 		<?php	 
 		foreach ($setUrl as $s) { 
+			$id=(empty($s[3])) ? "" : "id='".$s[3]."'";
 		?>
-			<li><a href='<?= $s[1]?>'><?= $s[0]?></a><br /><?= $s[2]?></li>		  		  
+			<li><a <?= $id?> href='<?= $s[1]?>'><?= $s[0]?></a><br /><?= $s[2]?></li>		  		  
 		<?php
 		}
 		?>

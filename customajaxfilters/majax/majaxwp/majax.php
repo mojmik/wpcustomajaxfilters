@@ -27,16 +27,17 @@ Class Majax {
 		add_action( 'wp_enqueue_scripts', [$this,'majaxEnqueueStyle'], 11);
 
 		//fronted posts (aby to bralo custom posty jako obyc. posty, tohle tady nebude potreba)
-		$cptAdmin=new MajaxAdmin\AutaCustomPost("zajezd");
+		//$cptAdmin=new MajaxAdmin\AutaCustomPost("zajezd");
 		add_action( 'pre_get_posts', [$this,'addCptToQuery'] );	
-				
+		
 	}
 
 	function addCptToQuery( $query ) {
-		//if ( is_home() && $query->is_main_query() )
+		/*
 		if (  $query->is_main_query() && is_home()  )			
-			//$query->set( 'post_type', array( 'post', 'zajezd' ) );
-			$query->set( 'post_type', array( 'post', 'zajezd' ) );
+			$query->set( 'post_type', array( 'post', 'cj' ) );
+		*/			
+		MimgTools::handleRequest();		
 		return $query;
 	}
 

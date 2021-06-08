@@ -137,7 +137,7 @@ jQuery(function($){
 		}		
 	}
 
-	var runImportPosts = function(doajax,table,csvtype,from=0,to=0) {
+	var runProcess = function(doajax,table,csvtype,from=0,to=0,ajaxSuccess=null) {
 		var data = {
 			action: "importCSV",
 			doajax: doajax,	
@@ -146,8 +146,10 @@ jQuery(function($){
 			from:from,
 			to:to
 		}
-		var ajaxSuccess = function( data ) {								
+		if (ajaxSuccess==null) {
+			ajaxSuccess = function( data ) {								
 				jQuery("#mautaCSVimportResults").append(data.result + "<br />");				
+			}		
 		}		
 		//mAutaAjax.runAjax(data,ajaxSuccess);
 		mAutaAjax.requestStack.pushStack(data,ajaxSuccess);
@@ -159,11 +161,37 @@ jQuery(function($){
 		var table = $("input[name='table']").val();
 		var totalRecords = $("input[name='totalRecords']").val();
 		for (n=0;n<Math.ceil(totalRecords/100);n++) {
-			runImportPosts(doajax,table,csvtype,n*100,(n+1)*100);
+			runProcess(doajax,table,csvtype,n*100,(n+1)*100);
 		}
-		runImportPosts("createCats",table,csvtype);
-		runImportPosts("udpateCatsDesc",table,csvtype);		
+		runProcess("createCats",table,csvtype);
+		
+		runProcess("getCatsCnt",table,csvtype,0,50,function(data) {
+			//console.log(data.result);
+			for (n=0;n<Math.ceil(data.result/50);n++) {
+				runProcess("udpateCatsDesc2",table,csvtype,n*50,(n+1)*50);
+			}
+			mAutaAjax.requestStack.go();
+		});		
+		//runProcess("udpateCatsDesc",table,csvtype);		
+
 		mAutaAjax.requestStack.go();
+	    return false;
+	 });
+	 
+	 jQuery("#recreateajax").on('click', function(event) {
+		var doajax = $("input[name='doajax']").val();			
+		var csvtype = $("input[name='csvtype']").val();
+		var table = $("input[name='table']").val();
+		var totalRecords = $("input[name='totalRecords']").val();				
+		runProcess("getCatsCnt",table,csvtype,0,50,function(data) {
+			//console.log(data.result);
+			for (n=0;n<Math.ceil(data.result/50);n++) {
+				runProcess("udpateCatsDesc2",table,csvtype,n*50,(n+1)*50);
+			}
+			mAutaAjax.requestStack.go();
+		});		
+		mAutaAjax.requestStack.go();
+		//console.log(mAutaAjax.result)
 	    return false;
 	 });
 			

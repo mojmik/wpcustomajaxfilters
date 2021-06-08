@@ -8,32 +8,38 @@ Class MajaxRender {
 	private $postType;
 	private $htmlElements;
 	private $subType;
-	private $language;
+	private $siteSettings;
 	private $translating;
 	private $postRowsLimit; //rows limit (static show)
 	private $additionalFilters;
+	private $fixFilters;
+	private $totalPages;
 
 	function __construct($preparePost=false,$atts=[]) {			
-			$this->language="";				
+			$this->siteSettings["language"]="";				
 			if (!empty($atts)) { 
 				if (isset($atts["type"])) $this->setPostType($atts["type"]);
 				if (isset($atts["typ"])) $this->subType=$atts["typ"];	
-				if (isset($atts["language"])) $this->language=$atts["language"];							
+				if (isset($atts["language"])) $this->siteSettings["language"]=$atts["language"];							
 			} 
-			if (empty($this->language)) $this->language=MajaxAdmin\Settings::loadSetting("language","site");
-			$this->translating=new Translating($this->language);			
+			if (empty($this->siteSettings["language"])) $this->siteSettings["language"]=MajaxAdmin\Settings::loadSetting("language","site");
+			if (empty($this->siteSettings["clickAction"])) $this->siteSettings["clickAction"]=MajaxAdmin\Settings::loadSetting("clickAction","site");
+			$this->translating=new Translating($this->siteSettings["language"]);			
 			$this->htmlElements=new MajaxHtmlElements($this->translating);			
 			$this->htmlElements->setPostType($this->postType);
 			//init custom fields			
 			if ($preparePost) { 
 				$this->loadFields();
 			}
-			$this->postRowsLimit=0;
-			$additionalFilters=[];
+			$this->postRowsLimit=9;
+			$this->additionalFilters=[];			
+			$this->fixFilters=[];
 	}
 
 		
-
+	public function getRowsLimit() {
+		return $this->postRowsLimit;
+	}
 		
 	function loadFields() {
 		//$this->logWrite("cpt!@ {$this->getPostType()}");
@@ -55,7 +61,6 @@ Class MajaxRender {
 	
 	function showStaticContent($atts = []) {		
 		//[majaxstaticcontent type="cj" cj="1"]
-		$this->postRowsLimit=9;								
 		$this->loadFields();				
 		if (isset($this->subType)) { 		 
 			$this->fields->setFixFilter("mauta_typ",$this->subType);					
@@ -67,11 +72,13 @@ Class MajaxRender {
 			$cj=new MajaxAdmin\ComissionJunction(["postType" => $this->postType]);
 			$cjBrand=urlDecode(get_query_var("mikbrand"));
 			$cjCat=get_query_var("mikcat");
+	
 			$exactCategoryMatch="%";
 			//ted jeste aby to filtrovalo i podle brandu			
 			if (!$postId) {
 				if ($cjCat) { 
-					$this->fields->setFixFilter($cj->getTypeSlug(),$cjCat.$exactCategoryMatch,"LIKE");
+					$this->fixFilters[]=["name" =>  $cj->getTypeSlug(), "filter" => $cjCat.$exactCategoryMatch];
+					
 					$thisCat=$cj->getCjTools()->getCatBySlug($cjCat);
 					$desc=$thisCat["desc"];
 					$cntRows=$thisCat["counts"];
@@ -79,7 +86,8 @@ Class MajaxRender {
 					
 				}
 				if ($cjBrand) {
-					$this->fields->setFixFilter($cj->getMautaFieldName("brand"),$cjBrand,"LIKE");
+					$this->fixFilters[]=["name" =>  $cj->getMautaFieldName("brand"), "filter" => $cjBrand];	
+					$this->additionalFilters[]="brand";
 				}
 			}			
 			/*
@@ -91,14 +99,22 @@ Class MajaxRender {
 		} 
 		$this->htmlElements->showMainPlaceHolderStatic(true,$this->postType);
 		
+		//get results
 		if ($postId) { 
 			$query=$this->produceSQL($postId);
 			$this->htmlElements->showIdSign();
 		}
 		else $query=$this->produceSQL(null,$aktPage*$this->postRowsLimit);
-		
-		$rows=Caching::getCachedRows($query);		
-		if (empty($cntRows) || (count($this->additionalFilters)>0)) $cntRows=count($rows);
+		$rows=Caching::getCachedRows($query);	
+
+		//tady se berou cntRows pro celou kategorii, ale muzou tabm byt treba jeste filtry na brand, takze je to potreba spocitat
+		if (!$postId && (empty($cntRows) || (count($this->additionalFilters)>0))) { 
+			//$cntRows=count($rows);
+			$query=$this->produceSQL(null,null,true);	
+			$rowsCount=Caching::getCachedRows($query);
+			$cntRows=$rowsCount[0]["cnt"];
+		}
+		if ($postId) $cntRows=count($rows);
 		$excerpt=($cntRows>1) ? true : false;
 		if ($cntRows>1) $templateName="multi";
 		else $templateName="single";
@@ -107,21 +123,32 @@ Class MajaxRender {
 			echo $this->htmlElements->getHtml("cat-header","cat",["desc" => $desc],true);
 		}
 		$n=0;
+
+		
+
 		foreach ($rows as $row) {			
 			$n++;
 			$metaMisc=$this->buildInit();
 			$item=[];
 			$item=$this->buildItem($row,[],0,$excerpt);		
-			$this->htmlElements->showPost($n,$row["post_name"],$row["post_title"],$item["image"],$item["content"],$metaMisc["misc"],$item["meta"],$templateName);
+			$this->htmlElements->showPost("s$n",$row["post_name"],$row["post_title"],$item["image"],$item["content"],$metaMisc["misc"],$item["meta"],$templateName);
 		}
 		if ($cntRows>$this->postRowsLimit) { 			 
 			 $this->htmlElements->showPagination($this->getPagination($cntRows,$aktPage,$this->postRowsLimit));			 
+		} else {
+			$this->totalPages=1;
 		}
 		if ($cntRows<1) {
 			$html=$this->htmlElements->getHtml("noluck","post",[],true);
 			echo $html;
-		}
+		}		
 		$this->htmlElements->showMainPlaceHolderStatic(false);		
+		$this->htmlElements->showFixFields($this->fixFilters);
+		$this->initVals=[];
+		$this->initVals[]=["name" => "totalPages", "val" => $this->totalPages];
+		$this->initVals[]=["name" => "totalRows", "val" => $cntRows];
+		$this->initVals[]=["name" => "staticPages", "val" => "1"];
+		$this->htmlElements->showInitValsForAjax($this->initVals);
 	}
 	function showStaticForm($atts = []) {								
 		$mForm=new MajaxForm($this->getPostType());		
@@ -137,10 +164,8 @@ Class MajaxRender {
 	}
 	function showFormFields($type) {
 		$mForm=new MajaxForm($type);
-		echo json_encode($mForm->renderForm()).PHP_EOL;	
-		
+		echo json_encode($mForm->renderForm()).PHP_EOL;			
 	}
-	
 	
 	function printFilters($atts = []) {		
 		 $this->loadFields();
@@ -159,12 +184,12 @@ Class MajaxRender {
 		else $str=$add;
 		return $str;
 	}
-	function produceSQL($id=null,$from=null) {
+	function produceSQL($id=null,$from=null,$countOnly=false,$postAll=false) {
 		$mType = $this->getPostType();
 		$col="";
 		$filters="";
 		$colSelect="";
-
+		$this->fields->setFixFilters($this->fixFilters);
 		foreach ($this->fields->getFieldsFilteredOrDisplayed() as $field) {			
 			$fieldName=$field->outName();		
 			$col.=$this->getSqlFilterMeta($fieldName);
@@ -191,7 +216,7 @@ Class MajaxRender {
 		if ($id) $filters=$this->addToStr(" AND ","post_name like '$id'",$filters);
 		if ($filters) $filters=" WHERE $filters";	
 		$limit="";	
-		if ($this->postRowsLimit>0) {
+		if (!$postAll) {
 		 if ($from) $limit=" LIMIT $from,".$this->postRowsLimit;	
 		 else $limit=" LIMIT ".$this->postRowsLimit;	
 		}
@@ -202,23 +227,40 @@ Class MajaxRender {
 			$contentSearch=filter_var($_GET['mSearch'], FILTER_SANITIZE_STRING); 	
 			if ($contentSearch) $customSearch=" AND post_content like '%$contentSearch%' ";
 		}
+		if ($countOnly) {
+			$query="
+			SELECT count(*) as cnt  FROM
+			(SELECT post_title,post_name,post_content 
+				$col
+				FROM wp_posts LEFT JOIN wp_postmeta pm1 ON ( pm1.post_id = ID) 
+				WHERE
+				post_status like 'publish' 
+				AND post_type like '$mType'		
+				$customSearch	
+				GROUP BY ID
+				) AS pm1
+				$filters
+				ORDER BY $orderBy $orderDir
+			";
+		} else {
+			$query=
+			"
+			SELECT post_title,post_name,post_content{$colSelect}  FROM
+			(SELECT post_title,post_name,post_content 
+				$col
+				FROM wp_posts LEFT JOIN wp_postmeta pm1 ON ( pm1.post_id = ID) 
+				WHERE 
+				post_status like 'publish' 
+				AND post_type like '$mType'		
+				$customSearch	
+				GROUP BY ID
+				) AS pm1
+				$filters
+				ORDER BY $orderBy $orderDir
+				$limit
+			";
+		}
 		
-		$query=
-		"
-		SELECT post_title,post_name,post_content{$colSelect}  FROM
-		(SELECT post_title,post_name,post_content 
-			$col
-			FROM wp_posts LEFT JOIN wp_postmeta pm1 ON ( pm1.post_id = ID) 
-			WHERE post_id=id 
-			AND post_status like 'publish' 
-			AND post_type like '$mType'		
-			$customSearch	
-			GROUP BY ID
-			) AS pm1
-			$filters
-			ORDER BY $orderBy $orderDir
-			$limit
-		";
 		return $query;
 	}
 	function produceSQLWithAttachments($id="") {
@@ -301,7 +343,6 @@ Class MajaxRender {
 		$ajaxItem=new MajaxItem();
 		$ajaxItem->addField("title",$row["post_title"])
 		->addField("name",$row["post_name"])
-		->addField("neco","neco2") //test virtual fix field
 		->addField("content",$row["post_content"]);
 		if (isset($row["ID"])) $ajaxItem->addField("id",$row["ID"]);
 		if (isset($row["slug"])) $ajaxItem->addField("url",$row["slug"]);		
@@ -313,7 +354,6 @@ Class MajaxRender {
 		foreach ($this->fields->getFieldsDisplayed() as $field) {
 		 $ajaxItem->addMeta($field->outName(),$row[$field->outName()]);
 		}	
-		//$ajaxItem->addMeta("neco","neco2");
 
 		$out=$ajaxItem->expose($getJson);
 		return $out;					
@@ -352,7 +392,9 @@ Class MajaxRender {
 			$row["htmltemplate"][$templateName]=$this->htmlElements->loadTemplate($templateName);	
 			$row["htmltemplate"][$templateName]=$this->htmlElements->translateTemplate($row["htmltemplate"][$templateName]);
 		}
-		$row["language"]=$this->language;
+		$row["mainClass"]="majaxOutDynamic";
+		$row["totalPages"]=$this->totalPages;
+		$row["language"]=$this->siteSettings["language"];
 		return $row;	
 	}
 	function buildCounts($rows,$cachedJson) {
@@ -364,9 +406,12 @@ Class MajaxRender {
 		else {
 			$out[]=["meta_key" => "clearall", "meta_value" => "clearall", "count" => "0", "post_title" => "" ];
 			if (!empty($rows) && count($rows)>0) {
+				
+
 				foreach ($rows as $row) {
 					foreach ($this->fields->getFieldsFiltered() as $field) {			
 						$val=$row[$field->outName()];
+						if (empty($c[$field->outName()][$val])) $c[$field->outName()][$val]=0;
 						$c[$field->outName()][$val]++;
 					}	
 					
@@ -396,6 +441,7 @@ Class MajaxRender {
 		$row=[];
 		$row["title"]="pagination";
 		$pages=ceil($cntTotal/$cntPerPage);				
+		$this->totalPages=$pages;
 		if ($pages<=0) return $row;
 		for ($n=0;$n<$pages;$n++) {			
 			if ($n==$aktPage) $row[$n] = "2";
@@ -403,14 +449,14 @@ Class MajaxRender {
 		}		
 		return $row;
 	}	
-	function showRows($rows,$delayBetweenPostsSeconds=0.5,$custTitle="",$limit=9,$aktPage=0,$miscAction="") {
+	function showRows($rows,$delayBetweenPostsSeconds=0.5,$custTitle="",$limit=9,$aktPage=0,$miscAction="",$sliceArray=false) {
 		$n=0;	
 		$totalRows=count($rows);
 		$showPosts=true;
 		if ($miscAction=="contactFilled") $showPosts=false;
 		$templateName="single"; //default template name
 		$excerpt=false;
-		if ($totalRows>1) { 
+		if ($totalRows>1 || $aktPage>0) { 
 			$templateName="multi";
 			$excerpt=true;
 		}
@@ -420,7 +466,7 @@ Class MajaxRender {
 				$this->sendBlankResponse();
 			}
 			$pagination=$this->getPagination($totalRows,$aktPage,$limit);
-			$rows=array_slice($rows,$aktPage*$limit,$limit);		
+			if ($sliceArray) $rows=array_slice($rows,$aktPage*$limit,$limit);		
 		}
 		
 		foreach ($rows as $row) {
@@ -434,15 +480,17 @@ Class MajaxRender {
 					 //buildinit - fields description and html template for posts
 					echo json_encode($this->buildInit($templateName)).PHP_EOL;						
 					if ($miscAction) { 
-						//send form
-						$mForm=new MajaxForm($this->getPostType(),$row["post_title"],$this->translating);
-						if ($miscAction=="action") {
-							$mForm->setTemplate($this->htmlElements,"defaultForm","form");								
-							echo json_encode($mForm->renderForm()).PHP_EOL;	
-						}
-						if ($miscAction=="contactFilled") {	
-							$mForm->setTemplate($this->htmlElements,"contactFormMessage");													
-							echo json_encode($mForm->runForm()).PHP_EOL;	
+						if ($this->siteSettings["clickAction"]=="form") {
+							//send form
+							$mForm=new MajaxForm($this->getPostType(),$row["post_title"],$this->translating);
+							if ($miscAction=="action") {
+								$mForm->setTemplate($this->htmlElements,"defaultForm","form");								
+								echo json_encode($mForm->renderForm()).PHP_EOL;	
+							}
+							if ($miscAction=="contactFilled") {	
+								$mForm->setTemplate($this->htmlElements,"contactFormMessage");													
+								echo json_encode($mForm->runForm()).PHP_EOL;	
+							}						
 						}						
 					}					
 				 }
@@ -479,7 +527,7 @@ Class MajaxRender {
 		exit;
 	}
 	public function showSearchBox() {
-		$lastSearch=$_GET["mSearch"];
+		$lastSearch=isset($_GET["mSearch"]) ? $_GET["mSearch"] : "";
 		$actual_link = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
 		//$actual_link = "http://ukeacz:8081/category/ratan-na-zahradu/";
 		//$actual_link = "#";

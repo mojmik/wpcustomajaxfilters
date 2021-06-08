@@ -26,8 +26,10 @@ var majaxModule=(function (my) {
                   if (typeof vals["metaOut"][metaName2] !== 'undefined') val=vals["metaOut"][metaName2];
                   else val=vals["metaOut"][metaName];
                 } else {
-                    val=vals[valName];
-                    if (typeof val === 'undefined') val=vals["jsonObj"][valName];                
+                    val=vals[valName];                    
+                    if (typeof val === 'undefined') val=vals["jsonObj"][valName];           
+                    if (typeof val === 'undefined') val=majaxRender[valName];                     
+                    if (typeof val === 'undefined') val=""; 
                 }                
                 out=out.replace("{"+valName+"}",val);
             }
@@ -37,6 +39,9 @@ var majaxModule=(function (my) {
     const majaxRender = {   
         customType : "",
         language: "",
+        mainClass: "",
+        totalPages:0,
+        staticFields:{},
         getType: function() {
             if (majaxRender.customType=="") {                
                 majaxRender.customType=jQuery('input[name="type"]').val();
@@ -130,7 +135,7 @@ var majaxModule=(function (my) {
             </div>
             `);
         },
-        postTemplateCounts: (id,meta) => {		
+        postTemplateCounts: (meta) => {		
             if (meta["meta_key"]=="clearall" && meta["meta_value"]=="clearall") {
                 //first record- clearall
                 my.mCounts.clearAll();		
@@ -231,17 +236,23 @@ var majaxModule=(function (my) {
             jQuery("#majaxback").hide();
         },
         drawResultsFunction: (thisId,jsonObj) => {	
-            if (jsonObj.title=="majaxcounts") thisHtml=majaxRender.postTemplateCounts(thisId,jsonObj);
+            if (jsonObj.title=="majaxcounts") thisHtml=majaxRender.postTemplateCounts(jsonObj);
             else if (jsonObj.title=="buildInit") {
                 my.metaMisc.addMetaMisc(jsonObj.misc);
                 htmlTemplate.addTemplate(jsonObj.htmltemplate);
                 majaxRender.language=jsonObj.language;
+                majaxRender.mainClass=jsonObj.mainClass;
+                majaxRender.totalPages=jsonObj.totalPages;
                 //update sliders min-max
                 my.majaxSlider.initSlidersMinMax(); 
             }
             else if (jsonObj.title=="pagination") {                
-                let thisHtml=majaxRender.postTemplatePagination(jsonObj);
-                jQuery('#majaxmain').append(thisHtml);                
+                if (my.majaxPrc.scrollPage>0) {
+                    jQuery('.mpagination').remove();    
+                } else {
+                    let thisHtml=majaxRender.postTemplatePagination(jsonObj);
+                    jQuery('#majaxmain').append(thisHtml);                    
+                }
             }
             else if (jsonObj.title=="action") {                                
                 majaxRender.hideLoaderAnim();   

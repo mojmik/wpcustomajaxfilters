@@ -308,5 +308,18 @@ Class MajaxHtmlElements {
         return $htmlSrc;
         
     }
-
+    public function showFixFields($fields) {
+        foreach ($fields as $f) {
+         ?>
+         <input data-group="majax-fields" type='hidden' name='<?= $f["name"]?>' value='<?= $f["filter"]?>' />
+         <?php
+        }
+    }
+    public function showInitValsForAjax($fields) {
+        foreach ($fields as $f) {
+         ?>
+         <input data-group="majax-init" type='hidden' name='<?= $f["name"]?>' value='<?= $f["val"]?>' />
+         <?php
+        }
+    }
 }

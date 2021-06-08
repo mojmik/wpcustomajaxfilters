@@ -540,6 +540,7 @@ button.select2-selection__clear {
 
 .myinput[type="checkbox"]:disabled:after {
   -webkit-filter: opacity(0.4);
+  filter: opacity(0.4);
 }
 
 .myinput[type="checkbox"]:not(:disabled):checked:hover:after {
@@ -570,14 +571,30 @@ button.select2-selection__clear {
   width: 16px;
   height: 16px;
 }
-.widget-area ul {
+.widget-area .widget ul {
   margin-bottom:5px;
   padding:0 0 0 10px;
   list-style-type: disc;
 }
-.widget-area ul li {
+.widget-area .widget ul li {
   padding:0px;
 }
 .textwidget .search-submit {
  display:none;
+}
+.widget-area .widget {
+  margin-bottom:25px;
+}
+.widget-area .textwidget div {
+  margin-top:25px;
+}
+.catTitle {
+  display: flex;
+}
+.catTitle h1 {
+  margin-top:auto;
+  margin-bottom: auto;
+}
+.page-wrap {
+  padding:10px 0 10px 0;
 }

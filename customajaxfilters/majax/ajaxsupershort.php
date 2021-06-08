@@ -3,7 +3,7 @@
  this feeds ajax from wordpress with minimal loading
 */
 namespace CustomAjaxFilters\Majax;
-
+use \CustomAjaxFilters\Admin as MajaxAdmin;
 
 header('Content-Type: text/html');
 header( 'X-Content-Type-Options: nosniff' );
@@ -68,17 +68,30 @@ if ($action=="single_row") {
 if ($action=="filter_rows") {
 	$renderer = new MajaxWP\MajaxRender(true,$atts); //use false pro preloading hardcoded fields (save one sql query)
 	MajaxWP\MikDb::init(DB_HOST,DB_USER,DB_PASSWORD,DB_NAME);	
-
-    $query=$renderer->produceSQL();
-	$rows=MajaxWP\Caching::getCachedRows($query);
-	$countsJson=MajaxWP\Caching::getCachedJson("json_$query");
-	$countsRows=$renderer->buildCounts($rows,$countsJson);	
-	if (!$countsJson) {
-		MajaxWP\Caching::addCache("json_$query",$countsRows);
-	}
-	$renderer->showRows($countsRows,0,"majaxcounts",0);
+	
 	$page=intval($_POST["aktPage"]);
-	$renderer->showRows($renderer->filterMetaSelects($rows),0,"",9,$page);		
+	$buildCounts=MajaxAdmin\Settings::loadSetting("buildCounts","site");	
+	/*
+	buildcounts	loads all rows and slice arrays afterwards. might choke in big sites
+	if no form filters shown, this is not needed
+	*/
+	if ($buildCounts) {
+		$query=$renderer->produceSQL(null,null,false,true);
+		$rows=MajaxWP\Caching::getCachedRows($query);
+		$countsJson=MajaxWP\Caching::getCachedJson("json_$query");
+		$countsRows=$renderer->buildCounts($rows,$countsJson);	
+		if (!$countsJson) {
+			MajaxWP\Caching::addCache("json_$query",$countsRows);
+		}
+		$renderer->showRows($countsRows,0,"majaxcounts",0);
+		$renderer->showRows($renderer->filterMetaSelects($rows),0,"",9,$page,"",true);		
+	} else {
+		$query=$renderer->produceSQL(null,$page*9);
+		$rows=MajaxWP\Caching::getCachedRows($query);
+		$renderer->showRows($renderer->filterMetaSelects($rows),0,"",9,$page);		
+	}
+	
+	
 	exit;
 }
 

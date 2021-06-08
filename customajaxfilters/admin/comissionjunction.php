@@ -28,8 +28,18 @@ class ComissionJunction {
      if (empty($this->cjTools)) { 
          $this->cjTools=new CJTools($this->postType);
          $this->cjTools->setParam("cjCatsTempTable",$this->getTabName("tempCats"));	
-         $this->cjTools->setParam("cjCatsTable",$this->getTabName("cats"));	         
-         $this->cjTools->setParam("catSlugMetaName",$this->getTypeSlug());		
+         $this->cjTools->setParam("cjCatsTable",$this->getTabName("cats"));	  
+         $this->cjTools->setParam("catSlugMetaName",$this->getTypeSlug());
+         $metaNames=[];
+         foreach ($this->cjCols as $key => $val) {        
+          $metaNames[$key]=$this->getMautaFieldName($key);
+         }   
+         /*             
+         $this->cjTools->setParam("imageSlugMetaName",$this->getMautaFieldName("imageurl"));         
+         $this->cjTools->setParam("brandSlugMetaName",$this->getMautaFieldName("brand"));         
+         */
+         $this->cjTools->setParam("metaNames",$metaNames);   
+         $this->cjTools->setParam("catSlugMetaName",$this->getTypeSlug());
          $this->cjTools->setParam("catSlug",$this->categorySlug);		
          $this->cjTools->setParam("brandSlug",$this->brandsSlug);	
          
@@ -51,14 +61,14 @@ class ComissionJunction {
  private function initCJcols() {
    $this->cjCols=[
        "id" => ["sql" => "int(11) NOT NULL AUTO_INCREMENT", "primary" => true],
-       "buyurl" => ["sql" => "varchar(1000) NOT NULL", "csvPos" => "LINK"],
+       "buyurl" => ["sql" => "varchar(1000) NOT NULL", "csvPos" => "LINK", "displayorder" => "51"],
        "shopurl" => ["sql" => "varchar(500) NOT NULL", "csvPos" => "PROGRAM_NAME"],
        "imageurl" => ["sql" => "varchar(500) NOT NULL", "csvPos" => "IMAGE_LINK", "displayorder" => "51", 
-            "htmlTemplate" => '<div class="col title">${formattedVal}</div>',
+            "extra" => ["downloadImage" => true] 
        ],
        "title" => ["sql" => "varchar(100) NOT NULL", "csvPos" => "TITLE"],
        "kw" => ["sql" => "TEXT NOT NULL"],
-       "type" => ["sql" => "TEXT NOT NULL", "csvPos" => "PRODUCT_TYPE", 
+       "type" => ["sql" => "TEXT NOT NULL", "csvPos" => "PRODUCT_TYPE", "filterorder" => "1", "compare" => "LIKE",
             "extra" => ["removeExtraSpaces" => true, "createSlug" => "yes"] 
         ],
        "availability" => ["sql" => "TEXT NOT NULL", "csvPos" => "AVAILABILITY"],
@@ -66,12 +76,12 @@ class ComissionJunction {
        "price" => ["sql" => "TEXT NOT NULL", "csvPos" => "PRICE",  "type" => "NUMERIC", "fieldformat" => "%1,- Kč", "compare" => ">", "displayorder" => "51",
             "extra" => ["removePriceFormat" => true]
         ],
-        "priceDiscount" => ["sql" => "TEXT NOT NULL", "csvPos" => "PRICEDISCOUNT",  "type" => "NUMERIC", "fieldformat" => "%1,- Kč", "compare" => "!", "displayorder" => "51",
+        "priceDiscount" => ["sql" => "TEXT NOT NULL", "csvPos" => "PRICEDISCOUNT",  "type" => "NUMERIC", "fieldformat" => "%1,- Kč", "compare" => ">", "displayorder" => "51",
             "extra" => ["removePriceFormat" => true]
         ],
        "views" => ["sql" => "int(11) NOT NULL"],
        "tran" => ["sql" => "TINYINT(1) NOT NULL"],
-       "brand" => ["sql" => "varchar(100) NOT NULL", "csvPos" => "BRAND", "displayorder" => "51"],
+       "brand" => ["sql" => "varchar(100) NOT NULL", "csvPos" => "BRAND", "displayorder" => "51", "filterorder" => "1", "compare" => "LIKE"],
        "gender" => ["sql" => "varchar(100) NOT NULL", "csvPos" => "GENDER"],
        "gtin" => ["sql" => "varchar(100) NOT NULL", "csvPos" => "GTIN", "displayorder" => "51"],
        "mpn" => ["sql" => "varchar(100) NOT NULL", "csvPos" => "MPN", "displayorder" => "51"],
@@ -152,6 +162,7 @@ class ComissionJunction {
     $vars[] = 'mikcat';
     $vars[] = 'mikbrand';
     $vars[] = 'mikorder';
+    $vars[] = 'mimgtools';
     return $vars;
   }
   function mauta_rewrite_rule() {        
@@ -161,6 +172,9 @@ class ComissionJunction {
     $pageId="page_id={$this->basePage["id"]}&";
     //$page="";
     $phpScript="index.php"; //always index.php for wp
+    $pluginRelativeDir="wp-content/plugins/"; //todo
+    //add_rewrite_rule( "^$page"."mimgtools/([^/]*)/([^/]*)/?", "$pluginRelativeDir/wpcustomajaxfilters/mimgtools.php".'?mimgtools=$matches[1]&mikorder=$matches[2]','top' );
+    add_rewrite_rule( "^$page"."mimgtools/([^/]*)/?", $phpScript.'?'.$pageId.'mimgtools=$matches[1]','top' );
     add_rewrite_rule( "^$page"."$mikBrandy/([^/]*)/([^/]*)/?", $phpScript.'?'.$pageId.'mikbrand=$matches[1]&mikorder=$matches[2]','top' );
     add_rewrite_rule( "^$page"."$mikBrandy/([^/]*)/?", $phpScript.'?'.$pageId.'mikbrand=$matches[1]','top' );
     add_rewrite_rule( "^$page"."$mikCatSlug/([^/]*)/$mikBrandy/([^/]*)/([^/]*)/?", $phpScript.'?'.$pageId.'mikcat=$matches[1]&mikbrand=$matches[2]&mikorder=$matches[3]','top' );
@@ -314,14 +328,17 @@ class ComissionJunction {
     $catsFinal=[];
     $map=[];
     foreach ($categoriesSorted as $key => $c) {
-        $row=["slug" => $this->getCjTools()->sanitizeSlug($c["path"]), 
-                "path" => $c["path"], 
-                "parent" => ($c["parent"]===null) ? null : $map[$c["parent"]], 
-                "postType" => $this->postType, 
-                "counts"=>$c["postsCount"] 
+        if ($c["path"]) {
+            $row=["slug" => $this->getCjTools()->sanitizeSlug($c["path"]), 
+            "path" => $c["path"], 
+            "parent" => ($c["parent"]===null) ? null : $map[$c["parent"]], 
+            "postType" => $this->postType, 
+            "counts"=>$c["postsCount"] 
             ];        
-        $map[$key]=MajaxWP\MikDb::insertRow($catTabName,$row);
-        $catsFinal[]=$row;
+            $map[$key]=MajaxWP\MikDb::insertRow($catTabName,$row);
+            $catsFinal[]=$row;
+        }
+        
     }
     //write to cache
     MajaxWP\Caching::addCache("sortedcats".$this->postType,$catsFinal,"sortedcats".$this->postType); 
@@ -342,7 +359,7 @@ class ComissionJunction {
         }   
     } else {
         /* load from table */
-        $query = "SELECT * FROM `{$catTabName}` WHERE `postType`='$this->postType' ORDER BY `path`";
+        $query = "SELECT * FROM `{$catTabName}` WHERE `postType`='$this->postType' ORDER BY `counts` DESC";
         $catsFinal=$wpdb->get_results($query, ARRAY_A);
         if (!empty($catsFinal) && count($catsFinal)>0) return $catsFinal;
     }
@@ -368,37 +385,47 @@ class ComissionJunction {
     if ($pos>0) return substr($path,$pos+1);
     return $path;
    }
-   function outParentCategory($cats,$thisCat) {
+ 
+   function outParentCategory($cats,$thisCat,$depth) {
     //recursively output category branch    
+    $goDeeper=true;
     ?>    
     <ul>
-        <?php 
+        <?php         
         if ($this->currentCatSlug==$thisCat["slug"]) {
             ?>
             <li><strong><?= $this->getCategoryNameFromPath($thisCat["path"])?> (<?= $thisCat["counts"]?>)</strong>
             <?php
         }
         else {
+            $goDeeper=($depth>0) || (strpos($this->currentCatSlug,$thisCat["slug"])!==false);            
             ?>
             <li><a href='<?= $this->getPermaLink($thisCat["slug"])?>'><?= $this->getCategoryNameFromPath($thisCat["path"])?> (<?= $thisCat["counts"]?>)</a>
             <?php
         }            
-        foreach ($cats as $key => $c) {
-            if ($c["parent"]===$thisCat["id"]) { 
-                echo $this->outParentCategory($cats,$c);
+        if ($goDeeper) {
+            foreach ($cats as $key => $c) {
+                if ($c["parent"]===$thisCat["id"]) { 
+                    echo $this->outParentCategory($cats,$c,$depth+1);
+                }
             }
-        }
+        }        
     ?>        
         </li>
     </ul>
     <?php
    }
    function outCategoriesTreeShortCode($atts=[]) {
+    
+    ob_start();       
     if (!empty($atts["type"])) { 
         $this->setPostType($atts["type"]);
         $cats=$this->getCategoriesArr();
     }
     $this->getCjTools()->showBrandyNav($this->getMautaFieldName("brand"));
+    ?>
+    <div>
+    <?php
     $slug=$this->getCjTools()->getThisCat(); 
     $this->currentCatSlug=$slug;
     if ($slug) {
@@ -412,7 +439,12 @@ class ComissionJunction {
         <?php
     }
     foreach ($cats as $c) {
-        if (!$c["parent"]) echo $this->outParentCategory($cats,$c);
+        //root cats
+        if (!$c["parent"]) echo $this->outParentCategory($cats,$c,0);
     }
+    ?>
+    </div>
+    <?php
+    return ob_get_clean();
    }
 }

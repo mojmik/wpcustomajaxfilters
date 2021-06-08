@@ -11,7 +11,7 @@ class CJtools {
     public function __construct($customPostType) {
         $this->customPostType=$customPostType;
         if (empty($this->language)) $this->language=Settings::loadSetting("language","site");
-		$this->translating=new MajaxWP\Translating($this->language);
+        $this->translating=new MajaxWP\Translating($this->language);        
     }
 
     public function setParam($name, $val) {
@@ -134,11 +134,23 @@ class CJtools {
             $r[$key] = $this->ms_escape_string($r[$key]);
             $r[$key] = str_replace(", ", ",", $r[$key]); //oprava carek
             $r[$key] = str_replace(",", ", ", $r[$key]); //oprava carek  
+            //osetreni qoutes
+            $r[$key] = str_replace("''", "^^^", $r[$key]); 
+            $r[$key] = str_replace("^^^", "'", $r[$key]); 
+            $r[$key] = str_replace("'", "''", $r[$key]); 
 
             $buyurl = $r["buyurl"];
             
-            $r["imageurl"] = str_replace("http://", "https://", $r["imageurl"]);
-            $imageHtml = "<a title='".$titleSafe."' href='$buyurl' rel='nofollow'><img alt='".$titleSafe."' width=300 src='{$r["imageurl"]}' /></a>";
+            $r["imageurl"] = str_replace("http://", "https://", $r["imageurl"]);            
+            if (!empty($r["imageurl"])) {                
+                $id=md5($r["imageurl"]);
+                $fn=wp_get_upload_dir()["basedir"]."/mimgnfo-$id";
+                file_put_contents($fn,$r["imageurl"]); 
+                $r["imageurl"] = "/mimgtools/$id/";                            
+            }
+            
+            //$imageHtml = "<a title='".$titleSafe."' href='$buyurl' rel='nofollow'><img alt='".$titleSafe."' width=300 src='{$r["imageurl"]}' /></a>";
+            $imageHtml = "<img alt='".$titleSafe."' src='{$r["imageurl"]}' />";
             $r["imageurl"] = $imageHtml;
             
             $r["price"] = str_replace(" CZK", "", $r["price"]);
@@ -175,6 +187,7 @@ class CJtools {
                             add_post_meta($postId, $name, $metaValueSlug);
                             $terms[$metaValueSlug] = $metaValue;
                         }
+                        
                     }
                 }
                 if (isset($metaValue) && $createMeta) {
@@ -220,18 +233,17 @@ class CJtools {
     function getCatMeta($catPath, $queryMetaName, $exact = true, $distinct=true) {        
         $prefix = MajaxWP\MikDb:: getWPprefix();
         global $wpdb;
-        $catMetaName = $this->params["catSlugMetaName"];
+        $catMetaName = $this->params["catSlugMetaName"];        
+
         if (!$exact) $catPath.= "%";
         if ($distinct) $selectVar="DISTINCT(pm2.meta_value)";
         else $selectVar="pm2.meta_value";
-        if ($catPath) {
+        if ($catPath && $catPath!="%") {
             $query = "
             SELECT $selectVar
             FROM {$prefix}posts po LEFT JOIN {$prefix}postmeta pm1 ON(pm1.post_id = ID) LEFT JOIN {$prefix}postmeta pm2 ON(pm2.post_id = ID)
             WHERE
-            po.ID = pm1.post_id
-            AND  po.ID = pm2.post_id
-            AND po.post_status like 'publish'
+            po.post_status like 'publish'
             AND po.post_type like '{$this->customPostType}'
             AND pm1.meta_key = '{$catMetaName}'
             AND pm1.meta_value LIKE '{$catPath}'
@@ -243,15 +255,14 @@ class CJtools {
             SELECT $selectVar
             FROM {$prefix}posts po LEFT JOIN {$prefix}postmeta pm2 ON(pm2.post_id = ID)
             WHERE            
-            po.ID = pm2.post_id
-            AND po.post_status like 'publish'
+            po.post_status like 'publish'
             AND po.post_type like '{$this->customPostType}'            
             AND pm2.meta_key = '$queryMetaName'
             ";  
         }
         
-        return $wpdb->get_results($query, ARRAY_A);
-
+        //return $wpdb->get_results($query, ARRAY_A);
+        return MajaxWP\Caching::getCachedRows($query);
 
     }
     function getPostsByCategory($catSlug, $exact = true) {
@@ -302,9 +313,13 @@ class CJtools {
     function mRndTxt($texts) {
         return $this->getLngText($texts[array_rand($texts)]);
     }
-    function updateCatsDescription() {
+    function updateCatsDescription($from=0,$to=0) {
         $cats = $this->getCats();
         $cnt = count($cats);
+        if ($to>0) {
+            $cats=array_slice($cats,$from,$to-$from);	
+        }
+        
         foreach($cats as $c) {
             $desc = $this->prepareCatDescription($c);
             MajaxWP\MikDb:: wpdbUpdateRows($this->params["cjCatsTable"], [["name" => "desc", "value" => $desc]], [["name"=> "id", "type" => "%d", "value" => $c["id"]]]);
@@ -323,14 +338,18 @@ class CJtools {
         }
         return $prices;
     }
+    function getImageFromImageUrl($html) {
+        preg_match_all('/<img.*?src=[\'"](.*?)[\'"].*?>/i', $html, $matches);
+        return (empty($matches[0][0])) ? false : $matches[0][0];
+    }
     function prepareCatDescription($cat) {
-        $desc = "#enjoymorethan#cntPosts#txtproducts#cats#txtby#brands.#prods#txtAlso#subcats.";
+        $desc = "#catTitle#enjoymorethan#cntPosts#txtproducts#cats#txtby#brands.#prods#txtAlso#subcats.";
 
         $txtproducts = "";
         $enjoy = "";
         $txtby = "";
         $subCatStr = "";
-
+        
         $subcats = $this->getChildCategories($cat["id"]);
         $cntSubCats = count($subcats);
         $n = 0;
@@ -340,7 +359,7 @@ class CJtools {
                 if ($subCatStr) {
                     $subCatStr.= ", ";
                 }
-                $subCatStr.= "".$subcat["path"];
+                $subCatStr.= "".$this->getCatPathNice($subcat["path"]);
                 $n++;
             }
         }
@@ -359,6 +378,7 @@ class CJtools {
 
         $brandyArr = array();
         $prodNames = array();
+        $prodImages=array();
         $brandyStr = "";
         $prodStr = "";
         $cntPosts = 0;
@@ -366,12 +386,20 @@ class CJtools {
         $subCatStr = "";
 
         foreach($termPosts as $mPost) {
-            $brand = get_post_meta($mPost["ID"], "brand");
+            $brand = get_post_meta($mPost["ID"], $this->params["metaNames"]["brand"]);
+            $images = get_post_meta($mPost["ID"], $this->params["metaNames"]["imageurl"]);
             $prodName = $mPost["post_title"];
+            $prodImage = $this->getImageFromImageUrl($images[0]);
             if (!in_array($brand[0], $brandyArr)) array_push($brandyArr, $brand[0]);
             if (!in_array($prodName, $prodNames)) array_push($prodNames, $prodName);
+            if (!in_array($prodImage, $prodImages)) array_push($prodImages, $prodImage);
             $cntPosts++;
         }
+        $title="<h1>".$this->getCatPathNice($cat["path"])."</h1>";
+        if (count($prodImages)>2) {
+            $title=$prodImages[0]."$title".$prodImages[count($prodImages)-1];
+        } 
+        $desc = str_replace("#catTitle", "<section class='catTitle'>".$title."</section>", $desc);
         //file_put_contents(get_template_directory()."/adfeed.log"," updatetermsdesc2 cnt:$cntPosts ".$cat["path"]." proc:$d/$y now: ".getDateTime()." \n",FILE_APPEND);	
         unset($termPosts);
 

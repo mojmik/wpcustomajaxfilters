@@ -153,6 +153,8 @@ jQuery(document).ready(function($) {
 
 	//click items anchors 
 	$('#majaxmain').on('click', 'a', function(event) {
+		let rel=$(this).attr('rel');
+		if (rel=="nofollow") return true;
 		let href=$(this).attr('href');
 		//console.info('Anchor clicked!' + href);
 		//window.history.pushState({href: href}, '', href);
@@ -167,6 +169,14 @@ jQuery(document).ready(function($) {
 		e.stopImmediatePropagation();
 		my.mUrl.goBack();			
 	});
+
+	$(window).scroll(function() {
+		let footerHeight=150;
+		if($(window).scrollTop() + $(window).height() >= $("#majaxmain").height() + 20) {			
+			my.majaxPrc.runAjax(this,"scroll");
+			//console.log("bottom");
+		}
+	 });
 	
 	window.addEventListener('popstate', function(e){
 		let href="";
