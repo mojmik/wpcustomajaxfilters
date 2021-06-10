@@ -45,7 +45,8 @@ Class MajaxHtmlElements {
         <input id='idSign' type='hidden' name='idSign' value='1' />
         <?php
     }
-    function showMainPlaceHolderStatic($header=false,$postType="",$emptyDiv="<div></div>") {    
+    function showMainPlaceHolderStatic($header=false,$postType="",$emptyDiv=true) {  
+        if ($emptyDiv) $emptyDiv="<div></div>";
         if ($header) {
             $this->showBackButton();
             ?>

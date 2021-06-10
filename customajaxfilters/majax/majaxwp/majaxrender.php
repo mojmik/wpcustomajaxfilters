@@ -65,6 +65,7 @@ Class MajaxRender {
 		if (isset($this->subType)) { 		 
 			$this->fields->setFixFilter("mauta_typ",$this->subType);					
 		}
+		
 		$postId=isset($_GET['id']) ? filter_var($_GET['id'], FILTER_SANITIZE_STRING) : "";
 		$aktPage=filter_input( INPUT_GET, "aktPage", FILTER_SANITIZE_NUMBER_INT );
 		$showCjCat=false;
@@ -91,6 +92,7 @@ Class MajaxRender {
 				}
 			}			
 		} 
+		
 		if ($postId) $emptyDiv=false;
 		$this->htmlElements->showMainPlaceHolderStatic(true,$this->postType,$emptyDiv);
 		

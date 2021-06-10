@@ -3,7 +3,7 @@
                         <div class='row flex-grow-1 '>
                             <div class='col title'>                        
                                  {image}{featuredHtml}    
-								<a data-slug='{name}' href='/?id={name}'>{metaOut[imageurl]}</a>
+								<a data-noajax='true' data-slug='{name}' href='/?id={name}'>{metaOut[imageurl]}</a>
 								<div class='price2'>
 									<span class='discount'>{metaOut[price]}</span>
 									<span class='priceTag'>{metaOut[priceDiscount]}</span>								
@@ -23,7 +23,7 @@
                         </div>
                         <div class='row '>
                             <div class='col action'>
-                                <a class='mButtonA' data-slug='{name}' href='/?id={name}'>_(More)</a>
+                                <a data-noajax='true' class='mButtonA' data-slug='{name}' href='/?id={name}'>_(More)</a>
                             </div>
                         </div>
 						

@@ -155,6 +155,8 @@ jQuery(document).ready(function($) {
 	$('#majaxmain').on('click', 'a', function(event) {
 		let rel=$(this).attr('rel');
 		if (rel=="nofollow") return true;
+		let noajax=$(this).attr('data-noajax');
+		if (noajax=="true") return true;
 		let href=$(this).attr('href');
 		//console.info('Anchor clicked!' + href);
 		//window.history.pushState({href: href}, '', href);
