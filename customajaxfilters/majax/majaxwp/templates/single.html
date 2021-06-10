@@ -1,28 +1,36 @@
-<div class='majaxout {mainClass} row2' id='majaxout{id}'>
-                    <div class='row mcontent mtitle'>			    
-                            <span>{title}</span>
-                        </div>
-                    <div class='row flex-grow-1'>
-                        <div class='col title bors'>                        
+<h1>{title}</h1>
+<div class='{mainClass} row2' id='majaxout{id}'>                    
+                    
+                        
+                    <div class='col-md-4 mValignMid'>
+                        <div class='col title '>                        
                             {image}{featuredHtml}    
-								<a data-slug='{name}' href='{metaOut[buyurl]}'>{metaOut[imageurl]}</a>
-								<div class='price2'>
+								<a rel='nofollow' data-slug='{name}' onclick='window.exit=false;top.location.href="{metaOut[buyurl]}"' href='#'>{metaOut[imageurl]}</a>
+								                         
+                        </div>
+						
+                    </div>
+					<div class='col-md-8'>
+						<div class='row '>
+								<div class='col action'>									
+									<button class="mbuybutton" onclick="window.exit=false;top.location.href='{metaOut[buyurl]}'">_(GET SPECIAL DISCOUNT) »</button>
+								</div>
+						</div>
+						<div class='row mcontent '>			    
+							<span>{content}</span>
+						</div>  
+						<div class='row price3'>
+									<span class='mbold'>_(Price)</span>
 									<span class='discount'>{metaOut[price]}</span>
 									<span class='priceTag'>{metaOut[priceDiscount]}</span>								
-								</div>                            
-                        </div>
-                    </div>
-                    <div class='row mcontent bors'>			    
-                        <span>{content}</span>
-                    </div>      
-                    <div class='row '>
-                            <div class='col action'>
-                                <a class='mButtonA' data-slug='{name}' href='{metaOut[buyurl]}'>_(Order)</a>
-							</div>
-                    </div>
-
-                    <div class='row borb'>			
-                            <div class='col meta'>od {metaOut[brand]}</div>  
-							<div class='col meta'>{metaOut[gtin]} {metaOut[mpn]}</div>     
-                    </div>                
+						</div> 						
+							
+						<div class='row '>			
+								<div class='col meta'>od {metaOut[brand]}</div>  
+								<div class='col meta'>{metaOut[gtin]} {metaOut[mpn]}</div>     
+						</div>      
+						  
+											
+						
+					</div>
 </div>

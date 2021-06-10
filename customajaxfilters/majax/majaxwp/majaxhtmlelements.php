@@ -39,18 +39,19 @@ Class MajaxHtmlElements {
 		</div> 
 		<?php
     }
+    
     function showIdSign() {
         ?>
         <input id='idSign' type='hidden' name='idSign' value='1' />
         <?php
     }
-    function showMainPlaceHolderStatic($header=false,$postType="") {    
+    function showMainPlaceHolderStatic($header=false,$postType="",$emptyDiv="<div></div>") {    
         if ($header) {
             $this->showBackButton();
             ?>
             <input type='hidden' name='type' value='<?= $postType?>' />
             <div id="majaxmain" class="majaxmain">
-            <div></div>            
+            <?= $emptyDiv?>
              <?php
         }
         //ajax content comes here

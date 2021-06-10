@@ -68,18 +68,18 @@ Class MajaxRender {
 		$postId=isset($_GET['id']) ? filter_var($_GET['id'], FILTER_SANITIZE_STRING) : "";
 		$aktPage=filter_input( INPUT_GET, "aktPage", FILTER_SANITIZE_NUMBER_INT );
 		$showCjCat=false;
+		$emptyDiv=true;		
 		if (!empty($atts["cj"])) {
 			$cj=new MajaxAdmin\ComissionJunction(["postType" => $this->postType]);
 			$cjBrand=urlDecode(get_query_var("mikbrand"));
 			$cjCat=get_query_var("mikcat");
 	
 			$exactCategoryMatch="%";
-			//ted jeste aby to filtrovalo i podle brandu			
 			if (!$postId) {
 				if ($cjCat) { 
 					$this->fixFilters[]=["name" =>  $cj->getTypeSlug(), "filter" => $cjCat.$exactCategoryMatch];
 					
-					$thisCat=$cj->getCjTools()->getCatBySlug($cjCat);
+					$thisCat=$cj->getCjTools()->getCatBySlug($cjCat,true);
 					$desc=$thisCat["desc"];
 					$cntRows=$thisCat["counts"];
 					$showCjCat=true;
@@ -90,18 +90,13 @@ Class MajaxRender {
 					$this->additionalFilters[]="brand";
 				}
 			}			
-			/*
-			echo "<br />brand: ".urlDecode(get_query_var("mikbrand"));
-			echo "<br />cat: ".get_query_var("mikcat");
-			*/
-			//tohle pujde do widgetu
-			//echo $cj->getCjTools()->showBrandyNav();
 		} 
-		$this->htmlElements->showMainPlaceHolderStatic(true,$this->postType);
+		if ($postId) $emptyDiv=false;
+		$this->htmlElements->showMainPlaceHolderStatic(true,$this->postType,$emptyDiv);
 		
 		//get results
 		if ($postId) { 
-			$query=$this->produceSQL($postId);
+			$query=$this->produceSQL($postId);			
 			$this->htmlElements->showIdSign();
 		}
 		else $query=$this->produceSQL(null,$aktPage*$this->postRowsLimit);
@@ -114,7 +109,7 @@ Class MajaxRender {
 			$rowsCount=Caching::getCachedRows($query);
 			$cntRows=$rowsCount[0]["cnt"];
 		}
-		if ($postId) $cntRows=count($rows);
+		if ($postId) $cntRows=1;
 		$excerpt=($cntRows>1) ? true : false;
 		if ($cntRows>1) $templateName="multi";
 		else $templateName="single";
@@ -124,14 +119,38 @@ Class MajaxRender {
 		}
 		$n=0;
 
-		
+		//related listings
+		$relatedRows=[];
+		if ($postId) {
+			if (!empty($rows[0])) {
+				$cjCat=$rows[0][$cj->getTypeSlug()];				
+				$this->fixFilters[]=["name" =>  $cj->getTypeSlug(), "filter" => $cjCat.$exactCategoryMatch];
+				$query=$this->produceSQL(null,null,false,false,["limit" => "3",
+					"orderBy" => "rand()","orderDir" => "", "innerWhere" => " NOT post_name = '".$rows[0]["post_name"]."'"]);
+				$relatedRows=Caching::getCachedRows($query);
+				$thisCat=$cj->getCjTools()->getCatBySlug($cjCat,true);
+				$lastCat=$cj->getCjTools()->getCatPathNice($thisCat["path"],true);
+			}
+			
+		}
 
 		foreach ($rows as $row) {			
 			$n++;
 			$metaMisc=$this->buildInit();
 			$item=[];
-			$item=$this->buildItem($row,[],0,$excerpt);		
+			$item=$this->buildItem($row,[],0,$excerpt);	
 			$this->htmlElements->showPost("s$n",$row["post_name"],$row["post_title"],$item["image"],$item["content"],$metaMisc["misc"],$item["meta"],$templateName);
+		}
+		if (!empty($relatedRows)) {
+			echo $this->htmlElements->getHtml("related-listings","cat",["catName" => $lastCat],true);
+			$excerpt=(count($relatedRows)>1) ? true : false;
+			foreach ($relatedRows as $row) {			
+				$n++;
+				$metaMisc=$this->buildInit();
+				$item=[];
+				$item=$this->buildItem($row,[],0,$excerpt);		
+				$this->htmlElements->showPost("s$n",$row["post_name"],$row["post_title"],$item["image"],$item["content"],$metaMisc["misc"],$item["meta"],"multi");
+			}
 		}
 		if ($cntRows>$this->postRowsLimit) { 			 
 			 $this->htmlElements->showPagination($this->getPagination($cntRows,$aktPage,$this->postRowsLimit));			 
@@ -184,7 +203,7 @@ Class MajaxRender {
 		else $str=$add;
 		return $str;
 	}
-	function produceSQL($id=null,$from=null,$countOnly=false,$postAll=false) {
+	function produceSQL($id=null,$from=null,$countOnly=false,$postAll=false,$params=[]) {
 		$mType = $this->getPostType();
 		$col="";
 		$filters="";
@@ -220,6 +239,18 @@ Class MajaxRender {
 		 if ($from) $limit=" LIMIT $from,".$this->postRowsLimit;	
 		 else $limit=" LIMIT ".$this->postRowsLimit;	
 		}
+		$innerWhere="";
+		$outerWhere="";
+		if (!empty($params["limit"])) $limit=" LIMIT ".$params["limit"];
+		if (!empty($params["orderBy"])) $orderBy=$params["orderBy"];
+		if (!empty($params["orderDir"])) $orderBy=$params["orderDir"];
+		if (!empty($params["innerWhere"])) { 
+			 $innerWhere=" AND ".$params["innerWhere"];
+		}
+		if (!empty($params["outerWhere"])) { 			
+			$outerWhere=$params["outerWhere"];
+			if ($filters) $outerWhere=" AND ".$outerWhere;
+		}
 		//customSearch
 		$customSearch="";
 		if (!empty($_GET['mSearch'])) {
@@ -235,11 +266,13 @@ Class MajaxRender {
 				FROM wp_posts LEFT JOIN wp_postmeta pm1 ON ( pm1.post_id = ID) 
 				WHERE
 				post_status like 'publish' 
-				AND post_type like '$mType'		
+				AND post_type like '$mType'	
+				$innerWhere	
 				$customSearch	
 				GROUP BY ID
 				) AS pm1
 				$filters
+				$outerWhere
 				ORDER BY $orderBy $orderDir
 			";
 		} else {
@@ -251,11 +284,13 @@ Class MajaxRender {
 				FROM wp_posts LEFT JOIN wp_postmeta pm1 ON ( pm1.post_id = ID) 
 				WHERE 
 				post_status like 'publish' 
-				AND post_type like '$mType'		
+				AND post_type like '$mType'	
+				$innerWhere	
 				$customSearch	
 				GROUP BY ID
 				) AS pm1
 				$filters
+				$outerWhere
 				ORDER BY $orderBy $orderDir
 				$limit
 			";

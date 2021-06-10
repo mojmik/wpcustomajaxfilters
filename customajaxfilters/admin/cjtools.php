@@ -208,8 +208,8 @@ class CJtools {
         }
 
     }
-    function getCategories() {
-        return MajaxWP\MikDb:: wpdbGetRows($this->params["cjCatsTable"], ["id", "path", "slug", "counts", "parent"]);
+    function getCategories($where=[]) {
+        return MajaxWP\MikDb:: wpdbGetRows($this->params["cjCatsTable"], ["id", "path", "slug", "counts", "parent"],$where);
     }
     function getChildCategories($parentId) {
         return MajaxWP\MikDb:: wpdbGetRows($this->params["cjCatsTable"], ["id", "path", "counts"], [["name"=> "parent", "value" => $parentId]]);
@@ -218,9 +218,9 @@ class CJtools {
         $cats = MajaxWP\MikDb:: wpdbGetRows($this->params["cjCatsTable"], "*", [["name"=> "id", "value" => $id]]);
         return $cats[0];
     }
-    function getCatBySlug($slug) {
+    function getCatBySlug($slug,$useCache=false) {
         if (!$slug) return false;
-        $cats = MajaxWP\MikDb:: wpdbGetRows($this->params["cjCatsTable"], "*", [["name"=> "slug", "value" => $slug]]);
+        $cats = MajaxWP\MikDb:: wpdbGetRows($this->params["cjCatsTable"], "*", [["name"=> "slug", "value" => $slug]],$useCache);        
         if (empty($cats[0])) return [];
         $this->currentCat=$cats[0];
         return $this->currentCat;
@@ -230,14 +230,16 @@ class CJtools {
         $cats = MajaxWP\MikDb:: wpdbGetRows($this->params["cjCatsTable"], "*", [["name"=> "postType", "value" => $this->customPostType]]);
         return $cats;
     }
-    function getCatMeta($catPath, $queryMetaName, $exact = true, $distinct=true) {        
+    function getCatMeta($catPath, $queryMetaName, $exact = true, $distinct=true,$limit="",$skipBlank=false,$order="") {        
         $prefix = MajaxWP\MikDb:: getWPprefix();
         global $wpdb;
         $catMetaName = $this->params["catSlugMetaName"];        
 
         if (!$exact) $catPath.= "%";
-        if ($distinct) $selectVar="DISTINCT(pm2.meta_value)";
+        if ($distinct) $selectVar="DISTINCT(pm2.meta_value)";        
         else $selectVar="pm2.meta_value";
+        $skip="";
+        if ($skipBlank) $skip=" AND NOT pm2.meta_value = ''";                
         if ($catPath && $catPath!="%") {
             $query = "
             SELECT $selectVar
@@ -248,6 +250,9 @@ class CJtools {
             AND pm1.meta_key = '{$catMetaName}'
             AND pm1.meta_value LIKE '{$catPath}'
             AND pm2.meta_key = '$queryMetaName'
+            $skip
+            $order
+            $limit
             ";             
         }
         else {
@@ -257,7 +262,10 @@ class CJtools {
             WHERE            
             po.post_status like 'publish'
             AND po.post_type like '{$this->customPostType}'            
-            AND pm2.meta_key = '$queryMetaName'
+            AND pm2.meta_key = '$queryMetaName'  
+            $skip  
+            $order       
+            $limit
             ";  
         }
         
@@ -503,8 +511,10 @@ class CJtools {
         }
         //vzit kategorie, ktery maji pres 100 postu
         $createdCatPages = 0;
-        $terms = $this->getCategories();
+        $terms = $this->getCategories([["name"=>"counts","type" =>"%d", "value" => "100", "operator" => ">" ]]);
         for ($n = 0; $n < count($terms); $n++) {
+            if ($createdCatPages>10) break;
+            if (empty($terms[$n]["path"]) || !$terms[$n]["path"]) continue;
             $posts_array = $this->getPostsByCategory($terms[$n]["slug"],false);
             $cntPosts = count($posts_array);
 
@@ -516,7 +526,7 @@ class CJtools {
                 }
             }
 
-            if (!$terms[$n]["parent"] && $createdCatPages < 10 && $cntPosts > 200 && ((empty($hledejKW) || ($hledejKW && $obsahujeKW) ))) {
+            if (!$terms[$n]["parent"] && $createdCatPages <= 10 && $cntPosts > 200 && ((empty($hledejKW) || ($hledejKW && $obsahujeKW) ))) {
                 echo "<br />cnt2: ".$terms[$n]["parent"].", ".$cntPosts." slug:".$terms[$n]["slug"]."-";
                 //vytvorime stranky
                 $cenaNejnizsi = 0;
@@ -524,7 +534,7 @@ class CJtools {
                 $prumer = 0;
                 for ($y = 0; $y < $cntPosts; $y++) {
                     $postId = $posts_array[$y]["ID"];
-                    $cenaArr = get_post_meta($postId, "price");
+                    $cenaArr = get_post_meta($postId, $this->params["metaNames"]["price"]);
                     $cena = $cenaArr[0];
                     $cenyArr[$y] = $cena;
                     $prumer += $cena;
@@ -620,9 +630,14 @@ class CJtools {
         //vzit ceny
         echo "done createcatpages";
     }
-    function getCatPathNice($path="") {
+    function getCatPathNice($path="",$last=false) {
         if (!$path) { 
             if (!empty($this->currentCat["path"])) $path=$this->currentCat["path"];
+        }
+        if ($last) {
+            $cats=explode(">",$path);
+            if (is_array($cats)) return end($cats);
+            else return $path;
         }
         return str_replace(">", "- ",$path);
     }
@@ -649,7 +664,7 @@ class CJtools {
     function showBrandyNav($metaName) {                
         $mikBrand=urlDecode(get_query_var("mikbrand"));
         $catSlug=$this->getThisCat();
-        $brandyArr=$this->getCatMeta($catSlug,$metaName,false);
+        $brandyArr=$this->getCatMeta($catSlug,$metaName,false,true," LIMIT 1,15",true,"ORDER BY rand()");
         $brandsArr=[];
         if (count($brandyArr)<2) return false;
         foreach ($brandyArr as $brand) {

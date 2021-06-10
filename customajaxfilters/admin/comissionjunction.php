@@ -347,7 +347,6 @@ class ComissionJunction {
    }
    function getCategoriesArr() {
     global $wpdb;
-    //during posts import flag 1 are being created, than categories are created
     $cacheOff=true;
     $catTabName=$this->getTabName("cats");    
         
@@ -359,8 +358,9 @@ class ComissionJunction {
         }   
     } else {
         /* load from table */
-        $query = "SELECT * FROM `{$catTabName}` WHERE `postType`='$this->postType' ORDER BY `counts` DESC";
-        $catsFinal=$wpdb->get_results($query, ARRAY_A);
+        $query = "SELECT * FROM `{$catTabName}` WHERE `postType`='$this->postType' AND `counts`>8 ORDER BY `counts` DESC";
+        //$catsFinal=$wpdb->get_results($query, ARRAY_A);
+        $catsFinal=MajaxWP\Caching::getCachedRows($query);
         if (!empty($catsFinal) && count($catsFinal)>0) return $catsFinal;
     }
     
@@ -421,7 +421,7 @@ class ComissionJunction {
     if (!empty($atts["type"])) { 
         $this->setPostType($atts["type"]);
         $cats=$this->getCategoriesArr();
-    }
+    } else return false;
     $this->getCjTools()->showBrandyNav($this->getMautaFieldName("brand"));
     ?>
     <div>
@@ -438,9 +438,12 @@ class ComissionJunction {
                 <strong><?= $this->getCjTools()->translating->loadTranslation("(all categories)")?></strong>    
         <?php
     }
+    $n=0;
     foreach ($cats as $c) {
         //root cats
+        if ($n>15) break; //display only 15 root cats
         if (!$c["parent"]) echo $this->outParentCategory($cats,$c,0);
+        $n++;
     }
     ?>
     </div>

@@ -166,8 +166,8 @@ class MikDb {
 		$count = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$tableName} WHERE %s",$where)); 
 		return $count;
 	}
-	public static function wpdbGetRows($tableNames,$cols="*",$where=[]) {
-		//MikDb::wpdbGetRows($this->params["cjCatsTable"],["id","path","counts"],["name"=>"parent","type" =>"%s", "value" => $parentId ]);
+	public static function wpdbGetRows($tableNames,$cols="*",$where=[],$useCache=false) {
+		//MikDb::wpdbGetRows($this->params["cjCatsTable"],["id","path","counts"],[["name"=>"parent","type" =>"%s", "operator" => ">", "value" => $parentId ]]);
 		global $wpdb;	
 		$values=[];
 		if (is_array($cols)) $cols=implode(",",$cols);	
@@ -182,11 +182,14 @@ class MikDb {
 				$where1.="`".$where[$n]["name"]."`".$operator.$type;
 				$values[]=$where[$n]["value"];
 			  }
-		  	return $wpdb->get_results($wpdb->prepare("SELECT $cols FROM {$tableNames} WHERE $where1",$values),ARRAY_A); 
+			if ($useCache) return Caching::getCachedRows($wpdb->prepare("SELECT $cols FROM {$tableNames} WHERE $where1",$values)); 
+		  	else return $wpdb->get_results($wpdb->prepare("SELECT $cols FROM {$tableNames} WHERE $where1",$values),ARRAY_A); 
 		} else {
-	      	return $wpdb->get_results("SELECT $cols FROM {$tableNames}",ARRAY_A); 
+			if ($useCache) return Caching::getCachedRows("SELECT $cols FROM {$tableNames}"); 
+	      	else return $wpdb->get_results("SELECT $cols FROM {$tableNames}",ARRAY_A); 
 		}
 	}
+	
 	public static function wpdbUpdateRows($tableName,$fields=[],$where=[]) {
 		//MikDb::wpdbGetRows($this->params["cjCatsTable"],["id","path","counts"],["name"=>"parent","type" =>"%s", "value" => $parentId ]);
 		global $wpdb;	

@@ -16,3 +16,7 @@ products by brands^produkty podle značek^produkty podľa značiek
 (all brands)^(všechny značky)^(všetky značky)
 (all categories)^(všechny kategorie)^(všetky kategórie)
 Sorry, no results found.^Bohužel, žádné výsledky nenalezeny.^Bohužiaľ, žiadne výsledky nenájdené.
+GET SPECIAL DISCOUNT^KOUPIT SE SLEVOU^KÚPIŤ SO ZĽAVOU
+Price^Cena^Cena
+Related items^Příbuzné položky^Súvisiace položky
+More^Více^Viac
