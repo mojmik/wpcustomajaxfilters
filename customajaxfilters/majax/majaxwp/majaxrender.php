@@ -70,6 +70,7 @@ Class MajaxRender {
 		$aktPage=filter_input( INPUT_GET, "aktPage", FILTER_SANITIZE_NUMBER_INT );
 		$showCjCat=false;
 		$emptyDiv=true;		
+		$randomPosts=false;
 		if (!empty($atts["cj"])) {
 			$cj=new MajaxAdmin\ComissionJunction(["postType" => $this->postType]);
 			$cjBrand=urlDecode(get_query_var("mikbrand"));
@@ -90,6 +91,7 @@ Class MajaxRender {
 					$this->fixFilters[]=["name" =>  $cj->getMautaFieldName("brand"), "filter" => $cjBrand];	
 					$this->additionalFilters[]="brand";
 				}
+				if (!$cjCat && !$cjBrand && !$aktPage) $randomPosts=true;
 			}			
 		} 
 		
@@ -101,7 +103,11 @@ Class MajaxRender {
 			$query=$this->produceSQL($postId);			
 			$this->htmlElements->showIdSign();
 		}
-		else $query=$this->produceSQL(null,$aktPage*$this->postRowsLimit);
+		else { 
+			//we'll display random posts on first page of frontpage
+			if (!$randomPosts) $query=$this->produceSQL(null,$aktPage*$this->postRowsLimit);
+			else $query=$this->produceSQL(null,$aktPage*$this->postRowsLimit,["orderBy" => "rand()", "orderDir" => ""]);
+		}
 		$rows=Caching::getCachedRows($query);	
 
 		//tady se berou cntRows pro celou kategorii, ale muzou tabm byt treba jeste filtry na brand, takze je to potreba spocitat

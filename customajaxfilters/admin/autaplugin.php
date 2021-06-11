@@ -17,7 +17,6 @@ class AutaPlugin {
 		add_action( 'wp_ajax_createCPT', [$this,'createCPTproc'] );
 		add_action( 'wp_ajax_editCPT', [$this,'editCPTproc'] );
 		$this->loadCustomPosts();
-		AutaPlugin::logWrite("json read");
 		//admin		
 	}
 	

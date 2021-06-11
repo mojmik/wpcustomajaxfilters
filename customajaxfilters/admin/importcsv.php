@@ -290,6 +290,9 @@ class ImportCSV {
 				$n=0;
 				foreach ($line as $mVal) {
 					$colName=$mCols[$n];
+					$mVal = str_replace("''", "^^^", $mVal); 
+            		$mVal = str_replace("^^^", "'", $mVal); 
+            		$mVal = str_replace("'", "''", $mVal); 
 					$mRow[$colName]=$mVal;
 					$n++;
 				}		

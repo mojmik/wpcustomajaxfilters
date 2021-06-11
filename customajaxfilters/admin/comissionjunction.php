@@ -324,7 +324,7 @@ class ComissionJunction {
     $categoriesSorted=$this->countPostsInCats($categoriesSorted,$this->postType);
 
     $catTabName=$this->getTabName("cats");    
-    MajaxWP\MikDb::clearTable($catTabName);	
+    //MajaxWP\MikDb::clearTable($catTabName);	
     $catsFinal=[];
     $map=[];
     foreach ($categoriesSorted as $key => $c) {
@@ -358,7 +358,7 @@ class ComissionJunction {
         }   
     } else {
         /* load from table */
-        $query = "SELECT * FROM `{$catTabName}` WHERE `postType`='$this->postType' AND `counts`>8 ORDER BY `counts` DESC";
+        $query = "SELECT * FROM `{$catTabName}` WHERE `postType`='$this->postType' AND `counts`>8 ORDER BY rand()";
         //$catsFinal=$wpdb->get_results($query, ARRAY_A);
         $catsFinal=MajaxWP\Caching::getCachedRows($query);
         if (!empty($catsFinal) && count($catsFinal)>0) return $catsFinal;

@@ -176,6 +176,7 @@ class AutaCustomPost {
 				->setParam("tableName",$tabName)
 				->setParam("encoding","UTF-8")
 				->setParam("enclosure","\"")
+				->setParam("emptyFirst","true")
 				->setParam("cj",$cj)
 				->setParam("createTable",false);
 				if ($importCSV->doImportCSVfromWP()=="imported") {					
@@ -278,7 +279,6 @@ class AutaCustomPost {
 	static function sendMessageToMajax($message) {
 		$fn=wp_upload_dir()["basedir"]."/$message.txt";				
 		if (!file_exists($message)) {
-			AutaPlugin::logWrite($fn);
 			file_put_contents($fn,$message,FILE_APPEND | LOCK_EX);
 		}
 	}
