@@ -222,7 +222,10 @@ class ComissionJunction {
    }
    public function getMainTabName() {
     return  $this->getTabName("main");
-}
+   }
+   public function getCatsTabName() {
+    return $this->getTabName("cats");    
+   }   
 
    function countPostsInCats($cats) {
     global $wpdb;
@@ -422,26 +425,33 @@ class ComissionJunction {
         $this->setPostType($atts["type"]);
         $cats=$this->getCategoriesArr();
     } else return false;
-    $this->getCjTools()->showBrandyNav($this->getMautaFieldName("brand"));
+    
+    $max= (empty($atts["max"])) ? 15 : $atts["max"];
+    $brands= (empty($atts["noBrands"])) ? true : false;
+    $filter= (empty($atts["noFilter"])) ? true : false;
+
+    if ($brands) $this->getCjTools()->showBrandyNav($this->getMautaFieldName("brand"));
     ?>
     <div>
     <?php
     $slug=$this->getCjTools()->getThisCat(); 
     $this->currentCatSlug=$slug;
-    if ($slug) {
-        ?>
-                <a href='/'><?= $this->getCjTools()->translating->loadTranslation("(all categories)")?></a>
-        <?php
-    }
-    else {
-        ?>
-                <strong><?= $this->getCjTools()->translating->loadTranslation("(all categories)")?></strong>    
-        <?php
-    }
+    if ($filter) {
+        if ($slug) {
+            ?>
+                    <a href='/'><?= $this->getCjTools()->translating->loadTranslation("(all categories)")?></a>
+            <?php
+        }
+        else {
+            ?>
+                    <strong><?= $this->getCjTools()->translating->loadTranslation("(all categories)")?></strong>    
+            <?php
+        }
+    }    
     $n=0;
     foreach ($cats as $c) {
         //root cats
-        if ($n>15) break; //display only 15 root cats
+        if ($max>0 && $n>$max) break; //display only 15 root cats
         if (!$c["parent"]) echo $this->outParentCategory($cats,$c,0);
         $n++;
     }

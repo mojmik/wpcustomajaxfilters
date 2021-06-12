@@ -24,7 +24,7 @@ class AutaPlugin {
 		global $wpdb;
 		$query = "SELECT * FROM `".AutaPlugin::getTable("main")."`";	
 		foreach( $wpdb->get_results($query) as $key => $row) {					
-			$acp=new AutaCustomPost($row->slug,$row->singular,$row->plural); 
+			$acp=new AutaCustomPost($row->slug,$row->singular,$row->plural,$row->specialType); 
 			$acp->adminInit();
 			$this->customPost[]=$acp; 
 			
@@ -69,6 +69,7 @@ class AutaPlugin {
 		  slug text NOT NULL,
 		  singular text NOT NULL,
 		  plural text DEFAULT '' NOT NULL,
+		  specialType text DEFAULT '' NOT NULL,
 		  PRIMARY KEY  (id)
 		) $charset_collate;";
 
@@ -151,12 +152,14 @@ class AutaPlugin {
 		$singular=filter_input( INPUT_POST, "singular", FILTER_SANITIZE_STRING );  
 		$plural=filter_input( INPUT_POST, "plural", FILTER_SANITIZE_STRING );  						 				
 		$slug=filter_input( INPUT_POST, "slug", FILTER_SANITIZE_STRING );  
+		$specialType=filter_input( INPUT_POST, "specialType", FILTER_SANITIZE_STRING );  
 		if (isset($_POST["cafActionEdit"])) {
-			$wpdb->update(AutaPlugin::getTable("main"), array('singular' => $singular, 'plural' => $plural), array('slug' => $slug));
+			$wpdb->update(AutaPlugin::getTable("main"), array('singular' => $singular, 'plural' => $plural, 'specialType' => $specialType), array('slug' => $slug) );
 			foreach ($this->customPost as $cpt ) {
 				if ($cpt->getCustomPostType()==$slug) {
 					$cpt->singular=$singular;
 					$cpt->plural=$plural;					  
+					$cpt->specialType=$specialType;	
 				}
 			}
 		}

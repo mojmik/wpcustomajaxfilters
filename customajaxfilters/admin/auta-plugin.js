@@ -267,6 +267,7 @@ jQuery(function($){
 				cafAction: formData["cafAction"],
 				slug: formData["slug"],
 				plural: formData["plural"],
+				specialType: formData["specialType"],
 				cafActionEdit: formData["cafActionEdit"],
 			  },
 			success: function( data ) {

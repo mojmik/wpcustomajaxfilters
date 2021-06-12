@@ -7,15 +7,23 @@ class AutaCustomPost {
 	private $customPostType;
 	public $singular;
 	public $plural;
+	public $specialType;	
+	private $isCj;
+	private $cj;
 
-	 public function __construct($postType="",$singular="",$plural="") {		 	
+	 public function __construct($postType="",$singular="",$plural="",$specialType="") {		 	
 		 $this->singular=$singular;
 		 $this->plural=$plural;
 		 $this->customPostType=$postType;		 
+		 $this->specialType=$specialType;
 		 add_action( 'init', [$this,'custom_post_type'] , 0 );
 		 add_action( 'save_post_'.$postType, [$this,'mauta_save_post'] ); 
 		 add_action( 'wp_ajax_importCSV', [$this,'importCSVprocAjax'] );
 		 $this->autaFields = new AutaFields($this->customPostType);
+		 if ($specialType=="cj") { 
+			 $this->isCj=true;
+			 $this->cj=new ComissionJunction(["postType" => $this->customPostType]); 
+		 }
 	 }
 	 public function adminInit() {
 		//admin
@@ -81,7 +89,7 @@ class AutaCustomPost {
 		register_post_type( $this->customPostType, $args );
 	 
 	 }
-	 public function removeAll() {
+	 function removeAll() {
 		global $wpdb;
 		$query="
 				DELETE a,b,c
@@ -90,7 +98,11 @@ class AutaCustomPost {
 				LEFT JOIN wp_postmeta c ON ( a.ID = c.post_id )
 				WHERE a.post_type like '".$this->customPostType."';
 			";
-			$result = $wpdb->get_results($query);  				
+			$result = $wpdb->get_results($query);  
+		if ($this->isCj) {						
+			MajaxWP\MikDb::clearTable($this->cj->getCatsTabName());
+		}				
+				
 	}	
 	function importCSVprocAjax() {
 		$do=filter_input( INPUT_POST, "doajax", FILTER_SANITIZE_STRING );
@@ -102,10 +114,10 @@ class AutaCustomPost {
 			$extras=[];
 			$importCSV=new ImportCSV($this->customPostType);	
 			if ($type=="cjcsv") {
-				$cj=new ComissionJunction(["postType" => $this->customPostType]); 
-				$extras=$cj->getFieldsExtras();										
-				$cj->getCJtools()->setParam("tableName",$tabName);									
-				$cj->getCJtools()->createPostsFromTable($this->autaFields->getList(),$from,$to,$extras);
+				
+				$extras=$this->cj->getFieldsExtras();										
+				$this->cj->getCJtools()->setParam("tableName",$tabName);									
+				$this->cj->getCJtools()->createPostsFromTable($this->autaFields->getList(),$from,$to,$extras);
 			} else {
 				$importCSV->setParam("tableName",$tabName);					
 				$importCSV->createPostsFromTable($this->autaFields->getList(),$from,$to,$extras);	
@@ -113,25 +125,21 @@ class AutaCustomPost {
 			echo json_encode(["result"=>"imported"]).PHP_EOL;
 			wp_die();
 		}	
-		if ($do=="createCats")	{
-			$cj=new ComissionJunction(["postType" => $this->customPostType]); 
-			$cj->createCategories();
+		if ($do=="createCats")	{			
+			$this->cj->createCategories();
 			echo json_encode(["result"=>"categories created"]).PHP_EOL;
 			wp_die();
 		}
-		if ($do=="udpateCatsDesc") {
-			$cj=new ComissionJunction(["postType" => $this->customPostType]);
-			$cj->getCJtools()->updateCatsDescription();
+		if ($do=="udpateCatsDesc") {			
+			$this->cj->getCJtools()->updateCatsDescription();
 			echo json_encode(["result"=>"categories description updated"]).PHP_EOL;
 			wp_die();
 		}
-		if ($do=="udpateCatsDesc2") {
-			$cj=new ComissionJunction(["postType" => $this->customPostType]);			
-			echo $cj->getCJtools()->updateCatsDescription($from,$to);
+		if ($do=="udpateCatsDesc2") {			
+			echo $this->cj->getCJtools()->updateCatsDescription($from,$to);
 		}
-		if ($do=="getCatsCnt") {
-			$cj=new ComissionJunction(["postType" => $this->customPostType]);			
-			$rows=$cj->getCJtools()->getCats();
+		if ($do=="getCatsCnt") {			
+			$rows=$this->cj->getCJtools()->getCats();
 			echo json_encode(["result"=>count($rows)]).PHP_EOL;
 		}
 	}
@@ -166,22 +174,21 @@ class AutaCustomPost {
 				}
 			} 		
 		  }
-		  if ($do=="cjcsv") {
-			$cj=new ComissionJunction(["postType" => $this->customPostType]); 
-			$tabName=$cj->getMainTabName();	
+		  if ($do=="cjcsv") {		
+			$tabName=$this->cj->getMainTabName();	
 			if ($importCSV->gotUploadedFile()) {								
-				$cj->createCjTables();				
+				$this->cj->createCjTables();				
 				$importCSV
 				->setParam("separator",",")
 				->setParam("tableName",$tabName)
 				->setParam("encoding","UTF-8")
 				->setParam("enclosure","\"")
 				->setParam("emptyFirst","true")
-				->setParam("cj",$cj)
+				->setParam("cj",$this->cj)
 				->setParam("createTable",false);
 				if ($importCSV->doImportCSVfromWP()=="imported") {					
 					$this->autaFields->makeTable("fields");
-					$this->autaFields->addFields($cj->getMautaFields());										
+					$this->autaFields->addFields($this->cj->getMautaFields());										
 				}
 			} 
 		  }
@@ -194,31 +201,33 @@ class AutaCustomPost {
 			}
 		  }
 		  if ($do=="recreatecats") {
-			$cj=new ComissionJunction(["postType" => $this->customPostType]); 
-			$cj->createCategories();
+			$this->cj=new ComissionJunction(["postType" => $this->customPostType]); 
+			$this->cj->createCategories();
 		  }
-		  if ($do=="udpateCatsDesc") {
-			$cj=new ComissionJunction(["postType" => $this->customPostType]);			
-			echo $cj->getCJtools()->updateCatsDescription();
+		  if ($do=="udpateCatsDesc") {			
+			echo $this->cj->getCJtools()->updateCatsDescription();
 		  }		 
-		  if ($do=="createcatpages") {
-			$cj=new ComissionJunction(["postType" => $this->customPostType]);			
-			echo $cj->getCJtools()->createCatPages();
+		  if ($do=="createcatpages") {			
+			echo $this->cj->getCJtools()->createCatPages();
 		  }
 	}
 	function csvMenu() {
 		$setUrl = [	
-			["csv import",add_query_arg( 'do', 'csv'),"import csv file"],
-			["cj csv import",add_query_arg( 'do', 'cjcsv'),"import cj csv file"],
-			["cj recreate categories",add_query_arg( 'do', 'recreatecats'),"recreate categories (posts import already does) "],
-			["cj recreate categories description",add_query_arg( 'do', 'udpateCatsDesc'),"recreate categories description (posts import already does) "],
+			["csv import",add_query_arg( 'do', 'csv'),"import csv file"],			
 			["csv remove",add_query_arg( 'do', 'removecsv'),"remove csv imports"],
 			["prefill thumbnails",add_query_arg( 'do', 'genthumbs'),"prefill thumbnails"],
-			["remove all",add_query_arg( 'do', 'removeall'),"remove all posts of this type"],
-			["remove mauta tables",add_query_arg( 'do', 'removeexttables'),"drop tables for fields and cats"],
-			["create pages",add_query_arg( 'do', 'createcatpages'),"create pages"],
-			["cj recreate categories ajax",add_query_arg( 'do', ''),"recreate categories (posts import already does) ", "recreateajax"],
+			["remove all",add_query_arg( 'do', 'removeall'),"remove all posts of this type"],			
 		];
+		if ($this->isCj) {
+			array_push($setUrl,
+				["cj csv import",add_query_arg( 'do', 'cjcsv'),"import cj csv file"],
+				["cj recreate categories",add_query_arg( 'do', 'recreatecats'),"recreate categories (posts import already does) "],
+				["cj recreate categories description",add_query_arg( 'do', 'udpateCatsDesc'),"recreate categories description (posts import already does) "],
+				["remove mauta tables",add_query_arg( 'do', 'removeexttables'),"drop tables for fields and cats"],
+				["create pages",add_query_arg( 'do', 'createcatpages'),"create pages"],
+				["cj recreate categories ajax",add_query_arg( 'do', ''),"recreate categories (posts import already does) ", "recreateajax"]);
+		} 
+		
 		?>
 		<h1>CSV options</h1>
 		<ul>
@@ -345,6 +354,7 @@ class AutaCustomPost {
 			<form id="mAutaEdit<?= $this->getCustomPostType();?>" method='post' class='caf-editFieldRow editCPT'>
 				<div><div><label>singular name</label></div><input type='text' name='singular' value='<?= $this->singular?>' /></div>	
 				<div><div><label>plural name</label></div><input type='text' name='plural' value='<?= $this->plural?>' /></div>
+				<div><div><label>special type</label></div><input name='specialType' type='text' value='<?= $this->specialType?>' /></div>
 				<div><input name='cafActionEdit' type='submit' value='Edit' /></div>
 				<input name='slug' type='hidden' value='<?= $this->getCustomPostType();?>' />
 			</form>
