@@ -16,7 +16,7 @@ class ComissionJunction {
      $this->brandsSlug="brands";
      $this->categorySlug="category";
      $this->categorySeparator=">";
-     $this->separatorVariations=[" > ","&gt;", "> "," >"];
+     $this->separatorVariations=[ "|"," > ","&gt;", "> "," >"];
      if (!empty($args["prefix"])) $this->dbPrefix=$args["prefix"];
      else $this->dbPrefix=MajaxWP\MikDb::getTablePrefix();
      if (!empty($args["postType"])) $this->setPostType($args["postType"]);
@@ -227,47 +227,7 @@ class ComissionJunction {
     return $this->getTabName("cats");    
    }   
 
-   function countPostsInCats($cats) {
-    global $wpdb;
-    $catMetaName=$this->getTypeSlug();
-    foreach ($cats as $key => $c) {   
-     $catPath=$this->getCjTools()->sanitizeSlug($c["path"]);
-     /*
-     list all posts with specific category
-            SELECT post_title,post_name,post_content,pm1.meta_value
-                        FROM wp_posts LEFT JOIN wp_postmeta pm1 ON ( pm1.post_id = ID)  
-                        WHERE post_id=id 
-                        AND post_status like 'publish' 
-                        AND post_type like 'cj'	
-			AND meta_key = 'type'	
-			AND meta_value LIKE 'Ratanové doplňky > Ostatní'
-     */
-
-     /*
-        SELECT COUNT(post_title) 
-            FROM wp_posts LEFT JOIN wp_postmeta pm1 ON ( pm1.post_id = ID) 
-            WHERE post_id=id 
-            AND post_status like 'publish' 
-            AND post_type like 'cj' 
-            AND meta_key = 'type' 
-            AND meta_value LIKE 'Ratanový nábytek > Křesla'
-     */
-
-       $query="
-       SELECT COUNT(post_title) as cnt
-            FROM {$wpdb->prefix}posts po LEFT JOIN {$wpdb->prefix}postmeta pm1 ON ( pm1.post_id = ID) 
-            WHERE po.ID=pm1.post_id
-            AND po.post_status like 'publish' 
-            AND po.post_type like '{$this->postType}' 
-            AND pm1.meta_key = '{$catMetaName}' 
-            AND pm1.meta_value LIKE '{$catPath}%'
-        ";
-            
-     $cnt=$wpdb->get_var($query);
-     $cats[$key]["postsCount"]=$cnt;
-    }
-    return $cats;
-   }
+ 
    function createCategories() {
     global $wpdb;    
     $categoriesSorted=array();
@@ -287,8 +247,10 @@ class ComissionJunction {
     $catId=0;    
     foreach ($categories as $c) {  
         foreach ($this->separatorVariations as $v)  {
-            if (strlen($v>=$this->categorySeparator)) $c->category=str_replace($v,$this->categorySeparator,$c->category);
+            if (strlen($v)>=strlen($this->categorySeparator)) $c->category=str_replace($v,$this->categorySeparator,$c->category);
         }
+        //trim from start
+        if (substr($c->category,0,strlen($this->categorySeparator)) == $this->categorySeparator) $c->category=substr($c->category,strlen($this->categorySeparator)+1);
         $thisCatArr=explode($this->categorySeparator,$c->category);
         $parent=null;
         $prevCat="";
@@ -324,7 +286,7 @@ class ComissionJunction {
     */
 
     //count counts of posts in categories
-    $categoriesSorted=$this->countPostsInCats($categoriesSorted,$this->postType);
+    //$categoriesSorted=$this->countPostsInCats($categoriesSorted,$this->postType);
 
     $catTabName=$this->getTabName("cats");    
     //MajaxWP\MikDb::clearTable($catTabName);	
@@ -335,13 +297,15 @@ class ComissionJunction {
             $row=["slug" => $this->getCjTools()->sanitizeSlug($c["path"]), 
             "path" => $c["path"], 
             "parent" => ($c["parent"]===null) ? null : $map[$c["parent"]], 
-            "postType" => $this->postType, 
-            "counts"=>$c["postsCount"] 
-            ];        
-            $map[$key]=MajaxWP\MikDb::insertRow($catTabName,$row);
-            $catsFinal[]=$row;
-        }
-        
+            "postType" => $this->postType
+            ];    
+            //check if cat already exists
+            $currRow=MajaxWP\MikDb::wpdbGetRows($catTabName,"*",[["name" => "slug", "value" => $c["slug"]]]);
+            if (empty($currRow["slug"])) {
+                $map[$key]=MajaxWP\MikDb::insertRow($catTabName,$row);
+                $catsFinal[]=$row;
+            }            
+        }        
     }
     //write to cache
     MajaxWP\Caching::addCache("sortedcats".$this->postType,$catsFinal,"sortedcats".$this->postType); 
@@ -452,8 +416,10 @@ class ComissionJunction {
     foreach ($cats as $c) {
         //root cats
         if ($max>0 && $n>$max) break; //display only 15 root cats
-        if (!$c["parent"]) echo $this->outParentCategory($cats,$c,0);
-        $n++;
+        if (!$c["parent"]) { 
+            echo $this->outParentCategory($cats,$c,0);
+            $n++;
+        }
     }
     ?>
     </div>

@@ -165,7 +165,7 @@ class CJtools {
             $postArr["post_content"] = $r["description"];
             $postArr["post_type"] = $this->customPostType;
             $postId = wp_insert_post($postArr);
-            echo json_encode(["result"=> "inserted {$postArr["post_title"]} $postId"]).PHP_EOL;
+            //echo json_encode(["result"=> "inserted {$postArr["post_title"]} $postId"]).PHP_EOL;
 
 
             //all mauta_fields detected in csvtab are loaded
@@ -321,6 +321,24 @@ class CJtools {
     function mRndTxt($texts) {
         return $this->getLngText($texts[array_rand($texts)]);
     }
+    function countPosts($c) {
+            global $wpdb;
+            $catMetaName=$this->params["catSlugMetaName"];
+            $catPath=$this->sanitizeSlug($c["path"]);
+            $query="
+               SELECT COUNT(post_title) as cnt
+                    FROM {$wpdb->prefix}posts po LEFT JOIN {$wpdb->prefix}postmeta pm1 ON ( pm1.post_id = ID) 
+                    WHERE po.ID=pm1.post_id
+                    AND po.post_status like 'publish' 
+                    AND po.post_type like '{$this->customPostType}' 
+                    AND pm1.meta_key = '{$catMetaName}' 
+                    AND pm1.meta_value LIKE '{$catPath}%'
+                ";
+                    
+            $cnt=$wpdb->get_var($query);
+            return $cnt;
+           
+    }
     function updateCatsDescription($from=0,$to=0) {
         $cats = $this->getCats();
         $cnt = count($cats);
@@ -330,7 +348,15 @@ class CJtools {
         
         foreach($cats as $c) {
             $desc = $this->prepareCatDescription($c);
-            MajaxWP\MikDb:: wpdbUpdateRows($this->params["cjCatsTable"], [["name" => "desc", "value" => $desc]], [["name"=> "id", "type" => "%d", "value" => $c["id"]]]);
+            $postsCount=$this->countPosts($c);
+            MajaxWP\MikDb:: wpdbUpdateRows($this->params["cjCatsTable"], 
+                    [
+                        ["name" => "desc", "value" => $desc],
+                        ["name" => "counts", "type" => "%d", "value" => $postsCount]
+                    ], 
+                    [
+                        ["name"=> "id", "type" => "%d", "value" => $c["id"]]
+                    ]);
         }
         return "cats description updated";
     }

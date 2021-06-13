@@ -13,7 +13,6 @@ function saveAndAdd() {
 
 jQuery(function($){
 	
-
 	const mAutaAjax = {
 		ajaxSeq:0,
 		nonce:"mauta",
@@ -36,22 +35,38 @@ jQuery(function($){
                 }
             }
 		},
+		
 		requestStack: {
 			dataArr:[],
 			successFuncArr:[],
 			currentRequest:0,
 			totalRequests:0,
+			doingAjax:false,
+			reset: function() {
+				this.dataArr=[];
+				this.successFuncArr=[];
+				this.currentRequest=0;
+				this.totalRequests=0;	
+				this.doingAjax=false;
+			},
 			pushStack: function (data,successFunc) {
 				this.dataArr.push(data);
 				this.successFuncArr.push(successFunc);
 				
 			},
+			toString: function(stackelement) {
+				console.log(stackelement.data.doajax + " "+stackelement.data.from);
+				//if (this.dataArr.length>0) mAutaAjax.requestStack.popStack();
+			},
 			popStack: function() {
 				let popstack={};
 				if (this.dataArr.length<1) return false;
+				
+				this.doingAjax=true;
 				popstack.data=this.dataArr.shift();
 				popstack.func=this.successFuncArr.shift();
-				mAutaAjax.runAjax(popstack.data,popstack.func);
+				this.toString(popstack);
+				mAutaAjax.runAjax(popstack.data,popstack.func);				
 				this.currentRequest++;
 				this.updateProgress();
 			},
@@ -71,9 +86,10 @@ jQuery(function($){
 			//jQuery('#mautaCSVimportResults').append(jsonObj.result);
 			mAutaAjax.doDrawResults(data);			
 		}, 		
-		runAjax: function(data,successFunc) {			
+		runAjax: function(data,successFunc) {					
 			var ajaxPar=this.prepareAjax(data);	 
-			mAutaAjax.doDrawResults=successFunc;			
+			mAutaAjax.doDrawResults=successFunc;
+			mAutaAjax.beforeSend();					
 			jQuery.ajax(ajaxurl, ajaxPar)
 					   .done(function(dataOut)	{
 						   if (mAutaAjax.requestStack.popStack()===false) { 
@@ -86,7 +102,8 @@ jQuery(function($){
 					   
 		},
 		beforeSend: function() {
-			jQuery('.majax-loader').css('display','flex');	 
+			jQuery('.majax-loader').css('display','flex');	
+			jQuery('.majax-loader').removeClass('majax-loader-disappear-anim'); 
 		},
 		hideLoaderAnim: () => {
             jQuery('.majax-loader').addClass('majax-loader-disappear-anim');
@@ -100,7 +117,6 @@ jQuery(function($){
 				data: {
 					  security: mAutaAjax.nonce
 				},
-				beforeSend: mAutaAjax.beforeSend(),
 				xhrFields: {
 					onprogress: function(e)	{
 						//if (seqNumber === mAutaAjax.ajaxSeq) { //check we are processing correct response
@@ -178,22 +194,79 @@ jQuery(function($){
 	    return false;
 	 });
 	 
-	 jQuery("#recreateajax").on('click', function(event) {
-		var doajax = $("input[name='doajax']").val();			
-		var csvtype = $("input[name='csvtype']").val();
-		var table = $("input[name='table']").val();
-		var totalRecords = $("input[name='totalRecords']").val();				
-		runProcess("getCatsCnt",table,csvtype,0,50,function(data) {
-			//console.log(data.result);
-			for (n=0;n<Math.ceil(data.result/50);n++) {
-				runProcess("udpateCatsDesc2",table,csvtype,n*50,(n+1)*50);
-			}
-			mAutaAjax.requestStack.go();
-		});		
-		mAutaAjax.requestStack.go();
-		//console.log(mAutaAjax.result)
+	 jQuery("#catdescajax").on('click', function(event) {
+		updateCatDesc();
+		return false;
+	 });
+
+	 jQuery("form#csvBulkImport").submit(function() {	
+		$("input[data-fn='csvbulkfn']").each(function (i,obj) {
+			var fn=obj.value;		
+			var name=obj.name;
+			//tohle je spatne, je potreba, aby jely jeden za druhym
+			createPostsForInput(name,fn);
+		});
 	    return false;
 	 });
+
+	 var updateCatDesc = function() {
+		var csvtype = "cjcsv";
+		var table="wp_mauta_cj_cj_import";
+
+		runProcess("getCatsCnt",table,csvtype,0,50,function(data) {
+			console.log(data.result);					
+			for (n=0;n<Math.ceil(data.result/50);n++) {
+				let lastFn=null;
+				if (n>=Math.ceil(data.result/50)-1) {
+					lastFn=function() {
+						console.log("cat desc done");
+					}
+				}
+				runProcess("udpateCatsDesc2",table,csvtype,n*50,(n+1)*50,lastFn);
+			}
+			mAutaAjax.requestStack.go();
+		});
+		mAutaAjax.requestStack.go();
+	 }
+
+	 var createPostsForInput = function(name,fn) {
+		mAutaAjax.requestStack.reset();
+		//go through all files
+		
+		var doajax = "makeposts";
+		var csvtype = "cjcsv";
+		var table="wp_mauta_cj_cj_import";
+			
+		var statusSpan=$("span[data-fn='statuscsvbulk-"+name+"']");
+		statusSpan.text("processing");
+		runProcess("ajaximportcsv",table,csvtype,fn,0,function(data) {
+			statusSpan.text("csv imported");
+			//make posts
+			var totalRecords = data.result;
+			for (n=0;n<Math.ceil(totalRecords/100);n++) {
+				let lastFn=null;
+				if (n>=Math.ceil(totalRecords/100)-1) {
+				  	//last posts chunk
+				  	lastFn=function() {
+						statusSpan.text("creating cats");  
+						runProcess("createCats",table,csvtype,0,0,function(data) {
+							statusSpan.text("cats created");  							
+						});
+						mAutaAjax.requestStack.go();
+					}	
+				} 	
+				runProcess(doajax,table,csvtype,n*100,(n+1)*100,lastFn);			
+			}
+			mAutaAjax.requestStack.go();
+		});			
+		mAutaAjax.requestStack.go();
+	 }
+
+	 jQuery("input[data-fn='csvbulkfn']").click(function(obj) {	
+		createPostsForInput(obj.target.name,obj.target.value);
+		return false;
+ 	});
+	 
 			
 
 	function addRemoveListener() {

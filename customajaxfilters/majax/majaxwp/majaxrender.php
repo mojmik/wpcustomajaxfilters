@@ -75,7 +75,6 @@ Class MajaxRender {
 			$cj=new MajaxAdmin\ComissionJunction(["postType" => $this->postType]);
 			$cjBrand=urlDecode(get_query_var("mikbrand"));
 			$cjCat=get_query_var("mikcat");
-	
 			$exactCategoryMatch="%";
 			if (!$postId) {
 				if ($cjCat) { 
@@ -106,7 +105,7 @@ Class MajaxRender {
 		else { 
 			//we'll display random posts on first page of frontpage
 			if (!$randomPosts) $query=$this->produceSQL(null,$aktPage*$this->postRowsLimit);
-			else $query=$this->produceSQL(null,$aktPage*$this->postRowsLimit,["orderBy" => "rand()", "orderDir" => ""]);
+			else $query=$this->produceSQL(null,$aktPage*$this->postRowsLimit,false,false,["orderBy" => "rand()", "orderDir" => ""]);
 		}
 		$rows=Caching::getCachedRows($query);	
 

@@ -15,7 +15,7 @@ class Loader {
             */
 
             $cj=new Admin\ComissionJunction();
-            $page=["link" => "", "id" => 26132];
+            $page=["link" => "", "id" => get_option( 'page_on_front' )];
             $cj->handleRewriteRules($page); 
             $cj->addShortCodes();                
 		}

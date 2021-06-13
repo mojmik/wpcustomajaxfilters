@@ -130,17 +130,35 @@ class AutaCustomPost {
 			echo json_encode(["result"=>"categories created"]).PHP_EOL;
 			wp_die();
 		}
-		if ($do=="udpateCatsDesc") {			
-			$this->cj->getCJtools()->updateCatsDescription();
+		if ($do=="udpateCatsDesc2") {			
+			$this->cj->getCJtools()->updateCatsDescription($from,$to);
 			echo json_encode(["result"=>"categories description updated"]).PHP_EOL;
 			wp_die();
-		}
-		if ($do=="udpateCatsDesc2") {			
-			echo $this->cj->getCJtools()->updateCatsDescription($from,$to);
 		}
 		if ($do=="getCatsCnt") {			
 			$rows=$this->cj->getCJtools()->getCats();
 			echo json_encode(["result"=>count($rows)]).PHP_EOL;
+			wp_die();
+		}
+		if ($do=="ajaximportcsv") {
+			$fn=$from;
+			$this->cj->createCjTables();	
+			$importCSV=new ImportCSV($this->customPostType);				
+			$importCSV
+			->setParam("separator",",")
+			->setParam("tableName",$tabName)
+			->setParam("encoding","UTF-8")
+			->setParam("enclosure","\"")
+			->setParam("emptyFirst","true")
+			->setParam("cj",$this->cj)
+			->setParam("createTable",false);
+			$result=$importCSV->doImportCSVfromWP($fn);
+			if ($result) {					
+				$this->autaFields->makeTable("fields");
+				$this->autaFields->addFields($this->cj->getMautaFields());										
+			}
+			echo json_encode(["result"=>$result]).PHP_EOL;
+			wp_die();
 		}
 	}
 	function importCSVproc() {
@@ -200,13 +218,25 @@ class AutaCustomPost {
 				$importCSV->showMakePosts($do,$tabName,$countReadyCSV);			
 			}
 		  }
-		  if ($do=="recreatecats") {
-			$this->cj=new ComissionJunction(["postType" => $this->customPostType]); 
-			$this->cj->createCategories();
+		  if ($do=="csvbulkimport") {
+				$files = glob(CAF_PLUGIN_PATH."*.txt");
+				?>
+				<form id='csvBulkImport'>
+				<?php
+				$n=0;
+				foreach($files as $fn) {					
+					?>
+					<input data-fn='csvbulkfn' style='width:650px;' name='file<?= $n?>' value='<?= $fn?>' />
+					<span data-fn='statuscsvbulk-file<?= $n?>' style='width:200px;'></span>
+					<?php
+					$n++;
+				}
+				?>
+				<input type='submit' value='process all' />
+				</form>
+				<?php
 		  }
-		  if ($do=="udpateCatsDesc") {			
-			echo $this->cj->getCJtools()->updateCatsDescription();
-		  }		 
+		  	 
 		  if ($do=="createcatpages") {			
 			echo $this->cj->getCJtools()->createCatPages();
 		  }
@@ -214,6 +244,7 @@ class AutaCustomPost {
 	function csvMenu() {
 		$setUrl = [	
 			["csv import",add_query_arg( 'do', 'csv'),"import csv file"],			
+			["csv bulk import",add_query_arg( 'do', 'csvbulkimport'),"import csv files uploaded by ftp"],			
 			["csv remove",add_query_arg( 'do', 'removecsv'),"remove csv imports"],
 			["prefill thumbnails",add_query_arg( 'do', 'genthumbs'),"prefill thumbnails"],
 			["remove all",add_query_arg( 'do', 'removeall'),"remove all posts of this type"],			
@@ -221,11 +252,9 @@ class AutaCustomPost {
 		if ($this->isCj) {
 			array_push($setUrl,
 				["cj csv import",add_query_arg( 'do', 'cjcsv'),"import cj csv file"],
-				["cj recreate categories",add_query_arg( 'do', 'recreatecats'),"recreate categories (posts import already does) "],
-				["cj recreate categories description",add_query_arg( 'do', 'udpateCatsDesc'),"recreate categories description (posts import already does) "],
 				["remove mauta tables",add_query_arg( 'do', 'removeexttables'),"drop tables for fields and cats"],
 				["create pages",add_query_arg( 'do', 'createcatpages'),"create pages"],
-				["cj recreate categories ajax",add_query_arg( 'do', ''),"recreate categories (posts import already does) ", "recreateajax"]);
+				["cj cats description",add_query_arg( 'do', ''),"create cats description ajax", "catdescajax"]);
 		} 
 		
 		?>
@@ -258,9 +287,11 @@ class AutaCustomPost {
 			</g>
 			</svg>
 		</div>
-		<div id="mautaCSVimportResults"></div>
 		<?php	
 		$this->importCSVproc();		
+		?>
+		<div id="mautaCSVimportResults"></div>
+		<?php
 	}
 
 	 function add_to_admin_menu() {
@@ -340,7 +371,6 @@ class AutaCustomPost {
 		$importCSV->showImportCSV();
 		if ($importCSV->gotUploadedFile()) {			
 			if ($importCSV->doImportCSVfromWP()=="imported") {
-				echo "imported";
 				$this->autaFields->loadFromSQL();
 			}
 		} 

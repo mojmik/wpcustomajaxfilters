@@ -176,7 +176,7 @@ class ImportCSV {
 				$postArr["post_type"]=$this->customPostType;
 				$postId=wp_insert_post($postArr);
 				//echo "<br />inserted {$postArr["post_title"]} $postId";
-				echo json_encode(["result"=>"inserted {$postArr["post_title"]} $postId"]).PHP_EOL;
+				//echo json_encode(["result"=>"inserted {$postArr["post_title"]} $postId"]).PHP_EOL;
 				
 				//create metas
 				if ($this->settings["createmeta"]) {								
@@ -301,7 +301,8 @@ class ImportCSV {
 				$mInserted++;			 
 			}			
 				 
-		}		
+		}
+		return $mInserted;		
 	}
 	function createTable($mCols) {	
 		global $wpdb;	
@@ -341,14 +342,18 @@ class ImportCSV {
 		if(isset($_FILES['mfilecsv']) && ($_FILES['mfilecsv']['size'] > 0)) return true;
 		return false;
 	}
-	public function doImportCSVfromWP() {
-		$upload_overrides = array( 'test_form' => false ); 
-		$uploaded_file = wp_handle_upload($_FILES['mfilecsv'], $upload_overrides);
-		$fn = $uploaded_file['file'];
-		if(isset($fn) && wp_check_filetype($uploaded_file['file'],["text/csv"])) {									
-				$this->loadCsvFile($fn);		  	  																	
-				return "imported";
-		}
+	public function doImportCSVfromWP($fn="") {
+		if ($fn) {
+			return $this->loadCsvFile($fn);					  	  																				
+		} else {
+			$upload_overrides = array( 'test_form' => false ); 
+			$uploaded_file = wp_handle_upload($_FILES['mfilecsv'], $upload_overrides);
+			$fn = $uploaded_file['file'];
+			if(isset($fn) && wp_check_filetype($uploaded_file['file'],["text/csv"])) {									
+					$this->loadCsvFile($fn);		  	  																	
+					return "imported";
+			}
+		}				
 	}
 	public function showImportCSV() {							
 			?>
