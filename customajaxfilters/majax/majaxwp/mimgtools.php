@@ -11,22 +11,25 @@ namespace CustomAjaxFilters\Majax\MajaxWP;
 Class MimgTools {
 	
 	public static function handleRequest() {
-		$mImgTools=get_query_var("mimgtools");		
-		$url=get_query_var("url");	
-		MimgTools::prepImage($mImgTools,$url);	
-				
+		$url=$_SERVER['REQUEST_URI'];
+		$p=strpos($url,"mimgtools/");
+		if ($p!==false) {
+			$url=substr($url,$p+strlen("mimgtools/"),-1);
+			MimgTools::prepImage($url,"");	
+		} 
 	}
 	static function prepImage($postId="",$url="") {
+		$uploadsPath="./wp-content/uploads";
 		if ($postId) {
-			$filename = "./wp-content/uploads/mimgnfo-$postId";
+			$filename = "$uploadsPath/mimgnfo-$postId";
 			if (file_exists($filename)) {
 				$url=file_get_contents($filename);		
-				$filename = "./wp-content/uploads/mimg-".basename(parse_url($url, PHP_URL_PATH));  
+				$filename = "$uploadsPath/mimg-".basename(parse_url($url, PHP_URL_PATH));  
 				//echo "cont:".$filename;
 			}
 		}
 		else if ($url) {
-			$filename = "./wp-content/uploads/mimg-".basename(parse_url($url, PHP_URL_PATH));  
+			$filename = "$uploadsPath/mimg-".basename(parse_url($url, PHP_URL_PATH));  
 		}
 		else return "";  
 		
@@ -46,7 +49,6 @@ Class MimgTools {
 				$output = ImageCreateTrueColor($width, $height);
 				ImageCopyResampled($output, $image, 0, 0, 0, 0, $width, $height, ImageSX($image), ImageSY($image));
 				// save image
-				//$filename="./wp-content/uploads/mimg-$url";	  
 				
 				ImageJPEG($output, $filename, 95); 
 				// return resized image	  

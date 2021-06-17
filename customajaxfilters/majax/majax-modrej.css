@@ -20,9 +20,9 @@
   padding: 15px 30px;
   border: 0;
   font-weight: 700;
-  color: #000;
+  color: #fff;
   /*background-color: #EAAB1C;*/
-  background-color: #ffdd00;
+  background-color: #3B4658;
   -webkit-transition: all 0.3s;
   transition: all 0.3s;
   cursor: pointer;
@@ -36,7 +36,7 @@
   text-decoration: none;
 }
 .site-main .btn-primary {
-  background-color: #ffdd00;
+  background-color: #3B4658;
   /*border-color: #ffd100;*/
 }
 
@@ -56,8 +56,8 @@
   padding: 0px 20px;
   border: 0;
   font-weight: 700;
-  color: #000;
-  background-color: #ffdd00;
+  color: #fff;
+  background-color: #3B4658;
   
   -webkit-transition: all 0.3s;
   transition: all 0.3s;
@@ -68,7 +68,7 @@
   margin: 5px 0 5px 0;
 } 
 .mButtonA:hover { 
-  background-color: rgba(255,209,0,0.4);
+  background-color: rgba(59,70,88,0.4);
   color: #000;
 }    
 
@@ -256,7 +256,8 @@ button.select2-selection__clear {
   position:absolute;
 }
 .majaxout .mtitle {
-  background: #ffdd00;
+  background: #3B4658;
+  color:#fff;
   font-size: 18px;
   font-weight: 900;
   padding:0 5px 0 5px; 
@@ -355,7 +356,8 @@ button.select2-selection__clear {
 .price2 .priceTag, .price3 .priceTag {
   font-size:18px;
   font-weight: 700;
-  background-color: rgba(255,209,0,0.6);    
+  background-color: rgba(59,70,88,0.6);    
+  color:#fff;
   padding:0 5px 0 5px;
 }
 .price2 .discount,.price3 .discount {
@@ -611,7 +613,7 @@ h1 {
   font-size: 42px;
 }
 .mbuybutton,.mbuybutton:hover {
-  background-color: #ffc107;
+  background-color: #3B4658;
   padding: 1rem .5rem 1rem .5rem;
   width: 100%;
   border: 0;
@@ -640,6 +642,7 @@ h1 {
   width: 45px;
   display: block;
   content: '';
-  background-color: #ffc107;
+  background-color: #3B4658;
+  color:#fff;
   background-image: linear-gradient(to right,rgba(255,255,255,0),rgba(255,255,255,.2));
 }

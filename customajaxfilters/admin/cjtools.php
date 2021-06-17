@@ -8,15 +8,26 @@ class CJtools {
     private $keywords;
     private $language;
     private $currentCat;
+    private $categorySeparator;
     public function __construct($customPostType) {
-        $this->customPostType=$customPostType;
+        $this->setPostType($customPostType);
         if (empty($this->language)) $this->language=Settings::loadSetting("language","site");
-        $this->translating=new MajaxWP\Translating($this->language);        
+        $this->translating=new MajaxWP\Translating($this->language);  
+        $this->categorySeparator=">";
+        $this->separatorVariations=[ "|"," > ","&gt;", "> "," >"];
+        $this->bannedCategories=["Heureka.cz","NÁBYTEK","Nábytek"];      
     }
 
     public function setParam($name, $val) {
         $this->params[$name]=$val;
         return $this;
+    }
+    public function getParams($key1,$key2=false) {
+        if ($key2!==false) return $this->params[$key1][$key2];
+        else return $this->params[$key1];
+    }
+    public function setPostType($postType) {
+        $this->customPostType=$postType;  
     }
 
     public function updateImage($content, $id) {
@@ -105,6 +116,12 @@ class CJtools {
     public function createPostsFromTable($fields, $from = null, $to = null, $extras = []) {
         global $wpdb;
         $table = $this->params["tableName"];
+        $dedicatedTable=$this->dedicatedTable=Settings::loadSetting("dedicatedTables-".$this->customPostType,"cptsettings");
+        if ($dedicatedTable) { 
+            $ded=new DedicatedTables($this->customPostType);
+            $ded->initTable(false);
+            $dedicatedTable=true;
+        }
         $limit = "";
         if (!empty($to)) {
             if (!$from) $from = "0";
@@ -165,40 +182,50 @@ class CJtools {
             $postArr["post_content"] = $r["description"];
             $postArr["post_type"] = $this->customPostType;
             $postId = wp_insert_post($postArr);
+            if ($dedicatedTable) {
+                $row=[
+                    "post_title" => $r["title"], 
+                    "post_name" => sanitize_title($r["title"]), 
+                    "post_content" => $r["description"]
+                ];
+            }
             //echo json_encode(["result"=> "inserted {$postArr["post_title"]} $postId"]).PHP_EOL;
 
 
-            //all mauta_fields detected in csvtab are loaded
+            //all fields detected in csvtab 
             foreach($fields as $f) {
                 $name = $f->name;
                 $title = $f->title;
                 $metaValue = $r[$title];
                 $createMeta = true;
 
+                //skip not interesting fields
+                if (!$f->filterorder && !$f->displayorder) continue;
+
                 //extras-apply filters like trim to all values
-                if (!empty($extras[$name])) {
-                    foreach($extras[$name] as $operation) {
-                        if (!empty($operation["removeExtraSpaces"])) $metaValue = $this->removeExtraSpaces($metaValue);
-                        if (!empty($operation["removePriceFormat"])) $metaValue = $this->removePriceFormat($metaValue);
-                        
-                        if (!empty($operation["createSlug"])) {
-                            $metaValue = $this->removeExtraSpaces($metaValue);
-                            $metaValueSlug = sanitize_title(str_replace(">", "-", $metaValue));
-                            add_post_meta($postId, $name, $metaValueSlug);
-                            $terms[$metaValueSlug] = $metaValue;
-                        }
-                        
-                    }
+                if (!empty($extras[$name]["removeExtraSpaces"])) $metaValue = $this->removeExtraSpaces($metaValue);
+                if (!empty($extras[$name]["removePriceFormat"])) $metaValue = $this->removePriceFormat($metaValue);
+                
+                if (!empty($extras[$name]["createSlug"])) {
+                    $metaValue = $this->sanitizePath($metaValue);
+                    $metaValueSlug = $this->sanitizeSlug($metaValue);
+                    add_post_meta($postId, $name, $metaValueSlug);
+                    if ($dedicatedTable) $row[$name]=$metaValueSlug;
+                    $terms[$metaValueSlug] = $metaValue;
+                    $createMeta=false;
                 }
+                if (!empty($extras[$name]["noImport"])) $createMeta=false;
+                
                 if (isset($metaValue) && $createMeta) {
                     add_post_meta($postId, $name, $metaValue);
+                    if ($dedicatedTable) $row[$name]=$metaValue;
                 }
             }
-
+            if ($dedicatedTable) $ded->insertRow($row);
 
         }
 
-        //create category table 
+        //create temp category table 
         if (!empty($this->params["cjCatsTempTable"])) {
             foreach($terms as $term => $value) {
                 //$row=["slug" => $term, "name" => $value, "postType" => $this->customPostType];
@@ -208,9 +235,6 @@ class CJtools {
         }
 
     }
-    function getCategories($where=[]) {
-        return MajaxWP\MikDb:: wpdbGetRows($this->params["cjCatsTable"], ["id", "path", "slug", "counts", "parent"],$where);
-    }
     function getChildCategories($parentId) {
         return MajaxWP\MikDb:: wpdbGetRows($this->params["cjCatsTable"], ["id", "path", "counts"], [["name"=> "parent", "value" => $parentId]]);
     }
@@ -218,18 +242,33 @@ class CJtools {
         $cats = MajaxWP\MikDb:: wpdbGetRows($this->params["cjCatsTable"], "*", [["name"=> "id", "value" => $id]]);
         return $cats[0];
     }
+    function getCatByPath($path) {
+        $cats = MajaxWP\MikDb:: wpdbGetRows($this->params["cjCatsTable"], "*", [["name"=> "path", "value" => $path]]);
+        return $cats[0];
+    }
     function getCatBySlug($slug,$useCache=false) {
         if (!$slug) return false;
-        $cats = MajaxWP\MikDb:: wpdbGetRows($this->params["cjCatsTable"], "*", [["name"=> "slug", "value" => $slug]],$useCache);        
+        $cats = MajaxWP\MikDb:: wpdbGetRows($this->params["cjCatsTable"], "*", [["name"=> "slug", "operator" => "LIKE", "value" => $slug]],$useCache);        
         if (empty($cats[0])) return [];
         $this->currentCat=$cats[0];
         return $this->currentCat;
     }
     
-    function getCats() {
-        $cats = MajaxWP\MikDb:: wpdbGetRows($this->params["cjCatsTable"], "*", [["name"=> "postType", "value" => $this->customPostType]]);
+    function getCats($from=null,$limitCnt=null,$where=null) {
+        $params["tableNames"]=$this->params["cjCatsTable"];
+        $params["cols"]="*";
+        $params["where"]=[];
+        $params["where"][]=["name"=> "postType", "value" => $this->customPostType];
+        if (!empty($where)) { 
+            foreach ($where as $w) $params["where"][]=$w;
+        }
+        $params["limit"]=[];
+        if ($from!==null) $params["limit"][]=$from;
+        if ($limitCnt!==null) $params["limit"][]=$limitCnt;
+        $cats = MajaxWP\MikDb:: wpdbGetRowsAdvanced($params);        
         return $cats;
     }
+    
     function getCatMeta($catPath, $queryMetaName, $exact = true, $distinct=true,$limit="",$skipBlank=false,$order="") {        
         $prefix = MajaxWP\MikDb:: getWPprefix();
         global $wpdb;
@@ -273,20 +312,33 @@ class CJtools {
         return MajaxWP\Caching::getCachedRows($query);
 
     }
-    function getPostsByCategory($catSlug, $exact = true) {
+    function getPostsByCategory($catSlug, $exact = true,$dedTable=false,$dedFields=[]) {
         $prefix = MajaxWP\MikDb:: getWPprefix();
         global $wpdb;
         $catMetaName = $this->params["catSlugMetaName"];
         if (!$exact) $catSlug.= "%";
-        $query = "
-        SELECT post_title, ID
-        FROM {$prefix}posts po LEFT JOIN {$prefix}postmeta pm1 ON(pm1.post_id = ID)
-        WHERE po.ID = pm1.post_id
-        AND po.post_status like 'publish'
-        AND po.post_type like '{$this->customPostType}'
-        AND pm1.meta_key = '{$catMetaName}'
-        AND pm1.meta_value LIKE '{$catSlug}'
-        ";             
+        if ($dedTable) {
+            $cols="";
+            foreach ($dedFields as $d) {
+                $cols.=",".$d;
+            }
+            $query = "
+            SELECT post_title{$cols}
+            FROM $dedTable
+            WHERE `{$catMetaName}` LIKE '{$catSlug}'
+            ";             
+        } else {
+            $query = "
+            SELECT post_title, ID
+            FROM {$prefix}posts po LEFT JOIN {$prefix}postmeta pm1 ON(pm1.post_id = ID)
+            WHERE
+             po.post_status like 'publish'
+            AND po.post_type like '{$this->customPostType}'
+            AND pm1.meta_key = '{$catMetaName}'
+            AND pm1.meta_value LIKE '{$catSlug}'
+            ";             
+        }
+        
         return $wpdb->get_results($query, ARRAY_A);
     }
     function getLngText($txt) {
@@ -321,64 +373,102 @@ class CJtools {
     function mRndTxt($texts) {
         return $this->getLngText($texts[array_rand($texts)]);
     }
-    function countPosts($c) {
+    function countPosts($c,$dedTable) {
             global $wpdb;
             $catMetaName=$this->params["catSlugMetaName"];
-            $catPath=$this->sanitizeSlug($c["path"]);
-            $query="
-               SELECT COUNT(post_title) as cnt
-                    FROM {$wpdb->prefix}posts po LEFT JOIN {$wpdb->prefix}postmeta pm1 ON ( pm1.post_id = ID) 
-                    WHERE po.ID=pm1.post_id
-                    AND po.post_status like 'publish' 
-                    AND po.post_type like '{$this->customPostType}' 
-                    AND pm1.meta_key = '{$catMetaName}' 
-                    AND pm1.meta_value LIKE '{$catPath}%'
-                ";
+            $catSlug=$this->sanitizeSlug($c["slug"]);
+            if ($dedTable) {
+                $query="
+                SELECT COUNT(post_title) as cnt
+                     FROM {$dedTable} 
+                     WHERE 
+                     {$catMetaName} LIKE '{$catSlug}%'
+                 ";
+            } else {
+                $query="
+                SELECT COUNT(post_title) as cnt
+                     FROM {$wpdb->prefix}posts po LEFT JOIN {$wpdb->prefix}postmeta pm1 ON ( pm1.post_id = ID) 
+                     WHERE po.ID=pm1.post_id
+                     AND po.post_status like 'publish' 
+                     AND po.post_type like '{$this->customPostType}' 
+                     AND pm1.meta_key = '{$catMetaName}' 
+                     AND pm1.meta_value LIKE '{$catSlug}%'
+                 ";
+            }
+            
                     
             $cnt=$wpdb->get_var($query);
+            if ($cnt<1) {
+                //weird
+                $cnt=$cnt;
+            }
             return $cnt;
            
     }
-    function updateCatsDescription($from=0,$to=0) {
-        $cats = $this->getCats();
-        $cnt = count($cats);
-        if ($to>0) {
-            $cats=array_slice($cats,$from,$to-$from);	
-        }
-        
+    function updateCatsDescription($from=null,$to=null) {
+        $cats = $this->getCats($from,$to-$from);
+        //$cats=$this->getCats(null,null,[["name"=>"slug","operator"=>"LIKE","value"=>"detsky-pokoj%"]]);        
+        $doCounts=true;
+        $doDesc=true;
+        $doParents=true;
+        $skipNonBlank=false;
+        $dedTable=Settings::loadSetting("dedicatedTables-".$this->customPostType,"cptsettings");
         foreach($cats as $c) {
-            $desc = $this->prepareCatDescription($c);
-            $postsCount=$this->countPosts($c);
+            if ($skipNonBlank && $c["counts"]>0) continue;
+            if ($doDesc) $desc = $this->prepareCatDescription($c,$dedTable);
+            if ($doCounts) $postsCount=$this->countPosts($c,$dedTable);
+            //find parents
+            if ($doParents) {
+                $parentId=false;
+                $rPos=strrpos($c["path"],">");
+                if ($rPos>0) {
+                    $parentPath=substr($c["path"],0,$rPos);
+                    $parentId=$this->getCatByPath($parentPath)["id"];                
+                }
+            }
+            
+            $update=[];
+            $update[]=["name" => "desc", "value" => $desc];
+            $update[]=["name" => "counts", "type" => "%d", "value" => $postsCount];
+            if ($parentId) {
+                $update[]=["name" => "parent", "type" => "%d", "value" => $parentId];
+            } 
             MajaxWP\MikDb:: wpdbUpdateRows($this->params["cjCatsTable"], 
-                    [
-                        ["name" => "desc", "value" => $desc],
-                        ["name" => "counts", "type" => "%d", "value" => $postsCount]
-                    ], 
+                        $update                          
+                    , 
                     [
                         ["name"=> "id", "type" => "%d", "value" => $c["id"]]
                     ]);
         }
         return "cats description updated";
     }
-    function sanitizeSlug($slug) {
-        $separator = (empty($this->params["catSep"])) ? ">" : $this->params["catSep"];
-        return sanitize_title(str_replace($separator, "-", $slug));
-    }
-    function mGoRound($prices) {
-        foreach($prices as & $price) {
-            if ($price > 10000) $price = round($price, -3);
-            else if ($price > 1000) $price = round($price, -2);
-            else if ($price > 100) $price = round($price,-1);
+    function sanitizePath($path) {
+        $sep=$this->categorySeparator;
+        $path=$this->removeExtraSpaces($path);
+        foreach ($this->separatorVariations as $v)  {
+            if (strlen($v)>=strlen($sep)) $path=str_replace($v,$sep,$path);
         }
-        return $prices;
+        //trim from start        
+        if (substr($path,0,strlen($sep)) == $sep) $path=substr($path,strlen($sep)+1);
+        foreach ($this->bannedCategories as $ban) {
+            if ($path == $ban) $path=false;
+            if (strpos($path,$ban.$sep)!==false) $path=str_replace($ban.$sep,"",$path);
+            if (strpos($path,$sep.$ban)!==false) $path=str_replace($sep.$ban,"",$path);
+        }
+        return $path;
     }
+    function sanitizeSlug($path,$sanitizePath=false) {
+        if ($sanitizePath) $path=$this->sanitizePath($path);
+        $sep=$this->categorySeparator;        
+        return sanitize_title(str_replace($sep, "-", $path));
+    }
+    
     function getImageFromImageUrl($html) {
         preg_match_all('/<img.*?src=[\'"](.*?)[\'"].*?>/i', $html, $matches);
         return (empty($matches[0][0])) ? false : $matches[0][0];
     }
-    function prepareCatDescription($cat) {
-        $desc = "#catTitle#enjoymorethan#cntPosts#txtproducts#cats#txtby#brands.#prods#txtAlso#subcats.";
-
+    function prepareCatDescription($cat,$dedTable=false) {
+        $desc = "#catTitle#enjoymorethan#cntPosts#txtproducts#cats#txtby#brands.#prods#txtAlso#subcats.";        
         $txtproducts = "";
         $enjoy = "";
         $txtby = "";
@@ -408,7 +498,7 @@ class CJtools {
         $desc = str_replace("#txtAlso", $txtAlso, $desc);
         $desc = str_replace("#subcats", $subCatStr, $desc);
 
-        $termPosts = $this->getPostsByCategory($cat["slug"], false);
+        $termPosts = $this->getPostsByCategory($cat["slug"], false,$dedTable,[$this->params["metaNames"]["brand"],$this->params["metaNames"]["imageurl"]]);
 
         $brandyArr = array();
         $prodNames = array();
@@ -420,8 +510,14 @@ class CJtools {
         $subCatStr = "";
 
         foreach($termPosts as $mPost) {
-            $brand = get_post_meta($mPost["ID"], $this->params["metaNames"]["brand"]);
-            $images = get_post_meta($mPost["ID"], $this->params["metaNames"]["imageurl"]);
+            if (!$dedTable) {
+                $brand = get_post_meta($mPost["ID"], $this->params["metaNames"]["brand"]);
+                $images = get_post_meta($mPost["ID"], $this->params["metaNames"]["imageurl"]);
+            } else {
+                $brand = $mPost[$this->params["metaNames"]["brand"]];
+                $images = $mPost[$this->params["metaNames"]["imageurl"]];
+            }
+            
             $prodName = $mPost["post_title"];
             $prodImage = $this->getImageFromImageUrl($images[0]);
             if (!in_array($brand[0], $brandyArr)) array_push($brandyArr, $brand[0]);
@@ -500,161 +596,72 @@ class CJtools {
         //$result=wp_update_term($cat["id"], $taxonomy, array('description' => $desc));
         return $desc;
     }
-    function getAjaxMore($catId,$taxTerms,$priceFrom=0,$priceTo=0) {   
-        /* 
-        global $hpPrice;
-        if (isCZ()) $more="Další..";
-        else $more="More..";
-        if ($priceTo>0) $out='[ajax_load_more id="6946518025" button_label="'.$more.'" loading_style="green" container_type="div" css_classes="mlistingajax" post_type="hp_listing" posts_per_page="6" taxonomy_terms="'.$taxTerms.'" taxonomy="hp_listing_category"  taxonomy_operator="IN"  meta_key="'.$hpPrice.'" meta_value="'.$priceFrom.','.$priceTo.'" meta_compare="BETWEEN" meta_type="DECIMAL" orderby="meta_value_num"]';
-        else $out='<!-- wp:hivepress/listings {"number":"3","category":"'.$catId.'","order":"random"} /--><p>[ajax_load_more id="6946518025" button_label="'.$more.'" loading_style="green" container_type="div" css_classes="mlistingajax" post_type="hp_listing" posts_per_page="6" taxonomy_terms="'.$taxTerms.'" taxonomy="hp_listing_category"  taxonomy_operator="IN"]</p>';
-        return $out;      
-      */
-      //not implemented 
-      return "";
-    }
-    function createCatPages() {
-        global $hpPrice;
-        global $hpBrand;
-        $mKeywords = $this->keywords;
-
-        if (Settings:: loadSetting("language", "site") == "cs") {
-            $text[1] = "Nakupujte online";
-            $text[2] = "s obrovským výběrem produktů a neuvěřitelnými cenami";
-            $text[3] = "Od známých značek jako třeba";
-            $text[4] = "a mnoho dalších položek";
-            $text[5] = "jako například";
-            $text[6] = "za méně než ";
-            $text[7] = ",- Kč";
+    
+    
+    function createCategories() {
+        global $wpdb;    
+        $categoriesSorted=array();
+    
+        $catTabName=$this->params["cjCatsTempTable"];    
+        $query="SELECT DISTINCT(`name`) AS category FROM `{$catTabName}` WHERE `postType`='{$this->customPostType}';";
+        $categories = $wpdb->get_results($query);	 
+    
+        $catId=0;    
+        foreach ($categories as $c) {  
+            $c->category=$this->sanitizePath($c->category);
+            if (!$c->category) continue;
+            $thisCatArr=explode($this->categorySeparator,$c->category);
+            $parent=null;
+            $prevCat="";
+            $n=0;
+            $thisCatPath="";        
+            foreach ($thisCatArr as $cat) {
+                if ($n>0) { 
+                    $thisCatPath.=$this->categorySeparator;    
+                    $parent=$prevCat;
+                    $parent=$this->findCategoryParent($categoriesSorted,$prevCat,$n-1);
+                }
+                else $parent=null;            
+                $cat=trim($cat);  
+                $thisCatPath.=$cat;          
+                $existingCat=$this->findCategory($categoriesSorted,$parent,$n,$cat);
+                if ($existingCat===false) {
+                    $categoriesSorted[$catId] = ["name" => $cat, "parent" => $parent, "level" => $n, "path" => $thisCatPath];
+                    $prevCat=$catId;
+                    $catId++;
+                }
+                else {                 
+                    $prevCat=$existingCat;
+                }
+                
+                $n++;
+            }      
         }
-            else {
-            $text[1] = "Online shopping for";
-            $text[2] = "with great number of products and special prices";
-            $text[3] = "Offered by famous brands like";
-            $text[4] = "and many more products";
-            $text[5] = "such as";
-            $text[6] = "under $";
-            $text[7] = "";
+ 
+    
+        $catTabName=$this->params["cjCatsTable"];    
+        //MajaxWP\MikDb::clearTable($catTabName);	
+        $catsFinal=[];
+        $map=[];
+        foreach ($categoriesSorted as $key => $c) {
+            if ($c["path"]) {
+                $row=["slug" => $this->sanitizeSlug($c["path"]), 
+                "path" => $c["path"], 
+                "parent" => ($c["parent"]===null) ? null : $map[$c["parent"]], 
+                "postType" => $this->customPostType
+                ];    
+                //check if cat already exists
+                $currRow=MajaxWP\MikDb::wpdbGetRows($catTabName,"path",[["name" => "path", "value" => $c["path"]]]);
+                if (empty($currRow)) {
+                    $map[$key]=MajaxWP\MikDb::insertRow($catTabName,$row);
+                    $catsFinal[]=$row;
+                }         
+            }        
         }
-        //vzit kategorie, ktery maji pres 100 postu
-        $createdCatPages = 0;
-        $terms = $this->getCategories([["name"=>"counts","type" =>"%d", "value" => "100", "operator" => ">" ]]);
-        for ($n = 0; $n < count($terms); $n++) {
-            if ($createdCatPages>10) break;
-            if (empty($terms[$n]["path"]) || !$terms[$n]["path"]) continue;
-            $posts_array = $this->getPostsByCategory($terms[$n]["slug"],false);
-            $cntPosts = count($posts_array);
-
-            if (is_array($mKeywords)) {
-                $obsahujeKW = 0;
-                $hledejKW = 1;
-                for ($y = 0; $y < count($mKeywords); $y++) {
-                    if (strpos(" ".strtolower($terms[$n]["name"]), strtolower($mKeywords[$y])) > 0) $obsahujeKW = 1;
-                }
-            }
-
-            if (!$terms[$n]["parent"] && $createdCatPages <= 10 && $cntPosts > 200 && ((empty($hledejKW) || ($hledejKW && $obsahujeKW) ))) {
-                echo "<br />cnt2: ".$terms[$n]["parent"].", ".$cntPosts." slug:".$terms[$n]["slug"]."-";
-                //vytvorime stranky
-                $cenaNejnizsi = 0;
-                $cenaNejvyssi = 0;
-                $prumer = 0;
-                for ($y = 0; $y < $cntPosts; $y++) {
-                    $postId = $posts_array[$y]["ID"];
-                    $cenaArr = get_post_meta($postId, $this->params["metaNames"]["price"]);
-                    $cena = $cenaArr[0];
-                    $cenyArr[$y] = $cena;
-                    $prumer += $cena;
-                    if ($cena < $cenaNejnizsi || $cenaNejnizsi == 0) $cenaNejnizsi = $cena;
-                    if ($cena > $cenaNejvyssi || $cenaNejvyssi == 0) $cenaNejvyssi = $cena;
-                }
-
-                if ($cntPosts > 0) $prumer = $prumer / $cntPosts;
-                $diff = $cenaNejvyssi - $cenaNejnizsi;
-
-                $cenaArrB = array();
-                $cenaArrB[0] = round($cenaNejnizsi + $diff / 4);
-                $cenaArrB[1] = round($cenaNejnizsi + 2 * $diff / 4);
-                $cenaArrB[2] = round($cenaNejnizsi + 3 * $diff / 4);
-                $cenaArrB = $this->mGoRound($cenaArrB);
-
-                $cntTitles = array();
-                $postsTitles = array();
-                $vendors = array();
-
-                for ($y = 0; $y < $cntPosts; $y++) {
-                    $cena = $cenyArr[$y];
-                    for ($c = 0; $c < count($cenaArrB); $c++) {
-                        $postsTitles[$c]="";
-                        $cntTitles[$c]=0;
-                        $vendors[$c]=array();
-                    }
-                    for ($c = 0; $c < count($cenaArrB); $c++) {
-                        if ($cena < $cenaArrB[$c] && (empty($cntTitles[$c]) || $cntTitles[$c] < 5)) {
-                            if ($postsTitles[$c]) $postsTitles[$c].= ", ";
-                            $postsTitles[$c].= $posts_array[$y]["post_title"];
-                            $cntTitles[$c]++;
-                            $vendorArr = get_post_meta($postId, "brand");
-                            $vendor = $vendorArr[0];
-                            if ($vendor) {
-                                if (!in_array($vendor, $vendors[$c])) array_push($vendors[$c], $vendor);
-                            }
-                        }
-                    }
-                }
-
-
-                //$ajaxMore=getAjaxMore($catId,$taxTerms,$priceUnder=0);
-                $ajaxMore = $this->getAjaxMore($terms[$n]["id"], $terms[$n]["slug"]);
-                $parentTitle = $terms[$n]["path"];
-                $post_details = array(
-                    'post_title'    => $parentTitle,
-                    'post_content'  => "<p>".$text[1]." ".$terms[$n]["path"]." ".$text[2].".</p>".$ajaxMore,
-                    'post_status'   => 'publish',
-                    'post_author'   => 1,
-                    'post_type' => 'page'
-                );
-                $parentExistuje = get_page_by_title($parentTitle);
-                if ($parentExistuje) {
-                    echo "<br />stranka uz existuje, preskakuju";
-                    continue;
-                }
-                else {
-                    echo "<br />stranka neexistuje, vytvarim";
-                }
-
-                $parentId = wp_insert_post($post_details);
-                $createdCatPages++;
-                //insertSpecPagesInfo($parentId,$parentTitle,0,$cntPosts);
-
-                for ($c = 0; $c < count($cenaArrB); $c++) {
-                    $brandy = "";
-                    for ($b = 0; $b < count($vendors[$c]); $b++) {
-                        if ($b > 0) $brandy.= ", ";
-                        $brandy.= $vendors[$c][$b];
-                    }
-                    if ($brandy) $brandy = ". ".$text[3]." $brandy.";
-                    $under = " ".$text[6].$cenaArrB[$c].$text[7];
-                    $pageTitle = $terms[$n]["path"].$under;
-                    $priceFrom = 0;
-                    if ($c > 0) $priceFrom = $cenaArrB[$c - 1];
-                    $priceTo = $cenaArrB[$c];
-                    $ajaxMore = $this->getAjaxMore($terms[$n]["id"], $terms[$n]["slug"], $priceFrom, $priceTo);
-                    if ($postsTitles[$c]) $postsTitles[$c] = "<p><strong>".$terms[$n]["path"]."</strong> $brandy ".$text[5]." ".$postsTitles[$c]." ..".$text[4].$under."</p>".$ajaxMore;
-                    $post_details = array(
-                        'post_title'    => $pageTitle,
-                        'post_content'  => $postsTitles[$c],
-                        'post_status'   => 'publish',
-                        'post_author'   => 1,
-                        'post_parent'   => $parentId,
-                        'post_type' => 'page'
-                    );
-                    $childId = wp_insert_post($post_details);
-                    //insertSpecPagesInfo($childId,$pageTitle,$parentId,$cntPosts);
-                }
-            }
-        }
-        //vzit ceny
-        echo "done createcatpages";
+        //write to cache
+        MajaxWP\Caching::addCache("sortedcats".$this->customPostType,$catsFinal,"sortedcats".$this->customPostType); 
+    
+        return $catsFinal;      
     }
     function getCatPathNice($path="",$last=false) {
         if (!$path) { 
@@ -667,14 +674,7 @@ class CJtools {
         }
         return str_replace(">", "- ",$path);
     }
-    function getThisCat() {                
-        if (empty($this->currentCat)) { 
-            $cjCat=get_query_var("mikcat");
-            if ($cjCat) $this->getCatBySlug($cjCat);            
-        }                
-        if (!empty($this->currentCat["slug"])) return $this->currentCat["slug"];
-        else return false;
-    }
+ 
     function getUrl($cat,$brand="") {
         $url="/";
         $mikBrandSlug=$this->params["brandSlug"];
@@ -687,9 +687,28 @@ class CJtools {
         }
         return $url;
     }
+    function findCategoryParent($cats,$id,$level) { //categories array, thought parent category id
+        $parentName=$cats[$id]["name"];
+        foreach ($cats as $key => $c) {
+            if ($c["name"] == $parentName && $level==0) return $key;
+            if ($c["name"] == $parentName && $level>0) return $this->findCategoryParent($cats,$key,$level-1);
+        }
+        if ($level==0) return $id;
+       }
+       function findCategory($cats,$parent,$level,$name) {
+        foreach ($cats as $key => $c) {
+            if ($level==0) {
+                if ($c["name"] == $name) return $key;
+            }
+            else {
+                if ($c["name"] == $name && $c["parent"]==$parent) return $key;
+            }
+        }
+        return false;
+    }        
     function showBrandyNav($metaName) {                
         $mikBrand=urlDecode(get_query_var("mikbrand"));
-        $catSlug=$this->getThisCat();
+        $catSlug=MajaxWp\CjFront::getCurrentCat(); 
         $brandyArr=$this->getCatMeta($catSlug,$metaName,false,true," LIMIT 1,15",true,"ORDER BY rand()");
         $brandsArr=[];
         if (count($brandyArr)<2) return false;

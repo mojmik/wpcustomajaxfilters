@@ -8,21 +8,19 @@ class ComissionJunction {
  private $basePage;
  private $brandsSlug;
  private $categorySlug;
- private $categorySeparator;
+ 
  private $dbPrefix;
  private $postType;
  private $cjTools;
  public function __construct($args=[]) {          
      $this->brandsSlug="brands";
      $this->categorySlug="category";
-     $this->categorySeparator=">";
-     $this->separatorVariations=[ "|"," > ","&gt;", "> "," >"];
+     
      if (!empty($args["prefix"])) $this->dbPrefix=$args["prefix"];
-     else $this->dbPrefix=MajaxWP\MikDb::getTablePrefix();
-     if (!empty($args["postType"])) $this->setPostType($args["postType"]);
+     else $this->dbPrefix=MajaxWP\MikDb::getTablePrefix();    
      
      $this->initCJcols();
-     
+     if (!empty($args["postType"])) $this->setPostType($args["postType"]);
  }
  public function getCJtools() {
      if (empty($this->cjTools)) { 
@@ -42,25 +40,28 @@ class ComissionJunction {
          $this->cjTools->setParam("catSlugMetaName",$this->getTypeSlug());
          $this->cjTools->setParam("catSlug",$this->categorySlug);		
          $this->cjTools->setParam("brandSlug",$this->brandsSlug);	
-         
-         $this->cjTools->setParam("catSep",$this->categorySeparator);	
+                  
      }
      return $this->cjTools;
  }
- private function setPostType($postType) {
+ public function setPostType($postType) {
     $this->postType=$postType;
+    MajaxWP\Caching::setPostType($this->postType);	
     $this->tableNames=[
         "main" => $this->dbPrefix."".$this->postType."_cj_import",
         "tempCats" => $this->dbPrefix."".$this->postType."_cj_tempcats",
         "cats" => $this->dbPrefix."".$this->postType."_cj_cats"
- ];
+    ];
+    $this->getCJtools()->setPostType($this->postType);
  }
  public function addShortCodes() {
     add_shortcode('cjcategories', [$this,'outCategoriesTreeShortCode'] );    
  }
  private function initCJcols() {
    $this->cjCols=[
-       "id" => ["sql" => "int(11) NOT NULL AUTO_INCREMENT", "primary" => true],
+       "id" => ["sql" => "int(11) NOT NULL AUTO_INCREMENT", "primary" => true,
+        "extra" => ["noImport" => true] 
+       ],
        "buyurl" => ["sql" => "varchar(1000) NOT NULL", "csvPos" => "LINK", "displayorder" => "51"],
        "shopurl" => ["sql" => "varchar(500) NOT NULL", "csvPos" => "PROGRAM_NAME"],
        "imageurl" => ["sql" => "varchar(500) NOT NULL", "csvPos" => "IMAGE_LINK", "displayorder" => "51", 
@@ -92,7 +93,7 @@ class ComissionJunction {
  public function getFieldsExtras() {
      $extras=array();
      foreach ($this->cjCols as $key => $val) {
-         if (!empty($val["extra"])) $extras[$this->getMautaFieldName($key)]["extra"]=$val["extra"];
+         if (!empty($val["extra"])) $extras[$this->getMautaFieldName($key)]=$val["extra"];
      }
      return $extras;
  }
@@ -163,6 +164,7 @@ class ComissionJunction {
     $vars[] = 'mikbrand';
     $vars[] = 'mikorder';
     $vars[] = 'mimgtools';
+    $vars[] = 'cpt';
     return $vars;
   }
   function mauta_rewrite_rule() {        
@@ -172,15 +174,25 @@ class ComissionJunction {
     $pageId="page_id={$this->basePage["id"]}&";
     //$page="";
     $phpScript="index.php"; //always index.php for wp
-    $pluginRelativeDir="wp-content/plugins/"; //todo
     //add_rewrite_rule( "^$page"."mimgtools/([^/]*)/([^/]*)/?", "$pluginRelativeDir/wpcustomajaxfilters/mimgtools.php".'?mimgtools=$matches[1]&mikorder=$matches[2]','top' );
     add_rewrite_rule( "^$page"."mimgtools/([^/]*)/?", $phpScript.'?'.$pageId.'mimgtools=$matches[1]','top' );
+    
     add_rewrite_rule( "^$page"."$mikBrandy/([^/]*)/([^/]*)/?", $phpScript.'?'.$pageId.'mikbrand=$matches[1]&mikorder=$matches[2]','top' );
     add_rewrite_rule( "^$page"."$mikBrandy/([^/]*)/?", $phpScript.'?'.$pageId.'mikbrand=$matches[1]','top' );
     add_rewrite_rule( "^$page"."$mikCatSlug/([^/]*)/$mikBrandy/([^/]*)/([^/]*)/?", $phpScript.'?'.$pageId.'mikcat=$matches[1]&mikbrand=$matches[2]&mikorder=$matches[3]','top' );
     add_rewrite_rule( "^$page"."$mikCatSlug/([^/]*)/$mikBrandy/([^/]*)/?", $phpScript.'?'.$pageId.'mikcat=$matches[1]&mikbrand=$matches[2]','top' );
     add_rewrite_rule( "^$page"."$mikCatSlug/([^/]*)/([^/]*)/?", $phpScript.'?'.$pageId.'mikcat=$matches[1]&mikorder=$matches[2]','top' );
     add_rewrite_rule( "^$page"."$mikCatSlug/([^/]*)/?", $phpScript.'?'.$pageId.'mikcat=$matches[1]','top' );
+
+    //cpt in url; we need it when cpt is needed sooner than it appears in shortcodes (in html titles etc.)
+    add_rewrite_rule( "^$page"."c/([^/]*)/$mikBrandy/([^/]*)/([^/]*)/?", $phpScript.'?'.$pageId.'cpt=$matches[1]&mikbrand=$matches[2]&mikorder=$matches[3]','top' );
+    add_rewrite_rule( "^$page"."c/([^/]*)/$mikBrandy/([^/]*)/?", $phpScript.'?'.$pageId.'cpt=$matches[1]&mikbrand=$matches[2]','top' );
+    add_rewrite_rule( "^$page"."c/([^/]*)/$mikCatSlug/([^/]*)/$mikBrandy/([^/]*)/([^/]*)/?", $phpScript.'?'.$pageId.'cpt=$matches[1]&mikcat=$matches[2]&mikbrand=$matches[3]&mikorder=$matches[4]','top' );
+    add_rewrite_rule( "^$page"."c/([^/]*)/$mikCatSlug/([^/]*)/$mikBrandy/([^/]*)/?", $phpScript.'?'.$pageId.'cpt=$matches[1]&mikcat=$matches[2]&mikbrand=$matches[3]','top' );
+    add_rewrite_rule( "^$page"."c/([^/]*)/$mikCatSlug/([^/]*)/([^/]*)/?", $phpScript.'?'.$pageId.'cpt=$matches[1]&mikcat=$matches[2]&mikorder=$matches[3]','top' );
+    add_rewrite_rule( "^$page"."c/([^/]*)/$mikCatSlug/([^/]*)/?", $phpScript.'?'.$pageId.'cpt=$matches[1]&mikcat=$matches[2]','top' );
+
+
   }
   function disable_canonical_redirect_for_front_page( $redirect ) {
     //https://wordpress.stackexchange.com/questions/185169/using-add-rewrite-rule-to-redirect-to-front-page  
@@ -191,25 +203,7 @@ class ComissionJunction {
     }
     return $redirect;
    }
-   function findCategoryParent($cats,$id,$level) { //categories array, thought parent category id
-    $parentName=$cats[$id]["name"];
-    foreach ($cats as $key => $c) {
-        if ($c["name"] == $parentName && $level==0) return $key;
-        if ($c["name"] == $parentName && $level>0) return $this->findCategoryParent($cats,$key,$level-1);
-    }
-    if ($level==0) return $id;
-   }
-   function findCategory($cats,$parent,$level,$name) {
-    foreach ($cats as $key => $c) {
-        if ($level==0) {
-            if ($c["name"] == $name) return $key;
-        }
-        else {
-            if ($c["name"] == $name && $c["parent"]==$parent) return $key;
-        }
-    }
-    return false;
-   }
+  
    public function getTypeSlug() {
     return $this->getMautaFieldName("type");
    }
@@ -228,90 +222,7 @@ class ComissionJunction {
    }   
 
  
-   function createCategories() {
-    global $wpdb;    
-    $categoriesSorted=array();
-
-    //varianta natahavani z post_meta
-    /*
-    $catMetaName=$this->getCategoryMetaName();	
-    $query="SELECT DISTINCT(`meta_value`) AS category FROM ".$wpdb->prefix."postmeta AS pm, ".$wpdb->prefix."posts AS po 
-	WHERE pm.meta_key like '{$catMetaName}' AND po.post_status = 'publish' 
-    AND po.post_type = '{$this-postType}'";
-    */    
-
-    $catTabName=$this->getTabName("tempCats");    
-    $query="SELECT DISTINCT(`name`) AS category FROM `{$catTabName}` WHERE `postType`='{$this->postType}';";
-    $categories = $wpdb->get_results($query);	 
-
-    $catId=0;    
-    foreach ($categories as $c) {  
-        foreach ($this->separatorVariations as $v)  {
-            if (strlen($v)>=strlen($this->categorySeparator)) $c->category=str_replace($v,$this->categorySeparator,$c->category);
-        }
-        //trim from start
-        if (substr($c->category,0,strlen($this->categorySeparator)) == $this->categorySeparator) $c->category=substr($c->category,strlen($this->categorySeparator)+1);
-        $thisCatArr=explode($this->categorySeparator,$c->category);
-        $parent=null;
-        $prevCat="";
-        $n=0;
-        $thisCatPath="";        
-        foreach ($thisCatArr as $cat) {
-            if ($n>0) { 
-                $thisCatPath.=$this->categorySeparator;    
-                $parent=$prevCat;
-                $parent=$this->findCategoryParent($categoriesSorted,$prevCat,$n-1);
-            }
-            else $parent=null;            
-            $cat=trim($cat);  
-            $thisCatPath.=$cat;          
-            $existingCat=$this->findCategory($categoriesSorted,$parent,$n,$cat);
-            if ($existingCat===false) {
-                $categoriesSorted[$catId] = ["name" => $cat, "parent" => $parent, "level" => $n, "path" => $thisCatPath];
-                $prevCat=$catId;
-                $catId++;
-            }
-            else {                 
-                $prevCat=$existingCat;
-            }
-            
-            $n++;
-        }      
-    }
-
-    /*
-    SELECT DISTINCT(`meta_value`) AS category FROM ".$wpdb->prefix."postmeta AS pm, ".$wpdb->prefix."posts AS po 
-	WHERE pm.meta_key like '{$catMetaName}' AND po.post_status = 'publish' 
-    AND po.post_type = '{$this->postType}'
-    */
-
-    //count counts of posts in categories
-    //$categoriesSorted=$this->countPostsInCats($categoriesSorted,$this->postType);
-
-    $catTabName=$this->getTabName("cats");    
-    //MajaxWP\MikDb::clearTable($catTabName);	
-    $catsFinal=[];
-    $map=[];
-    foreach ($categoriesSorted as $key => $c) {
-        if ($c["path"]) {
-            $row=["slug" => $this->getCjTools()->sanitizeSlug($c["path"]), 
-            "path" => $c["path"], 
-            "parent" => ($c["parent"]===null) ? null : $map[$c["parent"]], 
-            "postType" => $this->postType
-            ];    
-            //check if cat already exists
-            $currRow=MajaxWP\MikDb::wpdbGetRows($catTabName,"*",[["name" => "slug", "value" => $c["slug"]]]);
-            if (empty($currRow["slug"])) {
-                $map[$key]=MajaxWP\MikDb::insertRow($catTabName,$row);
-                $catsFinal[]=$row;
-            }            
-        }        
-    }
-    //write to cache
-    MajaxWP\Caching::addCache("sortedcats".$this->postType,$catsFinal,"sortedcats".$this->postType); 
-
-    return $catsFinal;      
-   }
+   
    function getCategoriesArr() {
     global $wpdb;
     $cacheOff=true;
@@ -331,10 +242,6 @@ class ComissionJunction {
         if (!empty($catsFinal) && count($catsFinal)>0) return $catsFinal;
     }
     
-    $catsFinal=$this->createCategories();    
-      	
-      
-
     return $catsFinal;
    }
    
@@ -353,19 +260,19 @@ class ComissionJunction {
     return $path;
    }
  
-   function outParentCategory($cats,$thisCat,$depth) {
+   function outParentCategory($cats,$thisCat,$depth,$maxDepth=1) {
     //recursively output category branch    
     $goDeeper=true;
     ?>    
     <ul>
         <?php         
-        if ($this->currentCatSlug==$thisCat["slug"]) {
+        if (MajaxWp\CjFront::getCurrentCat()==$thisCat["slug"]) {
             ?>
             <li><strong><?= $this->getCategoryNameFromPath($thisCat["path"])?> (<?= $thisCat["counts"]?>)</strong>
             <?php
         }
         else {
-            $goDeeper=($depth>0) || (strpos($this->currentCatSlug,$thisCat["slug"])!==false);            
+            $goDeeper=($depth<$maxDepth) || (strpos(MajaxWp\CjFront::getCurrentCat(),$thisCat["slug"])!==false);            
             ?>
             <li><a href='<?= $this->getPermaLink($thisCat["slug"])?>'><?= $this->getCategoryNameFromPath($thisCat["path"])?> (<?= $thisCat["counts"]?>)</a>
             <?php
@@ -373,7 +280,7 @@ class ComissionJunction {
         if ($goDeeper) {
             foreach ($cats as $key => $c) {
                 if ($c["parent"]===$thisCat["id"]) { 
-                    echo $this->outParentCategory($cats,$c,$depth+1);
+                    echo $this->outParentCategory($cats,$c,$depth+1,$maxDepth);
                 }
             }
         }        
@@ -386,20 +293,20 @@ class ComissionJunction {
     
     ob_start();       
     if (!empty($atts["type"])) { 
-        $this->setPostType($atts["type"]);
+        $this->setPostType($atts["type"]);        
         $cats=$this->getCategoriesArr();
     } else return false;
     
-    $max= (empty($atts["max"])) ? 15 : $atts["max"];
-    $brands= (empty($atts["noBrands"])) ? true : false;
-    $filter= (empty($atts["noFilter"])) ? true : false;
-
+    $max= (!array_key_exists("max",$atts)) ? 15 : $atts["max"];
+    $brands= (!array_key_exists("nobrands",$atts)) ? true : false;
+    $filter= (!array_key_exists("nofilter",$atts)) ? true : false;
+    $maxDepth=0;
+    if (!$filter) $maxDepth=9;
     if ($brands) $this->getCjTools()->showBrandyNav($this->getMautaFieldName("brand"));
     ?>
     <div>
     <?php
-    $slug=$this->getCjTools()->getThisCat(); 
-    $this->currentCatSlug=$slug;
+    $slug=MajaxWp\CjFront::getCurrentCat();    
     if ($filter) {
         if ($slug) {
             ?>
@@ -415,9 +322,9 @@ class ComissionJunction {
     $n=0;
     foreach ($cats as $c) {
         //root cats
-        if ($max>0 && $n>$max) break; //display only 15 root cats
+        if ($max!==null && $max!="0" && $n>$max) break; //display only 15 root cats
         if (!$c["parent"]) { 
-            echo $this->outParentCategory($cats,$c,0);
+            echo $this->outParentCategory($cats,$c,0,$maxDepth);
             $n++;
         }
     }

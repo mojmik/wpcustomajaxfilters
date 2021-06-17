@@ -172,11 +172,10 @@ jQuery(document).ready(function($) {
 		my.mUrl.goBack();			
 	});
 
-	$(window).scroll(function() {
+	$(window).scroll(function() {		
 		let footerHeight=150;
 		if($(window).scrollTop() + $(window).height() >= $("#majaxmain").height() + 20) {			
 			my.majaxPrc.runAjax(this,"scroll");
-			//console.log("bottom");
 		}
 	 });
 	

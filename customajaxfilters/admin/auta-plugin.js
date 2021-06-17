@@ -199,6 +199,27 @@ jQuery(function($){
 		return false;
 	 });
 
+	 jQuery("#posts2ded").on('click', function(event) {
+		var csvtype = "cjcsv";	
+		var table="";	
+		var postsAtOnce=100;
+		runProcess("getPostsCnt",table,csvtype,0,0,function(data) {
+			console.log(data.result);
+			for (n=0;n<Math.ceil(data.result/postsAtOnce);n++) {
+				let lastFn=null;
+				if (n>=Math.ceil(data.result/postsAtOnce)-1) {
+					lastFn=function() {
+						console.log("posts create dedicated table done");
+					}
+				}
+				runProcess("createFromPosts",table,csvtype,n*postsAtOnce,(n+1)*postsAtOnce,lastFn);
+			}
+			mAutaAjax.requestStack.go();
+		});
+		mAutaAjax.requestStack.go();
+		return false;
+	 });
+
 	 jQuery("form#csvBulkImport").submit(function() {	
 		$("input[data-fn='csvbulkfn']").each(function (i,obj) {
 			var fn=obj.value;		
@@ -215,14 +236,14 @@ jQuery(function($){
 
 		runProcess("getCatsCnt",table,csvtype,0,50,function(data) {
 			console.log(data.result);					
-			for (n=0;n<Math.ceil(data.result/50);n++) {
+			for (n=0;n<Math.ceil(data.result/20);n++) {
 				let lastFn=null;
-				if (n>=Math.ceil(data.result/50)-1) {
+				if (n>=Math.ceil(data.result/20)-1) {
 					lastFn=function() {
 						console.log("cat desc done");
 					}
 				}
-				runProcess("udpateCatsDesc2",table,csvtype,n*50,(n+1)*50,lastFn);
+				runProcess("udpateCatsDesc2",table,csvtype,n*20,(n+1)*20,lastFn);
 			}
 			mAutaAjax.requestStack.go();
 		});
@@ -243,19 +264,23 @@ jQuery(function($){
 			statusSpan.text("csv imported");
 			//make posts
 			var totalRecords = data.result;
-			for (n=0;n<Math.ceil(totalRecords/100);n++) {
-				let lastFn=null;
+			let doneFn=null;
+			for (n=0;n<Math.ceil(totalRecords/100);n++) {				
 				if (n>=Math.ceil(totalRecords/100)-1) {
 				  	//last posts chunk
-				  	lastFn=function() {
+				  	doneFn=function() {
 						statusSpan.text("creating cats");  
 						runProcess("createCats",table,csvtype,0,0,function(data) {
 							statusSpan.text("cats created");  							
 						});
 						mAutaAjax.requestStack.go();
 					}	
-				} 	
-				runProcess(doajax,table,csvtype,n*100,(n+1)*100,lastFn);			
+				} else {
+					doneFn=function() {
+						statusSpan.text("creating posts");  							
+					}
+				}
+				runProcess(doajax,table,csvtype,n*100,(n+1)*100,doneFn);			
 			}
 			mAutaAjax.requestStack.go();
 		});			
@@ -341,6 +366,7 @@ jQuery(function($){
 				slug: formData["slug"],
 				plural: formData["plural"],
 				specialType: formData["specialType"],
+				tableType: formData["tableType"],
 				cafActionEdit: formData["cafActionEdit"],
 			  },
 			success: function( data ) {

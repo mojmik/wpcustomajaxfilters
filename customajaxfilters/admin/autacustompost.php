@@ -10,12 +10,14 @@ class AutaCustomPost {
 	public $specialType;	
 	private $isCj;
 	private $cj;
+	public $tableType;
 
-	 public function __construct($postType="",$singular="",$plural="",$specialType="") {		 	
+	 public function __construct($postType="",$singular="",$plural="",$specialType="",$tableType="") {		 	
 		 $this->singular=$singular;
 		 $this->plural=$plural;
 		 $this->customPostType=$postType;		 
 		 $this->specialType=$specialType;
+		 $this->tableType=$tableType;
 		 add_action( 'init', [$this,'custom_post_type'] , 0 );
 		 add_action( 'save_post_'.$postType, [$this,'mauta_save_post'] ); 
 		 add_action( 'wp_ajax_importCSV', [$this,'importCSVprocAjax'] );
@@ -23,6 +25,14 @@ class AutaCustomPost {
 		 if ($specialType=="cj") { 
 			 $this->isCj=true;
 			 $this->cj=new ComissionJunction(["postType" => $this->customPostType]); 
+		 }
+		 $this->checkTableTypeSettings();
+	 }
+	 private function checkTableTypeSettings() {
+		 if ($this->tableType=="dedicated") {
+			Settings::writeSetting("cptsettings-dedicatedTables-".$this->customPostType,AutaPlugin::getTable("dedicated",$this->customPostType));
+		 } else {
+			Settings::writeSetting("cptsettings-dedicatedTables-".$this->customPostType,"");
 		 }
 	 }
 	 public function adminInit() {
@@ -101,8 +111,15 @@ class AutaCustomPost {
 			$result = $wpdb->get_results($query);  
 		if ($this->isCj) {						
 			MajaxWP\MikDb::clearTable($this->cj->getCatsTabName());
-		}				
-				
+		}	
+		
+		$dedicatedTable=Settings::loadSetting("dedicatedTables-".$this->customPostType,"cptsettings");
+		if ($dedicatedTable) {
+			$query="
+				TRUNCATE TABLE $dedicatedTable;
+			";
+			$result = $wpdb->get_results($query);  
+		}
 	}	
 	function importCSVprocAjax() {
 		$do=filter_input( INPUT_POST, "doajax", FILTER_SANITIZE_STRING );
@@ -126,7 +143,7 @@ class AutaCustomPost {
 			wp_die();
 		}	
 		if ($do=="createCats")	{			
-			$this->cj->createCategories();
+			$this->cj->getCJtools()->createCategories();
 			echo json_encode(["result"=>"categories created"]).PHP_EOL;
 			wp_die();
 		}
@@ -158,6 +175,17 @@ class AutaCustomPost {
 				$this->autaFields->addFields($this->cj->getMautaFields());										
 			}
 			echo json_encode(["result"=>$result]).PHP_EOL;
+			wp_die();
+		}
+		if ($do=="getPostsCnt") {
+			$ded=new DedicatedTables($this->customPostType);
+			$ded->initTable();
+			echo json_encode(["result"=>$ded->countPosts()]).PHP_EOL;
+			wp_die();
+		}
+		if ($do=="createFromPosts") {
+			$ded=new DedicatedTables($this->customPostType);
+			echo json_encode(["result"=>$ded->createFromPosts($from,$to)]).PHP_EOL;
 			wp_die();
 		}
 	}
@@ -226,8 +254,10 @@ class AutaCustomPost {
 				$n=0;
 				foreach($files as $fn) {					
 					?>
-					<input data-fn='csvbulkfn' style='width:650px;' name='file<?= $n?>' value='<?= $fn?>' />
-					<span data-fn='statuscsvbulk-file<?= $n?>' style='width:200px;'></span>
+					<div class="row">
+						<input data-fn='csvbulkfn' style='width:650px;' name='file<?= $n?>' value='<?= $fn?>' />
+						<span data-fn='statuscsvbulk-file<?= $n?>' style='width:200px;'></span>
+					</div>
 					<?php
 					$n++;
 				}
@@ -237,8 +267,20 @@ class AutaCustomPost {
 				<?php
 		  }
 		  	 
-		  if ($do=="createcatpages") {			
-			echo $this->cj->getCJtools()->createCatPages();
+		  if ($do=="createcatpages") {	
+			$cjPages=new CJpages($this->customPostType,$this->cj->getCJtools());  		
+			echo $cjPages->createCatPages();
+		  }
+		  if ($do=="cjcatdebug") {
+			echo $this->cj->getCJtools()->updateCatsDescription();
+		  }
+		  if ($do=="creatededicatedtable") {
+			$dedTable=new DedicatedTables($this->customPostType);
+			$dedTable->createFromPosts(0,10);
+		  }
+		  if ($do=="dednames") {
+			$dedTable=new DedicatedTables($this->customPostType);
+			$dedTable->repairNames();
 		  }
 	}
 	function csvMenu() {
@@ -247,14 +289,20 @@ class AutaCustomPost {
 			["csv bulk import",add_query_arg( 'do', 'csvbulkimport'),"import csv files uploaded by ftp"],			
 			["csv remove",add_query_arg( 'do', 'removecsv'),"remove csv imports"],
 			["prefill thumbnails",add_query_arg( 'do', 'genthumbs'),"prefill thumbnails"],
-			["remove all",add_query_arg( 'do', 'removeall'),"remove all posts of this type"],			
+			["remove all",add_query_arg( 'do', 'removeall'),"remove all posts of this type"],						
+			["dedicated tables ajax",add_query_arg( 'do', 'creatededicatedtable'),"create dedicated table from posts (for huge sites)", "posts2ded"],
+			["repair post names",add_query_arg( 'do', 'dednames'),"repair post names in dedicated table"]
 		];
+		//$setUrl[]=["dedicated tables debug",add_query_arg( 'do', 'creatededicatedtable'),"create dedicated table from posts debug (for huge sites)"],			
 		if ($this->isCj) {
 			array_push($setUrl,
 				["cj csv import",add_query_arg( 'do', 'cjcsv'),"import cj csv file"],
 				["remove mauta tables",add_query_arg( 'do', 'removeexttables'),"drop tables for fields and cats"],
-				["create pages",add_query_arg( 'do', 'createcatpages'),"create pages"],
-				["cj cats description",add_query_arg( 'do', ''),"create cats description ajax", "catdescajax"]);
+				["create pages",add_query_arg( 'do', 'createcatpages'),"create pages debug test"],
+				["cj cats description and counts",add_query_arg( 'do', ''),"create cats description and counts ajax", "catdescajax"]
+				);
+				//$setUrl[]=["cj cats debug",add_query_arg( 'do', 'cjcatdebug'),"cats debug"];
+
 		} 
 		
 		?>
@@ -385,6 +433,7 @@ class AutaCustomPost {
 				<div><div><label>singular name</label></div><input type='text' name='singular' value='<?= $this->singular?>' /></div>	
 				<div><div><label>plural name</label></div><input type='text' name='plural' value='<?= $this->plural?>' /></div>
 				<div><div><label>special type</label></div><input name='specialType' type='text' value='<?= $this->specialType?>' /></div>
+				<div><div><label>table type (type dedicated for custom tables)</label></div><input name='tableType' type='text' value='<?= $this->tableType?>' /></div>
 				<div><input name='cafActionEdit' type='submit' value='Edit' /></div>
 				<input name='slug' type='hidden' value='<?= $this->getCustomPostType();?>' />
 			</form>

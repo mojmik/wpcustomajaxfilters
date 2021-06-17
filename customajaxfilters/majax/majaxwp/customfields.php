@@ -30,6 +30,7 @@ class CustomFields {
 	}
 	return $out;
   }
+  
   public function getFieldsFilteredGreaterThan($filter=[]) {
 	$rows=[];
 	foreach ($this->fieldsList as $f) {
@@ -43,16 +44,34 @@ class CustomFields {
 	  } 
 	  return $rows;
   }
+  public function getFieldByName($name) {
+	$out="";
+	foreach ($this->fieldsList as $f) {
+		if ($f->name == $name) { 			
+			return $f;
+		}
+	}
+	return false;
+  }
   public function setFixFilters($fixFilters) {
 	foreach ($fixFilters as $fixFilter) {
-		$compare = (empty($fixFilter["sqlCompare"])) ? "LIKE" : $fixFilter["sqlCompare"];
+		$compare = (empty($fixFilter["sqlCompare"])) ? false : $fixFilter["sqlCompare"];
 		$this->setFixFilter($fixFilter["name"],$fixFilter["filter"],$compare);
 	}
   }
-  public function setFixFilter($name,$value,$compare="=") {
+  public function setFixFilter($name,$value,$compare=false) {
 	foreach ($this->fieldsList as $f) {		
 		if ($f->name == $name) { 
-			$f->setFixFilter($value);
+			if (!$compare) $f->setFixFilter($value);
+			else { 
+				if (strtoupper($compare)=="BETWEEN") {
+					$value=explode("|",$value);
+					$f->setFixFilter("BETWEEN '{$value[0]}' AND '{$value[1]}' ");
+				} else {
+					$f->setFixFilter($compare." '".$value."' ");
+				}
+				
+			}
 			return "set";
 		}
 	} 
@@ -67,6 +86,13 @@ class CustomFields {
 		]
 	);
 	$this->addField($virtField);
+  }
+  public function getAllFields() {
+	$rows=[];
+	foreach ($this->fieldsList as $f) {
+		$rows[]=$f;
+	  } 
+	  return $rows;
   }
   public function getFieldsFilteredOrDisplayed() {
 	$rows=[];

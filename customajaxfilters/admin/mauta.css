@@ -72,3 +72,6 @@
       transform: rotate(360deg);
     }
   }
+.editCPT div {
+  width:100%;
+}
