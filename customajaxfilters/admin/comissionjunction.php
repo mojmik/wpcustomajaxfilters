@@ -4,7 +4,6 @@ use \CustomAjaxFilters\Majax\MajaxWP as MajaxWP;
 
 class ComissionJunction {
  private $cjCols; 
- private $mapping;
  private $basePage;
  private $brandsSlug;
  private $categorySlug;
