@@ -74,7 +74,7 @@ class DedicatedTables {
         $params["limit"]="$from,$cnt";
         $params["orderBy"]="";
         $params["orderDir"]="";
-        $query=$this->render->getMajaxQuery()->produceSQL(null,null,false,false,$params);
+        $query=$this->render->getMajaxQuery()->produceSQL($params);
         $rows= $wpdb->get_results( $query, ARRAY_A );
         //AutaPlugin::logWrite($query);
         return $rows;
