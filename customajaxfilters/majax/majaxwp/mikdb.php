@@ -171,22 +171,76 @@ class MikDb {
 		global $wpdb;	
 		$values=[];
 		if (is_array($cols)) $cols=implode(",",$cols);	
-		if (is_array($tableNames)) $tableNames=implode(",",$tableNames);	
-			
+		if (is_array($tableNames)) $tableNames=implode(",",$tableNames);			
+
 		if (!empty($where)) {		  			  
 			  $where1="";
 			  for ($n=0;$n<count($where);$n++) {
 				$operator=(empty($where[$n]["operator"])) ? "=" : $where[$n]["operator"];
 				$type=(empty($where[$n]["type"])) ? "%s" : $where[$n]["type"];
-				if ($n>0) $where1.=",";
+				if ($n>0) $where1.=" AND ";
 				$where1.="`".$where[$n]["name"]."`".$operator.$type;
 				$values[]=$where[$n]["value"];
 			  }
-			if ($useCache) return Caching::getCachedRows($wpdb->prepare("SELECT $cols FROM {$tableNames} WHERE $where1",$values)); 
-		  	else return $wpdb->get_results($wpdb->prepare("SELECT $cols FROM {$tableNames} WHERE $where1",$values),ARRAY_A); 
+			if ($useCache) return Caching::getCachedRows($wpdb->prepare("SELECT $cols FROM {$tableNames} WHERE $where1 ",$values)); 
+		  	else return $wpdb->get_results($wpdb->prepare("SELECT $cols FROM {$tableNames} WHERE $where1 ",$values),ARRAY_A); 
 		} else {
-			if ($useCache) return Caching::getCachedRows("SELECT $cols FROM {$tableNames}"); 
-	      	else return $wpdb->get_results("SELECT $cols FROM {$tableNames}",ARRAY_A); 
+			if ($useCache) return Caching::getCachedRows("SELECT $cols FROM {$tableNames} "); 
+	      	else return $wpdb->get_results("SELECT $cols FROM {$tableNames} ",ARRAY_A); 
+		}
+	}
+	public static function wpdbGetRowsAdvanced($params) {		
+		global $wpdb;	
+		if (!empty($params["cols"])) $cols=$params["cols"];
+		if (!empty($params["tableNames"])) $tableNames=$params["tableNames"];
+		if (!empty($params["orderDir"])) $orderDir=$params["orderDir"];
+		if (!empty($params["useCache"])) $useCache=$params["useCache"];
+		if (!empty($params["order"])) $order=$params["order"];
+		if (!empty($params["limit"])) $limit=$params["limit"];
+		if (!empty($params["where"])) $where=$params["where"];
+
+
+		$values=[];
+		if (is_array($cols)) $cols=implode(",",$cols);	
+		if (is_array($tableNames)) $tableNames=implode(",",$tableNames);	
+		$orderStr="";
+		if (!empty($order))	{
+			$orderStr.="ORDER BY ";
+			$n=0;
+			foreach ($order as $o) {
+				if ($n>0) $orderStr.=",";
+				$orderStr.=$o;
+				$n++;
+			}
+			$orderStr.=" ".$orderDir;
+		}
+		$limitStr="";
+		if (!empty($limit)) {
+			$limitStr.="LIMIT ";
+			$n=0;
+			foreach ($limit as $l) {
+				if ($n>0) $limitStr.=",";
+				$limitStr.=$l;
+				$n++;
+			}
+		}
+
+		if (!empty($where)) {		  			  
+			  $where1="";
+			  for ($n=0;$n<count($where);$n++) {
+				$operator=(empty($where[$n]["operator"])) ? "=" : $where[$n]["operator"];
+				$type=(empty($where[$n]["type"])) ? "%s" : $where[$n]["type"];
+				if ($n>0) $where1.=" AND ";
+				$where1.="`".$where[$n]["name"]."` ".$operator." ".$type;
+				$values[]=$where[$n]["value"];
+			  }
+			$query=$wpdb->prepare("SELECT $cols FROM {$tableNames} WHERE $where1 $orderStr $limitStr",$values);
+			$query=str_replace("'NULL'","NULL",$query);
+			if ($useCache) return Caching::getCachedRows($query); 
+		  	else return $wpdb->get_results($query,ARRAY_A); 
+		} else {
+			if ($useCache) return Caching::getCachedRows("SELECT $cols FROM {$tableNames} $orderStr $limitStr"); 
+	      	else return $wpdb->get_results("SELECT $cols FROM {$tableNames} $orderStr $limitStr",ARRAY_A); 
 		}
 	}
 	
@@ -252,5 +306,18 @@ class MikDb {
 			}
 			$wpdb->query($sql);
 		}
+	}	
+	public static function makeWhere($whereArr=[]) {
+		$where="";
+		$n=0;
+		foreach ($whereArr as $w) {
+			if ($w) {				
+				if ($n>0) $where.=" AND ".$w;
+				else $where.=$w;
+				$n++;
+			}			
+		}
+		if ($where) $where=" WHERE ".$where;
+		return $where;
 	}	
 }

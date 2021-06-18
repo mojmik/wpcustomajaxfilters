@@ -22,6 +22,7 @@ require_once(plugin_dir_path( __FILE__ ) . '/majaxwp/customfields.php');
 require_once(plugin_dir_path( __FILE__ ) . '/majaxwp/customfield.php');
 require_once(plugin_dir_path( __FILE__ ) . '/majaxwp/majaxhtmlelements.php');
 require_once(plugin_dir_path( __FILE__ ) . '/majaxwp/majaxform.php');
+require_once(plugin_dir_path( __FILE__ ) . '/majaxwp/majaxquery.php');
 require_once(plugin_dir_path( __FILE__ ) . '/majaxwp/majaxrender.php');
 require_once(plugin_dir_path( __FILE__ ) . '/majaxwp/majaxitem.php');
 require_once(plugin_dir_path( __FILE__ ) . '/majaxwp/caching.php');
@@ -49,7 +50,7 @@ if ($action=="contact_filled") {
 		$postId=$_POST["category"];	
 		$query=$renderer->getMajaxQuery()->produceSQL(["id" => $postId]);
 		$rows=MajaxWP\Caching::getCachedRows($query);
-		$renderer->showRows($rows,0,"single",9,0,"contactFilled");		
+		$renderer->showRows($rows,["custTitle" => "single","miscAction"=>"contactFilled"]);		
 	}    
 	else {
 		//form without posts
@@ -62,7 +63,7 @@ if ($action=="single_row") {
 	MajaxWP\MikDb::init(DB_HOST,DB_USER,DB_PASSWORD,DB_NAME);		
     $query=$renderer->getMajaxQuery()->produceSQL(["id" => $_POST["category"]]);
 	$rows=MajaxWP\Caching::getCachedRows($query);
-	$renderer->showRows($rows,0,"single",9,0,"action");		
+	$renderer->showRows($rows,["custTitle" => "single","miscAction"=>"action"]);		
 	exit;
 }
 if ($action=="filter_rows") {
@@ -83,12 +84,12 @@ if ($action=="filter_rows") {
 		if (!$countsJson) {
 			MajaxWP\Caching::addCache("json_$query",$countsRows);
 		}
-		$renderer->showRows($countsRows,0,"majaxcounts",0);
-		$renderer->showRows($renderer->filterMetaSelects($rows),0,"",9,$page,"",true);		
+		$renderer->showRows($countsRows,["custTitle" => "majaxcounts","limit"=>0]);
+		$renderer->showRows($renderer->filterMetaSelects($rows),["aktPage" => $page,"sliceArray"=>true]);		
 	} else {
 		$query=$renderer->getMajaxQuery()->produceSQL(["from" => $page*9]);
 		$rows=MajaxWP\Caching::getCachedRows($query);
-		$renderer->showRows($renderer->filterMetaSelects($rows),0,"",9,$page);		
+		$renderer->showRows($renderer->filterMetaSelects($rows),["aktPage" => $page]);		
 	}
 	
 	

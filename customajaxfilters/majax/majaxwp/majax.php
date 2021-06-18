@@ -77,8 +77,8 @@ Class Majax {
 		/*
 		if (  $query->is_main_query() && is_home()  )			
 			$query->set( 'post_type', array( 'post', 'cj' ) );
-		*/			
-		MimgTools::handleRequest();		
+		*/	
+					
 		return $query;
 	}
 

@@ -8,7 +8,8 @@ class Settings {
       "site"  => 
         ["language", 
             "clickAction" => ["desc" => "link action- form for form, any other value for standard"],
-            "buildCounts" => ["desc" => "set when form with items counts are to be displayed (not recommended for big sites with many items)"]
+            "buildCounts" => ["desc" => "set when form with items counts are to be displayed (not recommended for big sites with many items)"],
+            "cpt" => ["desc" => "default custom post type. We need this for page titles (shortcodes too late for this)"]
         ],
       "secret" => ["captchasecret","from","sitekey"]
     ];

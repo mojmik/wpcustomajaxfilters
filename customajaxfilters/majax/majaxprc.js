@@ -24,7 +24,7 @@ var majaxModule=(function (my) {
          mUrl.params=[];
          const urlParams = new URLSearchParams(window.location.search);
          urlParams.forEach(function(value, key) {
-            mUrl.params[key]=decodeURIComponent(value);
+            mUrl.params[key]=value;
           });
         },
         writeUrl() {
@@ -41,7 +41,10 @@ var majaxModule=(function (my) {
         },
         addParam(param,value) {
          this.params[param]=value;
-         this.params["aktPage"]="";  
+         this.resetPagination();
+        },
+        resetPagination() {
+            this.params["aktPage"]="";  
         },
         generateUrl(paramName,paramValue) {
          //return url with additional param
@@ -253,9 +256,9 @@ var majaxModule=(function (my) {
                             if (obj.checked==false) obj.value="0";
                         } 		
                         outObj.data[obj.name]=obj.value;
-                        if (majaxPrc.thisFiringObjId == obj.id) {
-                            //input set by user, save to url
-                            mUrl.addParam(inputName,obj.value);                        
+                        if (majaxPrc.thisFiringObjId == obj.id && obj.id) {
+                            //input set by user or static, save to url
+                            mUrl.addParam(inputName,obj.value);  
                         } else {
                             if (mUrl.params[inputName]) {
                                 //input val has come in url                    
@@ -296,7 +299,6 @@ var majaxModule=(function (my) {
                                 }
                             });
                             mUrl.addParam(obj.name,selValues);  
-                            outObj.data["aktPage"]="";
                             } else {                                                                                                                                
                                     if (mUrl.params[obj.name]) {
                                         //input val has come in url   

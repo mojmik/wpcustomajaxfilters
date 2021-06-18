@@ -151,7 +151,14 @@ class CustomField {
 	
 	public function getFieldFilterSQL() {
 		//$val=$_POST[$this->name];			   
-		if (isset($this->fixFilter)) return "`{$this->name}` {$this->compare} '{$this->fixFilter}'";
+		if (isset($this->fixFilter)) { 
+			if ($this->typeIs("NUMERIC")) { 				 
+				return "cast(`{$this->name}` as unsigned) {$this->fixFilter}";
+			} else {
+				return "`{$this->name}` {$this->fixFilter}";
+			}
+			
+		}
 
 		$val=$this->postedValue;			   
 		if ($val=="") {
@@ -163,7 +170,7 @@ class CustomField {
 			$vals=explode("|",$val);
 
 			if ($this->typeIs("NUMERIC")) { 				 
-				 return "`{$this->name}` BETWEEN {$vals[0]} AND {$vals[1]}";
+				 return "cast(`{$this->name}` as unsigned) BETWEEN {$vals[0]} AND {$vals[1]}";
 			} else {
 				$valsStr="";
 				$n=0;
@@ -185,7 +192,12 @@ class CustomField {
 		}
 		else {				
 			//single value
-			return "`{$this->name}` {$this->compare} '{$val}'";			
+			if ($this->typeIs("NUMERIC")) {
+				return "cast(`{$this->name}` as unsigned) {$this->compare} '{$val}'";			
+			} else {
+				return "`{$this->name}` {$this->compare} '{$val}'";			
+			}
+			
 		}
 	}
 	public function loadPostedValue() {

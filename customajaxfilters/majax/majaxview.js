@@ -179,7 +179,14 @@ var majaxModule=(function (my) {
                  aktPage=n;
                 }
                 if (pages[page]!="pagination") n++;
-            }            
+            }   
+            
+            let totalPages=my.majaxRender.staticFields["totalPages"];
+            if (typeof totalPages === 'undefined') totalPages=my.majaxRender.totalPages;  
+            if (parseInt(totalPages)>n) { 
+                n=parseInt(totalPages);
+                aktPage=parseInt(my.mUrl.params["aktPage"]);
+            }
             cntPage=n;
             if (cntPage==1) return "";
             let p=0;
