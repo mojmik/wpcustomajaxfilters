@@ -48,7 +48,7 @@ if ($action=="contact_filled") {
 	MajaxWP\MikDb::init(DB_HOST,DB_USER,DB_PASSWORD,DB_NAME);		
 	if (isset($_POST["category"])) {
 		$postId=$_POST["category"];	
-		$query=$renderer->getMajaxQuery()->produceSQL($postId);
+		$query=$renderer->getMajaxQuery()->produceSQL(["id" => $postId]);
 		$rows=MajaxWP\Caching::getCachedRows($query);
 		$renderer->showRows($rows,["custTitle" => "single","miscAction"=>"contactFilled"]);		
 	}    
@@ -61,7 +61,7 @@ if ($action=="contact_filled") {
 if ($action=="single_row") {
 	$renderer = new MajaxWP\MajaxRender(true,$atts); //use false pro preloading hardcoded fields (save one sql query)
 	MajaxWP\MikDb::init(DB_HOST,DB_USER,DB_PASSWORD,DB_NAME);		
-    $query=$renderer->getMajaxQuery()->produceSQL($_POST["category"]);
+    $query=$renderer->getMajaxQuery()->produceSQL(["id" => $_POST["category"]]);
 	$rows=MajaxWP\Caching::getCachedRows($query);
 	$renderer->showRows($rows,["custTitle" => "single","miscAction"=>"action"]);		
 	exit;
@@ -77,7 +77,7 @@ if ($action=="filter_rows") {
 	if no form filters shown, this is not needed
 	*/
 	if ($buildCounts) {
-		$query=$renderer->getMajaxQuery()->produceSQL(null,null,false,true);
+		$query=$renderer->getMajaxQuery()->produceSQL(["postAll" => true]);
 		$rows=MajaxWP\Caching::getCachedRows($query);
 		$countsJson=MajaxWP\Caching::getCachedJson("json_$query");
 		$countsRows=$renderer->buildCounts($rows,$countsJson);	
@@ -87,7 +87,7 @@ if ($action=="filter_rows") {
 		$renderer->showRows($countsRows,["custTitle" => "majaxcounts","limit"=>0]);
 		$renderer->showRows($renderer->filterMetaSelects($rows),["aktPage" => $page,"sliceArray"=>true]);		
 	} else {
-		$query=$renderer->getMajaxQuery()->produceSQL(null,$page*9);
+		$query=$renderer->getMajaxQuery()->produceSQL(["from" => $page*9]);
 		$rows=MajaxWP\Caching::getCachedRows($query);
 		$renderer->showRows($renderer->filterMetaSelects($rows),["aktPage" => $page]);		
 	}

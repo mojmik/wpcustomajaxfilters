@@ -40,7 +40,12 @@ Class MajaxQuery {
     public function setFixFilters($f) {
         $this->fixFilters=$f;
     }
-    function produceSQL($id=null,$from=null,$countOnly=false,$postAll=false,$params=[]) {
+    function produceSQL($params=[]) {
+        $id=array_key_exists("id",$params) ? $params["id"] : null;
+        $from=array_key_exists("from",$params) ? $params["from"] : null;
+        $countOnly=array_key_exists("countOnly",$params) ? $params["countOnly"] : false;
+        $postAll=array_key_exists("postAll",$params) ? $params["postAll"] : false;
+
 		$mType = $this->getPostType();
 		$col="";
 		$filters="";
@@ -76,7 +81,7 @@ Class MajaxQuery {
 		if (array_key_exists("limit",$params)) $limit=" LIMIT ".$params["limit"];
 		if (array_key_exists("orderBy",$params)) $orderBy=$params["orderBy"];
 		if (array_key_exists("orderDir",$params)) $orderDir=$params["orderDir"];
-		if (array_key_exists("innerWhere",$params)) $innerWhere=" AND ".$params["innerWhere"];
+		if (array_key_exists("innerWhere",$params)) $innerWhere=$params["innerWhere"];
 		
         if ($orderBy)  $orderBy="ORDER BY ".$orderBy;
 		//customSearch
@@ -84,7 +89,7 @@ Class MajaxQuery {
 		if (!empty($_GET['mSearch'])) {
 			$this->additionalFilters[]="mSearch";
 			$contentSearch=filter_var($_GET['mSearch'], FILTER_SANITIZE_STRING); 	
-			if ($contentSearch) $customSearch=" AND post_content like '%$contentSearch%' ";
+			if ($contentSearch) $customSearch="post_content like '%$contentSearch%' ";
 		}
         if ($this->dedicatedTable) {
             $where=MikDb::makeWhere([$innerWhere,$customSearch,$filters]);
@@ -106,14 +111,14 @@ Class MajaxQuery {
             }
         } else {
             $where=MikDb::makeWhere([$filters]);
+            $postFilters=MikDb::makeWhere(["post_status like 'publish'","post_type like '$mType'",$innerWhere,$customSearch]);
             if ($countOnly) {
                 if (!$filters && !$innerWhere && !$customSearch) {
                     $query="
                     SELECT count(*) as cnt,post_title,post_name,post_content{$col}
                         FROM wp_posts LEFT JOIN wp_postmeta pm1 ON ( pm1.post_id = ID) 
                         WHERE
-                        post_status like 'publish' 
-                        AND post_type like '$mType'	
+                        $postFilters
                         GROUP BY ID
                         $orderBy $orderDir
                     ";
@@ -124,10 +129,7 @@ Class MajaxQuery {
                         $col
                         FROM wp_posts LEFT JOIN wp_postmeta pm1 ON ( pm1.post_id = ID) 
                         WHERE
-                        post_status like 'publish' 
-                        AND post_type like '$mType'	
-                        $innerWhere	
-                        $customSearch	
+                        $postFilters
                         GROUP BY ID
                         ) AS pm1
                         $where
@@ -140,8 +142,7 @@ Class MajaxQuery {
                     SELECT post_title,post_name,post_content{$col}
                         FROM wp_posts LEFT JOIN wp_postmeta pm1 ON ( pm1.post_id = ID) 
                         WHERE 
-                        post_status like 'publish' 
-                        AND post_type like '$mType'	
+                        $postFilters
                         GROUP BY ID
                         $orderBy $orderDir
                         $limit
@@ -153,10 +154,7 @@ Class MajaxQuery {
                         $col
                         FROM wp_posts LEFT JOIN wp_postmeta pm1 ON ( pm1.post_id = ID) 
                         WHERE 
-                        post_status like 'publish' 
-                        AND post_type like '$mType'	
-                        $innerWhere	
-                        $customSearch	
+                        $postFilters
                         GROUP BY ID
                         ) AS pm1
                         $where

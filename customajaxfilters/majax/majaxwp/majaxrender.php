@@ -125,20 +125,20 @@ Class MajaxRender {
 		
 		//get results
 		if ($postId) { 
-			$query=$this->getMajaxQuery()->produceSQL($postId);			
+			$query=$this->getMajaxQuery()->produceSQL(["id" => $postId]);			
 			$this->htmlElements->showIdSign();
 		}
 		else { 
 			//we'll display random posts on first page of frontpage
-			if (!$randomPosts) $query=$this->getMajaxQuery()->produceSQL(null,$aktPage*$this->postRowsLimit);
-			else $query=$this->getMajaxQuery()->produceSQL(null,$aktPage*$this->postRowsLimit,false,false,["orderBy" => "rand()", "orderDir" => ""]);
+			if (!$randomPosts) $query=$this->getMajaxQuery()->produceSQL(["from" => $aktPage*$this->postRowsLimit]);
+			else $query=$this->getMajaxQuery()->produceSQL(["from" =>$aktPage*$this->postRowsLimit,"orderBy" => "rand()", "orderDir" => ""]);
 		}
 		$rows=Caching::getCachedRows($query);	
 
 		//tady se berou cntRows pro celou kategorii, ale muzou tabm byt treba jeste filtry na brand, takze je to potreba spocitat
 		if (!$postId && (empty($cntRows) || (count($this->additionalFilters)>0))) { 
 			//$cntRows=count($rows);
-			$query=$this->getMajaxQuery()->produceSQL(null,null,true,false,["orderBy" => false, "orderDir" => false]);	
+			$query=$this->getMajaxQuery()->produceSQL(["countOnly" =>true,"orderBy" => false, "orderDir" => false]);	
 			$rowsCount=Caching::getCachedRows($query);
 			$cntRows=$rowsCount[0]["cnt"];
 		}
@@ -159,8 +159,7 @@ Class MajaxRender {
 				$cjCat=$rows[0][$cj->getTypeSlug()];								
 				$this->fixFilters[]=["name" =>  $cj->getTypeSlug(), "filter" => $cjCat.$exactCategoryMatch, "sqlCompare" => "LIKE"];
 				$this->getMajaxQuery()->setFixFilters($this->fixFilters);
-				$query=$this->getMajaxQuery()->produceSQL(null,null,false,false,["limit" => "3",
-					"orderBy" => "rand()","orderDir" => "", "innerWhere" => " NOT post_name = '".$rows[0]["post_name"]."'"]);
+				$query=$this->getMajaxQuery()->produceSQL(["limit" => "3","orderBy" => "rand()","orderDir" => "", "innerWhere" => " NOT post_name = '".$rows[0]["post_name"]."'"]);
 				$relatedRows=Caching::getCachedRows($query);
 				$thisCat=$cj->getCjTools()->getCatBySlug($cjCat,true);
 				$lastCat=$cj->getCjTools()->getCatPathNice($thisCat["path"],true);

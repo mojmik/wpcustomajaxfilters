@@ -17,6 +17,12 @@ class CJtools {
         $this->separatorVariations=[ "|"," > ","&gt;", "> "," >"];
         $this->bannedCategories=["Heureka.cz","NÁBYTEK","Nábytek"];      
     }
+    private function getDedicatedTable() {
+        if (array_key_exists("dedicatedTable",$this->params)) $this->dedicatedTable=$this->params["dedicatedTable"];
+        if (!$this->dedicatedTable) $this->dedicatedTable=Settings::loadSetting("dedicatedTables-".$this->customPostType,"cptsettings");
+        return $this->dedicatedTable;        
+    }
+    
 
     public function setParam($name, $val) {
         $this->params[$name]=$val;
@@ -116,7 +122,7 @@ class CJtools {
     public function createPostsFromTable($fields, $from = null, $to = null, $extras = []) {
         global $wpdb;
         $table = $this->params["tableName"];
-        $dedicatedTable=$this->dedicatedTable=Settings::loadSetting("dedicatedTables-".$this->customPostType,"cptsettings");
+        $dedicatedTable=$this->getDedicatedTable();
         if ($dedicatedTable) { 
             $ded=new DedicatedTables($this->customPostType);
             $ded->initTable(false);
@@ -275,38 +281,57 @@ class CJtools {
         $catMetaName = $this->params["catSlugMetaName"];        
 
         if (!$exact) $catPath.= "%";
-        if ($distinct) $selectVar="DISTINCT(pm2.meta_value)";        
-        else $selectVar="pm2.meta_value";
+        
         $skip="";
-        if ($skipBlank) $skip=" AND NOT pm2.meta_value = ''";                
-        if ($catPath && $catPath!="%") {
+            
+        $dedTable=$this->getDedicatedTable();
+        if ($dedTable) {
+            if ($distinct) $selectVar="DISTINCT(`$queryMetaName`)";        
+            else $selectVar="`$queryMetaName`";
+            if ($skipBlank) $skip=" AND NOT `$queryMetaName` = ''";   
             $query = "
-            SELECT $selectVar
-            FROM {$prefix}posts po LEFT JOIN {$prefix}postmeta pm1 ON(pm1.post_id = ID) LEFT JOIN {$prefix}postmeta pm2 ON(pm2.post_id = ID)
+            SELECT $selectVar AS `meta_value`
+            FROM {$dedTable}
             WHERE
-            po.post_status like 'publish'
-            AND po.post_type like '{$this->customPostType}'
-            AND pm1.meta_key = '{$catMetaName}'
-            AND pm1.meta_value LIKE '{$catPath}'
-            AND pm2.meta_key = '$queryMetaName'
+            `{$catMetaName}` LIKE '{$catPath}'
             $skip
             $order
             $limit
-            ";             
+            ";   
+        } else {
+            if ($distinct) $selectVar="DISTINCT(pm2.meta_value)";        
+            else $selectVar="pm2.meta_value";
+            if ($skipBlank) $skip=" AND NOT pm2.meta_value = ''";   
+            if ($catPath && $catPath!="%") {
+                $query = "
+                SELECT $selectVar
+                FROM {$prefix}posts po LEFT JOIN {$prefix}postmeta pm1 ON(pm1.post_id = ID) LEFT JOIN {$prefix}postmeta pm2 ON(pm2.post_id = ID)
+                WHERE
+                po.post_status like 'publish'
+                AND po.post_type like '{$this->customPostType}'
+                AND pm1.meta_key = '{$catMetaName}'
+                AND pm1.meta_value LIKE '{$catPath}'
+                AND pm2.meta_key = '$queryMetaName'
+                $skip
+                $order
+                $limit
+                ";             
+            }
+            else {
+                $query = "
+                SELECT $selectVar
+                FROM {$prefix}posts po LEFT JOIN {$prefix}postmeta pm2 ON(pm2.post_id = ID)
+                WHERE            
+                po.post_status like 'publish'
+                AND po.post_type like '{$this->customPostType}'            
+                AND pm2.meta_key = '$queryMetaName'  
+                $skip  
+                $order       
+                $limit
+                ";  
+            }
         }
-        else {
-            $query = "
-            SELECT $selectVar
-            FROM {$prefix}posts po LEFT JOIN {$prefix}postmeta pm2 ON(pm2.post_id = ID)
-            WHERE            
-            po.post_status like 'publish'
-            AND po.post_type like '{$this->customPostType}'            
-            AND pm2.meta_key = '$queryMetaName'  
-            $skip  
-            $order       
-            $limit
-            ";  
-        }
+        
         
         //return $wpdb->get_results($query, ARRAY_A);
         return MajaxWP\Caching::getCachedRows($query);
@@ -412,7 +437,7 @@ class CJtools {
         $doDesc=true;
         $doParents=true;
         $skipNonBlank=false;
-        $dedTable=Settings::loadSetting("dedicatedTables-".$this->customPostType,"cptsettings");
+        $dedTable=$this->getDedicatedTable();
         foreach($cats as $c) {
             if ($skipNonBlank && $c["counts"]>0) continue;
             if ($doDesc) $desc = $this->prepareCatDescription($c,$dedTable);

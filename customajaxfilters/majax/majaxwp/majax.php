@@ -57,9 +57,10 @@ Class Majax {
 				$title_parts['tagline'] = $desc;
 			}
 			
-			$title_parts['site'] = get_bloginfo( 'name' );
+			$title_parts['site'] = get_bloginfo( 'name' );			
 			return $title_parts;
-		}		
+		} 	
+		return $title;		
 	}
 	function initHook() {
 		MimgTools::handleRequest();		
