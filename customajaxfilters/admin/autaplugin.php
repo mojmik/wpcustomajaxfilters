@@ -24,7 +24,7 @@ class AutaPlugin {
 		global $wpdb;
 		$query = "SELECT * FROM `".AutaPlugin::getTable("main")."`";	
 		foreach( $wpdb->get_results($query) as $key => $row) {					
-			$acp=new AutaCustomPost($row->slug,$row->singular,$row->plural,$row->specialType,$row->tableType); 
+			$acp=new AutaCustomPost($row->slug,$row->singular,$row->plural,$row->specialType); 
 			$acp->adminInit();
 			$this->customPost[]=$acp; 
 			
@@ -55,7 +55,6 @@ class AutaPlugin {
 	  if ($tab=="settings") return $wpdb->prefix.CAF_TAB_PREFIX."plugin_settings";
 	  if ($tab=="fields") return $wpdb->prefix.CAF_TAB_PREFIX.$cpt."_fields";
 	  if ($tab=="attachments") return $wpdb->prefix.CAF_TAB_PREFIX."attachments";
-	  if ($tab=="dedicated") return $wpdb->prefix.CAF_TAB_PREFIX.$cpt."_ded";
 	  return $wpdb->prefix.CAF_TAB_PREFIX.$tab;
 	}
 
@@ -71,7 +70,6 @@ class AutaPlugin {
 		  singular text NOT NULL,
 		  plural text DEFAULT '' NOT NULL,
 		  specialType text DEFAULT '' NOT NULL,
-		  tableType text DEFAULT '' NOT NULL,
 		  PRIMARY KEY  (id)
 		) $charset_collate;";
 
@@ -155,15 +153,13 @@ class AutaPlugin {
 		$plural=filter_input( INPUT_POST, "plural", FILTER_SANITIZE_STRING );  						 				
 		$slug=filter_input( INPUT_POST, "slug", FILTER_SANITIZE_STRING );  
 		$specialType=filter_input( INPUT_POST, "specialType", FILTER_SANITIZE_STRING );  
-		$tableType=filter_input( INPUT_POST, "tableType", FILTER_SANITIZE_STRING );  
 		if (isset($_POST["cafActionEdit"])) {
-			$wpdb->update(AutaPlugin::getTable("main"), array('singular' => $singular, 'plural' => $plural, 'specialType' => $specialType, 'tableType' => $tableType), array('slug' => $slug) );
+			$wpdb->update(AutaPlugin::getTable("main"), array('singular' => $singular, 'plural' => $plural, 'specialType' => $specialType), array('slug' => $slug) );
 			foreach ($this->customPost as $cpt ) {
 				if ($cpt->getCustomPostType()==$slug) {
 					$cpt->singular=$singular;
 					$cpt->plural=$plural;					  
 					$cpt->specialType=$specialType;	
-					$cpt->tableType=$tableType;	
 				}
 			}
 		}
