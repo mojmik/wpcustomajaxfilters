@@ -29,7 +29,48 @@ Class Majax {
 		//fronted posts (aby to bralo custom posty jako obyc. posty, tohle tady nebude potreba)
 		//$cptAdmin=new MajaxAdmin\AutaCustomPost("zajezd");
 		add_action( 'pre_get_posts', [$this,'addCptToQuery'] );	
-		
+		add_filter( 'document_title_parts', [$this,'filter_pagetitle'] );		
+		add_action( 'wp', [$this,'wpHead'] );	
+		add_action( 'plugins_loaded', [$this,'initHook'] );
+		//add_filter( 'the_title', 'wpse_alter_title', 20, 2 );
+	}
+
+	public function filter_pagetitle( $title, $id=0 ) {	
+		/*
+		if ($this->pageTitle) {
+			$title=wp_title();
+			$title.=" - ".$this->pageTitle;
+		}
+		global $wp_query;
+		if (isset($wp_query->post->post_title)){
+			return $wp_query->post->post_title;
+		}
+		*/	
+		$cjCat=CjFront::getCat();
+		if (!empty($cjCat)) {
+			$title_parts['title'] = "".$cjCat["path"]; 
+			$p0=strpos($cjCat["desc"],'</section>');
+			if ($p0!==false) {
+				$p0+=strlen("</section>");
+				$p=strpos($cjCat["desc"],' "');
+				$desc=substr($cjCat["desc"],$p0,$p-$p0);
+				$title_parts['tagline'] = $desc;
+			}
+			
+			$title_parts['site'] = get_bloginfo( 'name' );			
+			return $title_parts;
+		} 	
+		return $title;		
+	}
+	function initHook() {
+		MimgTools::handleRequest();		
+	}
+	function wpHead() {
+		//pokud prislo v get, tak natahneme CPT, jinak bereme default
+		//potreba upravit v permalinks		
+		$cpt=get_query_var("cpt");
+		if (!$cpt) $cpt=MajaxAdmin\Settings::loadSetting("cpt","site");
+		CjFront::getCJ($cpt);
 	}
 
 	function addCptToQuery( $query ) {
