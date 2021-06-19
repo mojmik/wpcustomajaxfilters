@@ -4,11 +4,14 @@ use \CustomAjaxFilters\Admin as MajaxAdmin;
 
 Class Majax {
 	private $ajaxHandler;
+	private $majaxLoader;
 	function __construct() {
 		spl_autoload_register([$this,"mLoadClass"]);
-		if (CAF_MAJAX_FAST > 1) $this->ajaxHandler=new MajaxHandlerShort(); //shortinit lightweight version
-		else $this->ajaxHandler=new MajaxHandler(); //ajax-admin version
-		$this->ajaxHandler->register();							
+		$this->majaxLoader=new MajaxLoader();
+		if (CAF_MAJAX_FAST > 1) $this->ajaxHandler=new MajaxHandlerShort($this->majaxLoader); //shortinit lightweight version
+		else $this->ajaxHandler=new MajaxHandler($this->majaxLoader); //ajax-admin version
+		$this->ajaxHandler->register();	
+						
 	}
 	
 	function mLoadClass($class) {	
@@ -34,7 +37,10 @@ Class Majax {
 		add_action( 'plugins_loaded', [$this,'initHook'] );
 		//add_filter( 'the_title', 'wpse_alter_title', 20, 2 );
 	}
-
+	private function preLoader() {
+		
+		$this->majaxLoader->initFromShortCode();	
+	}
 	public function filter_pagetitle( $title, $id=0 ) {	
 		/*
 		if ($this->pageTitle) {
@@ -46,7 +52,11 @@ Class Majax {
 			return $wp_query->post->post_title;
 		}
 		*/	
-		$cjCat=CjFront::getCat();
+		//load posttype from shortcode
+		//init majaxquery
+		//preload posts
+		$this->preLoader();
+		$cjCat=$this->majaxLoader->getCurrentCat();
 		if (!empty($cjCat)) {
 			$title_parts['title'] = "".$cjCat["path"]; 
 			$p0=strpos($cjCat["desc"],'</section>');
@@ -59,6 +69,13 @@ Class Majax {
 			
 			$title_parts['site'] = get_bloginfo( 'name' );			
 			return $title_parts;
+		} else {						
+			$customTitle=$this->majaxLoader->getTitle();
+			if ($customTitle) { 
+				$title_parts['title'] = $customTitle; 
+				$title_parts['site'] = get_bloginfo( 'name' );			
+				return $title_parts;
+			}
 		} 	
 		return $title;		
 	}
@@ -70,7 +87,6 @@ Class Majax {
 		//potreba upravit v permalinks		
 		$cpt=get_query_var("cpt");
 		if (!$cpt) $cpt=MajaxAdmin\Settings::loadSetting("cpt","site");
-		CjFront::getCJ($cpt);
 	}
 
 	function addCptToQuery( $query ) {

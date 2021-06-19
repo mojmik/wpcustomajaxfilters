@@ -595,7 +595,7 @@ button.select2-selection__clear {
 .catTitle h1 {
   margin-top:auto;
   margin-bottom: auto;
-  padding:10px;
+  padding:0 0 10px 0px;
 }
 .mValignMid {
   margin-top:auto;
@@ -642,4 +642,18 @@ h1 {
   content: '';
   background-color: #ffc107;
   background-image: linear-gradient(to right,rgba(255,255,255,0),rgba(255,255,255,.2));
+}
+
+#mainnav ul li a {
+  color: #000;
+}
+#mainnav ul li a:hover {
+  color: #000;
+}
+
+#mainnav .sub-menu li a {
+  color: #000;
+}
+#mainnav .sub-menu li a:hover {
+  color: #000;
 }

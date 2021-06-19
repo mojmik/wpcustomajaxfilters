@@ -7,53 +7,50 @@ use stdClass;
 Class MajaxRender {		
 	private $postType;
 	private $htmlElements;
-	private $subType;
 	private $siteSettings;
 	private $translating;
 	private $postRowsLimit; //rows limit (static show)
 	private $additionalFilters;
 	private $fixFilters;
 	private $totalPages;
-	private $pageTitle;
 	private $majaxQuery;
+	private $loaderParams;
 	function __construct($preparePost=false,$atts=[]) {			
 			$this->siteSettings["language"]="";				
 			if (!empty($atts)) { 
-				if (isset($atts["type"])) $this->setPostType($atts["type"]);
-				if (isset($atts["typ"])) $this->subType=$atts["typ"];	
-				if (isset($atts["language"])) $this->siteSettings["language"]=$atts["language"];							
+				if (array_key_exists("type",$atts)) $this->setPostType($atts["type"]);
+				if (array_key_exists("language",$atts)) $this->siteSettings["language"]=$atts["language"];							
+				if (array_key_exists("majaxLoader",$atts)) $this->majaxLoader=$atts["majaxLoader"];
 			} 
 			if (empty($this->siteSettings["language"])) $this->siteSettings["language"]=MajaxAdmin\Settings::loadSetting("language","site");
 			if (empty($this->siteSettings["clickAction"])) $this->siteSettings["clickAction"]=MajaxAdmin\Settings::loadSetting("clickAction","site");
 			$this->translating=new Translating($this->siteSettings["language"]);			
 			$this->htmlElements=new MajaxHtmlElements($this->translating);			
 			$this->htmlElements->setPostType($this->postType);
-			//init custom fields			
-			$this->postRowsLimit=9;
+			//init custom fields
 			$this->additionalFilters=[];			
 			$this->fixFilters=[];
-			$this->dedicatedTable=MajaxAdmin\Settings::loadSetting("dedicatedTables-".$this->getPostType(),"cptsettings");
-			$params=[];
-			$params["rowsLimit"]=$this->postRowsLimit;
-			$this->majaxQuery=new MajaxQuery($this->getPostType(),$this->dedicatedTable,$params);
-			if ($preparePost) { 
-				$this->loadFields();
+
+			if (empty($this->majaxLoader)) {
+				//no shortcode, need to init the loader
+				$this->majaxLoader=new MajaxLoader();
+				$this->majaxLoader->initDefaults($this->getPostType(),$preparePost);
+			} else {
+				//already preloaded
 			}
-			
+			$this->loaderParams=$this->majaxLoader->getParams();
+			$this->postRowsLimit=$this->loaderParams["postRowsLimit"];
+			$this->customPostType=$this->loaderParams["customPostType"];
+			$this->majaxQuery=$this->loaderParams["majaxQuery"];				
+			$this->fields=$this->loaderParams["fields"];			
 	}
 
 	public function getMajaxQuery() {
 		return $this->majaxQuery;
 	}
-			
-	function loadFields() {
-		//$this->logWrite("cpt!@ {$this->getPostType()}");
-		$this->fields=new CustomFields();
-		$this->fields->prepare($this->getPostType());
-		$this->fields->loadPostedValues();			
-		ImageCache::loadImageCache($this->getPostType());
-		$this->majaxQuery->setFields($this->fields);
-	}
+	public function getMajaxLoader() {
+		return $this->majaxLoader;
+	}		
 	function getPostType() {			
 		return $this->postType; 	
 	}
@@ -68,107 +65,33 @@ Class MajaxRender {
 	function showStaticContent($atts = []) {		
 		//[majaxstaticcontent type="cj" cj="1"]
 		
-		$this->loadFields();				
-		if (isset($this->subType)) { 		 
-			$this->fields->setFixFilter("mauta_typ",$this->subType);					
-		}
-		
-		$postId=isset($_GET['id']) ? filter_var($_GET['id'], FILTER_SANITIZE_STRING) : "";
-		$aktPage=filter_input( INPUT_GET, "aktPage", FILTER_SANITIZE_NUMBER_INT );
-		$showCjCat=false;
-		$emptyDiv=true;		
-		$randomPosts=false;
-		if (!empty($atts["cj"])) {
-			$cj=CjFront::getCJ($this->postType);
-			$cjBrand=urlDecode(get_query_var("mikbrand"));
-			$cjCat=get_query_var("mikcat");
-			$exactCategoryMatch="%";
-			if (!$postId) {
-				if ($cjCat) { 
-					$this->fixFilters[]=["name" =>  $cj->getTypeSlug(), "filter" => $cjCat.$exactCategoryMatch, "sqlCompare" => "LIKE"];
-					
-					//$thisCat=$cj->getCjTools()->getCatBySlug($cjCat,true);
-					$thisCat=CjFront::getCat();
-					$desc=$thisCat["desc"];
-					$cntRows=$thisCat["counts"];
-					$showCjCat=true;
-					$this->pageTitle=$thisCat["path"];
-				}
-				if ($cjBrand) {
-					$this->fixFilters[]=["name" =>  $cj->getMautaFieldName("brand"), "filter" => $cjBrand, "sqlCompare" => "LIKE"];	
-					$this->additionalFilters[]="brand";
-				}
-				if (!$cjCat && !$cjBrand && !$aktPage) $randomPosts=true;
-			}			
-		}
-		
-		//custom filters that came in shortcode
-		foreach ($atts as $key => $value)  {
-		 if ($this->fields->getFieldByName($key)) {
-			$exVal=explode(";",$value);
-			if (count($exVal)>1) {
-				$compare=$exVal[0];
-				$value=$exVal[1];
-				if ($compare=="lessthan") $compare="<";
-				if ($compare=="morethan") $compare=">";
-			} else {
-				$compare="LIKE";
-			}
-			
-			$this->fixFilters[]=["name" =>  $key, "filter" => $value, "sqlCompare" => $compare];
-			$this->additionalFilters[]=$key;
-		 }		 
-		}
-		$this->getMajaxQuery()->setFixFilters($this->fixFilters);
-		if ($postId) $emptyDiv=false;
+		$postId=$this->loaderParams["postId"];
+		$aktPage=$this->loaderParams["aktPage"];
+		$showCjCat=($this->loaderParams["cjCat"]) ? true : false;
+		$cntRows=($this->loaderParams["cntRows"]) ? $this->loaderParams["cntRows"] : false;
+		$catDesc=($this->loaderParams["catDesc"]) ? $this->loaderParams["catDesc"] : false;
+		$relatedRows=($this->loaderParams["relatedRows"]) ? $this->loaderParams["relatedRows"] : false;
+		$relatedCat=($this->loaderParams["relatedCat"]) ? $this->loaderParams["relatedCat"] : false;
+		$emptyDiv=($postId) ? false : true;		
 		$this->htmlElements->showMainPlaceHolderStatic(true,$this->postType,$emptyDiv);
 		
 		//get results
-		if ($postId) { 
-			$query=$this->getMajaxQuery()->produceSQL(["id" => $postId]);			
+		if ($postId) { 				
 			$this->htmlElements->showIdSign();
 		}
-		else { 
-			//we'll display random posts on first page of frontpage
-			if (!$randomPosts) $query=$this->getMajaxQuery()->produceSQL(["from" => $aktPage*$this->postRowsLimit]);
-			else $query=$this->getMajaxQuery()->produceSQL(["from" =>$aktPage*$this->postRowsLimit,"orderBy" => "rand()", "orderDir" => ""]);
-		}
-		$rows=Caching::getCachedRows($query);	
+		$rows=$this->loaderParams["res"];			
 
-		//tady se berou cntRows pro celou kategorii, ale muzou tabm byt treba jeste filtry na brand, takze je to potreba spocitat
-		if (!$postId && (empty($cntRows) || (count($this->additionalFilters)>0))) { 
-			//$cntRows=count($rows);
-			$query=$this->getMajaxQuery()->produceSQL(["countOnly" =>true,"orderBy" => false, "orderDir" => false]);	
-			$rowsCount=Caching::getCachedRows($query);
-			$cntRows=$rowsCount[0]["cnt"];
-		}
-		if ($postId) $cntRows=1;
-		$excerpt=($cntRows>1) ? true : false;
-		if ($cntRows>1) $templateName="multi";
-		else $templateName="single";
-
-		if ($cntRows>1 && $showCjCat) {
-			echo $this->htmlElements->getHtml("cat-header","cat",["desc" => $desc],true);
-		}
-		$n=0;
-
-		//related listings
-		$relatedRows=[];
-		if ($postId) {
-			if (!empty($rows[0])) {
-				$cjCat=$rows[0][$cj->getTypeSlug()];								
-				$this->fixFilters[]=["name" =>  $cj->getTypeSlug(), "filter" => $cjCat.$exactCategoryMatch, "sqlCompare" => "LIKE"];
-				$this->getMajaxQuery()->setFixFilters($this->fixFilters);
-				$query=$this->getMajaxQuery()->produceSQL(["limit" => "3","orderBy" => "rand()","orderDir" => "", "innerWhere" => " NOT post_name = '".$rows[0]["post_name"]."'"]);
-				$relatedRows=Caching::getCachedRows($query);
-				$thisCat=$cj->getCjTools()->getCatBySlug($cjCat,true);
-				$lastCat=$cj->getCjTools()->getCatPathNice($thisCat["path"],true);
+		$excerpt=false;
+		$templateName="single";
+		if ($cntRows>1) {
+			$excerpt=true;
+			$templateName="multi";
+			if ($showCjCat) {
+				echo $this->htmlElements->getHtml("cat-header","cat",["desc" => $catDesc],true);
 			}
-			
 		}
 
-	
-
+		$n=0;
 		foreach ($rows as $row) {			
 			$n++;
 			$metaMisc=$this->buildInit();
@@ -178,7 +101,7 @@ Class MajaxRender {
 			$this->htmlElements->showPost("s$n",$row["post_name"],$row["post_title"],$item["image"],$item["content"],$metaMisc["misc"],$item["meta"],$templateName);
 		}
 		if (!empty($relatedRows)) {
-			echo $this->htmlElements->getHtml("related-listings","cat",["catName" => $lastCat],true);
+			echo $this->htmlElements->getHtml("related-listings","cat",["catName" => $relatedCat],true);
 			$excerpt=(count($relatedRows)>1) ? true : false;
 			foreach ($relatedRows as $row) {			
 				$n++;
@@ -224,8 +147,7 @@ Class MajaxRender {
 		echo json_encode($mForm->renderForm()).PHP_EOL;			
 	}
 	
-	function printFilters($atts = []) {		
-		 $this->loadFields();
+	function printFilters($atts = []) {				 
 		//prints filter, run by shortcode majaxfilter					
 		 $this->htmlElements->showFilters($this->postType,$this->fields->getFieldsFiltered());		 		 
 	}	
@@ -460,9 +382,8 @@ Class MajaxRender {
 	}
 	public function showSearchBox() {
 		$lastSearch=isset($_GET["mSearch"]) ? $_GET["mSearch"] : "";
-		$actual_link = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
-		//$actual_link = "http://ukeacz:8081/category/ratan-na-zahradu/";
-		//$actual_link = "#";
+		//$actual_link = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+		$actual_link="/";
 		?>
 		<form role="search" method="get" class="search-form" action="<?= $actual_link?>">
 				<label>

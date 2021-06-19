@@ -11,7 +11,7 @@ Class MajaxQuery {
     private $dedicatedTable;
     private $postRowsLimit;
     private $fixFilters;
-    function __construct($postType,$dedTable,$params=[]) {	        
+    function __construct($postType,$dedTable,$params) {	        
         $this->postType=$postType;	
         $this->dedicatedTable=$dedTable;
         $this->postRowsLimit=$params["rowsLimit"];
@@ -84,6 +84,7 @@ Class MajaxQuery {
 		if (array_key_exists("innerWhere",$params)) $innerWhere=$params["innerWhere"];
 		
         if ($orderBy)  $orderBy="ORDER BY ".$orderBy;
+        if (!$orderBy) $orderDir="";
 		//customSearch
 		$customSearch="";
 		if (!empty($_GET['mSearch'])) {

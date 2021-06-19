@@ -10,8 +10,8 @@ Class MajaxHandlerShort {
 	public $shortInit=true;
 	private $cjActive;
 
-	function __construct() {		
-		
+	function __construct($majaxLoader) {		
+		$this->majaxLoader=$majaxLoader;
 	}
 
 	public function register()  {				
@@ -23,7 +23,8 @@ Class MajaxHandlerShort {
 		add_action('wp_loaded', [$this, 'register_script']);
 	}
 	
-	function initRender($atts) {		
+	function initRender($atts) {	
+		$atts["majaxLoader"]=$this->majaxLoader;
 		$this->ajaxRender=new MajaxRender(false,$atts);		
 	}
 	function setAtts($atts = []) {

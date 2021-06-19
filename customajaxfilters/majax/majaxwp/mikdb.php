@@ -177,6 +177,7 @@ class MikDb {
 			  $where1="";
 			  for ($n=0;$n<count($where);$n++) {
 				$operator=(empty($where[$n]["operator"])) ? "=" : $where[$n]["operator"];
+				if ($operator=="LIKE") $operator=" LIKE ";
 				$type=(empty($where[$n]["type"])) ? "%s" : $where[$n]["type"];
 				if ($n>0) $where1.=" AND ";
 				$where1.="`".$where[$n]["name"]."`".$operator.$type;
@@ -188,6 +189,11 @@ class MikDb {
 			if ($useCache) return Caching::getCachedRows("SELECT $cols FROM {$tableNames} "); 
 	      	else return $wpdb->get_results("SELECT $cols FROM {$tableNames} ",ARRAY_A); 
 		}
+	}
+	public static function wpDbGetRowsPrepared($query,$useCache=false) {
+		global $wpdb;	
+		if ($useCache) return Caching::getCachedRows($query); 
+		else return $wpdb->get_results($query,ARRAY_A); 
 	}
 	public static function wpdbGetRowsAdvanced($params) {		
 		global $wpdb;	

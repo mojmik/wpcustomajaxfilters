@@ -7,10 +7,10 @@ class ComissionJunction {
  private $basePage;
  private $brandsSlug;
  private $categorySlug;
- 
  private $dbPrefix;
  private $postType;
  private $cjTools;
+ private $currentCat;
  public function __construct($args=[]) {          
      $this->brandsSlug="brands";
      $this->categorySlug="category";
@@ -19,8 +19,9 @@ class ComissionJunction {
      else $this->dbPrefix=MajaxWP\MikDb::getTablePrefix();    
      
      $this->initCJcols();
-     if (!empty($args["postType"])) $this->setPostType($args["postType"]);
+     if (!empty($args["postType"])) $this->setPostType($args["postType"]);     
  }
+ 
  public function getCJtools() {
      if (empty($this->cjTools)) { 
          $this->cjTools=new CJTools($this->postType);
@@ -265,13 +266,13 @@ class ComissionJunction {
     ?>    
     <ul>
         <?php         
-        if (MajaxWp\CjFront::getCurrentCat()==$thisCat["slug"]) {
+        if ($this->currentCat==$thisCat["slug"]) {
             ?>
             <li><strong><?= $this->getCategoryNameFromPath($thisCat["path"])?> (<?= $thisCat["counts"]?>)</strong>
             <?php
         }
         else {
-            $goDeeper=($depth<$maxDepth) || (strpos(MajaxWp\CjFront::getCurrentCat(),$thisCat["slug"])!==false);            
+            $goDeeper=($depth<$maxDepth) || (strpos($this->currentCat,$thisCat["slug"])!==false);            
             ?>
             <li><a href='<?= $this->getPermaLink($thisCat["slug"])?>'><?= $this->getCategoryNameFromPath($thisCat["path"])?> (<?= $thisCat["counts"]?>)</a>
             <?php
@@ -289,7 +290,7 @@ class ComissionJunction {
     <?php
    }
    function outCategoriesTreeShortCode($atts=[]) {
-    
+    $this->currentCat=get_query_var("mikcat");
     ob_start();       
     if (!empty($atts["type"])) { 
         $this->setPostType($atts["type"]);        
@@ -305,9 +306,8 @@ class ComissionJunction {
     ?>
     <div>
     <?php
-    $slug=MajaxWp\CjFront::getCurrentCat();    
     if ($filter) {
-        if ($slug) {
+        if ($this->currentCat) {
             ?>
                     <a href='/'><?= $this->getCjTools()->translating->loadTranslation("(all categories)")?></a>
             <?php

@@ -275,33 +275,27 @@ class CJtools {
         return $cats;
     }
     
-    function getCatMeta($catPath, $queryMetaName, $exact = true, $distinct=true,$limit="",$skipBlank=false,$order="") {        
+    function getCatMeta($catPath, $queryMetaName, $exact = true, $distinct=true,$limit="",$order="") {        
         $prefix = MajaxWP\MikDb:: getWPprefix();
-        global $wpdb;
         $catMetaName = $this->params["catSlugMetaName"];        
 
         if (!$exact) $catPath.= "%";
         
-        $skip="";
-            
         $dedTable=$this->getDedicatedTable();
         if ($dedTable) {
             if ($distinct) $selectVar="DISTINCT(`$queryMetaName`)";        
             else $selectVar="`$queryMetaName`";
-            if ($skipBlank) $skip=" AND NOT `$queryMetaName` = ''";   
             $query = "
             SELECT $selectVar AS `meta_value`
             FROM {$dedTable}
             WHERE
             `{$catMetaName}` LIKE '{$catPath}'
-            $skip
             $order
             $limit
             ";   
         } else {
             if ($distinct) $selectVar="DISTINCT(pm2.meta_value)";        
             else $selectVar="pm2.meta_value";
-            if ($skipBlank) $skip=" AND NOT pm2.meta_value = ''";   
             if ($catPath && $catPath!="%") {
                 $query = "
                 SELECT $selectVar
@@ -312,7 +306,6 @@ class CJtools {
                 AND pm1.meta_key = '{$catMetaName}'
                 AND pm1.meta_value LIKE '{$catPath}'
                 AND pm2.meta_key = '$queryMetaName'
-                $skip
                 $order
                 $limit
                 ";             
@@ -325,14 +318,11 @@ class CJtools {
                 po.post_status like 'publish'
                 AND po.post_type like '{$this->customPostType}'            
                 AND pm2.meta_key = '$queryMetaName'  
-                $skip  
                 $order       
                 $limit
                 ";  
             }
         }
-        
-        
         //return $wpdb->get_results($query, ARRAY_A);
         return MajaxWP\Caching::getCachedRows($query);
 
@@ -733,12 +723,13 @@ class CJtools {
     }        
     function showBrandyNav($metaName) {                
         $mikBrand=urlDecode(get_query_var("mikbrand"));
-        $catSlug=MajaxWp\CjFront::getCurrentCat(); 
-        $brandyArr=$this->getCatMeta($catSlug,$metaName,false,true," LIMIT 1,15",true,"ORDER BY rand()");
+        $catSlug=get_query_var("mikcat");
+        $brandyArr=$this->getCatMeta($catSlug,$metaName,false,true," LIMIT 1,15","ORDER BY rand()");
         $brandsArr=[];
         if (count($brandyArr)<2) return false;
         foreach ($brandyArr as $brand) {
-            if (!in_array($brand["meta_value"],$brandsArr)) $brandsArr[]=$brand["meta_value"];
+            $brandVal=$brand["meta_value"];
+            if (!in_array($brandVal,$brandsArr) && $brandVal) $brandsArr[]=$brandVal;
         }
         $brandyArr=$brandsArr;
         //if (empty($brandsArr) || count($brandsArr)<2) return "";

@@ -51,7 +51,7 @@ Class Caching {
       
         foreach ($files as $file) {
           if (is_file($file)) {
-            if ( ($now - filemtime($file) >= 60 * 60 * 24 * 1) || $all) { // 1 days or all
+            if ( ($now - filemtime($file) >= 60 * 60 * 24 * 7) || $all) { // 1 days or all
               unlink($file);
             }
           }
@@ -84,6 +84,10 @@ Class Caching {
        if (Caching::$compressJson) $rows=json_decode(gzuncompress($txt),1);
        else $rows=json_decode($txt,1);
        return $rows;
+    }
+    static function getUseCache($param) {
+        if ($param=="single") return false;        
+        return true;
     }
     static function getCachedFn($query) {
         if (empty(Caching::$cacheMap)) {

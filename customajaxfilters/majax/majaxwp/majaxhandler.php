@@ -6,9 +6,9 @@ Class MajaxHandler {
 	const NONCE =  'majax-ajax';
 
 	public $ajaxRender;
-
-	function __construct() {		
-				
+	private $majaxLoader;
+	function __construct($majaxLoader) {		
+		$this->majaxLoader=$majaxLoader;
 	}
 
 	public function register()  {		

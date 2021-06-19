@@ -173,6 +173,7 @@ jQuery(document).ready(function($) {
 	});
 
 	$(window).scroll(function() {		
+		//return true;
 		let footerHeight=150;
 		if($(window).scrollTop() + $(window).height() >= $("#majaxmain").height() + 20) {			
 			my.majaxPrc.runAjax(this,"scroll");
