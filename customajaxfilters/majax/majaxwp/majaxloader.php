@@ -50,6 +50,7 @@ Class MajaxLoader {
     }
     private function loadFields() {
 		//$this->logWrite("cpt!@ {$this->getPostType()}");
+        Caching::setPostType($this->customPostType);
 		$this->fields=new CustomFields();
 		$this->fields->prepare($this->customPostType);
 		$this->fields->loadPostedValues();			
@@ -192,6 +193,7 @@ Class MajaxLoader {
         return $rows;
     }
     public function getMulti($params=[]) {
+        //$desc="multi-{$page}-{$this->postRowsLimit}";
         if (array_key_exists("page",$params)) $page=$params["page"];
         $query=$this->majaxQuery->produceSQL(["from" => $page*$this->postRowsLimit]);
 		$rows=Caching::getCachedRows($query);

@@ -193,7 +193,14 @@ class MikDb {
 	public static function wpDbGetRowsPrepared($query,$useCache=false) {
 		global $wpdb;	
 		if ($useCache) return Caching::getCachedRows($query); 
-		else return $wpdb->get_results($query,ARRAY_A); 
+		else { 
+			if ($wpdb) {
+				return $wpdb->get_results($query,ARRAY_A); 
+			} else {
+				return MikDb::getRows($query);
+			}
+			
+		}
 	}
 	public static function wpdbGetRowsAdvanced($params) {		
 		global $wpdb;	

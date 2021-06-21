@@ -115,6 +115,24 @@ class CustomFields {
 	} 
 	  return $rows;
   }
+  public function getFieldsWhere($where=[]) {
+	$rows=[];
+	foreach ($this->fieldsList as $f) {		
+		$add=true;
+		foreach ($where as $name => $w) {
+			$operator=(array_key_exists("operator",$w)) ? $w["operator"] : "=";
+			$val=$w["value"];
+			if ($operator == "=" && !($f->$name === $val)) $add=false;
+			else if ($operator == "!=" && !($f->$name !== $val)) $add=false;
+			else if ($operator == "<" && !($f->$name < $val)) $add=false;
+			else if ($operator == ">" && !($f->$name > $val)) $add=false;
+
+			if (!$add) break;
+		}
+		if ($add) $rows[]=$f;
+	} 
+	  return $rows;
+  }
   public function getFieldsFiltered() {
 	return $this->getFieldsFilteredGreaterThan(["filterOrder" => "0"]);
   }

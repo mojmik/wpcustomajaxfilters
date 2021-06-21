@@ -63,8 +63,8 @@ class DedicatedTables {
     }
     public function insertRow($row) {
         foreach ($row as $key => $val) {
-            $row[$key]=esc_sql($val);
-        }
+            $row[$key]=esc_sql($val);            
+        }     
         MajaxWP\MikDb::insertRow($this->getTableName(),$row); 
     }
     private function getRows($from,$to) {

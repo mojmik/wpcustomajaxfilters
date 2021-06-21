@@ -118,7 +118,6 @@ Class MajaxQuery {
                     $query="
                     SELECT count(*) as cnt,post_title,post_name,post_content{$col}
                         FROM wp_posts LEFT JOIN wp_postmeta pm1 ON ( pm1.post_id = ID) 
-                        WHERE
                         $postFilters
                         GROUP BY ID
                         $orderBy $orderDir
@@ -129,7 +128,6 @@ Class MajaxQuery {
                     (SELECT post_title,post_name,post_content 
                         $col
                         FROM wp_posts LEFT JOIN wp_postmeta pm1 ON ( pm1.post_id = ID) 
-                        WHERE
                         $postFilters
                         GROUP BY ID
                         ) AS pm1
@@ -142,7 +140,6 @@ Class MajaxQuery {
                     $query="                    
                     SELECT post_title,post_name,post_content{$col}
                         FROM wp_posts LEFT JOIN wp_postmeta pm1 ON ( pm1.post_id = ID) 
-                        WHERE 
                         $postFilters
                         GROUP BY ID
                         $orderBy $orderDir
@@ -154,7 +151,6 @@ Class MajaxQuery {
                     (SELECT post_title,post_name,post_content 
                         $col
                         FROM wp_posts LEFT JOIN wp_postmeta pm1 ON ( pm1.post_id = ID) 
-                        WHERE 
                         $postFilters
                         GROUP BY ID
                         ) AS pm1

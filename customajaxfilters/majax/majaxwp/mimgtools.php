@@ -15,32 +15,30 @@ Class MimgTools {
 		$p=strpos($url,"mimgtools/");
 		if ($p!==false) {
 			$url=substr($url,$p+strlen("mimgtools/"),-1);
-			MimgTools::prepImage($url,"");	
+			MimgTools::prepImage($url);	
 		} 
 	}
-	static function prepImage($postId="",$url="") {
+	static function streamImage($fileName) {
+		$type = 'image/jpeg';
+		header('Content-Type:'.$type);
+		header('Content-Length: ' . filesize($fileName));
+		readfile($fileName);		
+	}
+	static function prepImage($postId="") {
 		$uploadsPath="./wp-content/uploads";
-		if ($postId) {
-			$filename = "$uploadsPath/mimgnfo-$postId";
-			if (file_exists($filename)) {
-				$url=file_get_contents($filename);		
-				$filename = "$uploadsPath/mimg-".basename(parse_url($url, PHP_URL_PATH));  
-				//echo "cont:".$filename;
-			}
+		if (!$postId) return "";
+		$filenameNfo = "$uploadsPath/mimgnfo-$postId";
+		$filenameImg = "$uploadsPath/mimg2-$postId.jpg";		
+		if (file_exists($filenameImg)) {
+			//already have image
+			MimgTools::streamImage($filenameImg);
+			die();
 		}
-		else if ($url) {
-			$filename = "$uploadsPath/mimg-".basename(parse_url($url, PHP_URL_PATH));  
-		}
-		else return "";  
-		
-		if (file_exists($filename)) {
-			echo file_get_contents($filename);
-		}
-		else {
+
+		if (file_exists($filenameNfo)) {
+			$url=file_get_contents($filenameNfo);		
 			$image = ImageCreateFromString(file_get_contents($url));  
 			if ($image) {
-				// calculate resized ratio
-				// Note: if $height is set to TRUE then we automatically calculate the height based on the ratio
 				$height=true;
 				$width=600;
 				$height = $height === true ? (ImageSY($image) * $width / ImageSX($image)) : $height;
@@ -50,12 +48,13 @@ Class MimgTools {
 				ImageCopyResampled($output, $image, 0, 0, 0, 0, $width, $height, ImageSX($image), ImageSY($image));
 				// save image
 				
-				ImageJPEG($output, $filename, 95); 
+				ImageJPEG($output, $filenameImg, 95); 
 				// return resized image	  
-				echo file_get_contents($filename);
+				MimgTools::streamImage($filenameImg);
+				die();
 			}
 		}
-		die();
+		die();		
 	}
 
 }

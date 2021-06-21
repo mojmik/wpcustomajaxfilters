@@ -208,8 +208,10 @@ class AutaFields {
 	}	
 	function initMinMax() {		
 		foreach ($this->fieldsList as $f) {
+		 if (!$f->typeIs("numeric")) continue;
 		 echo "<br />".$f->name." min:".$f->getValMin();
 		 echo " max:".$f->getValMax();
+		 $f->saveToSQL();
 		}		
 	}
 }

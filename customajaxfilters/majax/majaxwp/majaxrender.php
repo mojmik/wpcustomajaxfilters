@@ -254,17 +254,17 @@ Class MajaxRender {
 		else {
 			$out[]=["meta_key" => "clearall", "meta_value" => "clearall", "count" => "0", "post_title" => "" ];
 			if (!empty($rows) && count($rows)>0) {
-				
+				$nonNumericFields=$this->fields->getFieldsWhere(["type" => ["operator" => "!=", "value" => "NUMERIC"], "filterOrder" => ["operator" => ">", "value" => "0"]]);
 
 				foreach ($rows as $row) {
-					foreach ($this->fields->getFieldsFiltered() as $field) {			
+					foreach ($nonNumericFields as $field) {
 						$val=$row[$field->outName()];
 						if (empty($c[$field->outName()][$val])) $c[$field->outName()][$val]=0;
 						$c[$field->outName()][$val]++;
 					}	
 					
 				}
-				foreach ($this->fields->getFieldsFiltered() as $field) {			
+				foreach ($nonNumericFields as $field) {			
 					$fieldName=$field->outName();		
 					if (!empty($c[$fieldName])) {
 						foreach ($c[$fieldName] as $val => $cnt) {	
@@ -326,7 +326,7 @@ Class MajaxRender {
 		foreach ($rows as $row) {
 			if ($custTitle=="majaxcounts") { 
 				$row["title"]=$custTitle;
-				$this->logWrite("countitem ".json_encode($row));
+				//$this->logWrite("countitem ".json_encode($row));
 				echo json_encode($row).PHP_EOL;								
 			}
 			else {

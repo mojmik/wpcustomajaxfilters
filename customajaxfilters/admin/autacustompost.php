@@ -380,6 +380,7 @@ class AutaCustomPost {
 					["recreate",add_query_arg( 'do', 'recreate'),"remove all"],
 					["export fields",add_query_arg( ['do'=>'exportfields','noheader'=>'1']),"export fields to csv"],				
 					["import fields",add_query_arg( 'do', 'importfields'),"import fields from csv"],
+					["init min max",add_query_arg( 'do', 'initminmax'),"load min-max from current posts"]
 				];
 	  ?>	  
 	  
@@ -423,6 +424,11 @@ class AutaCustomPost {
 			}
 		} 
 	  }
+	  if ($do=="initminmax") {
+		$thisTable=AutaPlugin::getTable("fields",$this->customPostType);
+		$this->autaFields->initMinMax();
+		MajaxWP\Caching::pruneCache(true,$this->customPostType);
+	  }
 	  $this->autaFields->procEdit();
 	  $this->autaFields->printNewField();
 	  $this->autaFields->printFields();		 
@@ -458,6 +464,6 @@ class AutaCustomPost {
 				$somethingChanged=true;
 			}								
 		}
-		if ($somethingChanged) MajaxWP\Caching::pruneCache(true,$this->customPostType);				
+		if ($somethingChanged) MajaxWP\Caching::pruneCache(true,$this->customPostType);
 	} 
 }

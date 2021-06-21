@@ -454,7 +454,7 @@ button.select2-selection__clear {
 .majaxfilterbox {
  min-width: 160px;	
  padding: 0 12px 0 12px;
- height:75px;
+ height:110px;
 }
 .majaxfilterbox input  {
   padding: 0 5px 0 5px;
@@ -620,6 +620,7 @@ h1 {
   font-weight: bold!important;
   color: #fff;
   cursor: pointer;
+  border: 1px solid #000;
 }
 .action .mbuybutton {
   margin-top:5px;
@@ -656,4 +657,8 @@ h1 {
 }
 #mainnav .sub-menu li a:hover {
   color: #000;
+}
+body .overlay {
+ 
+ background-color: (242,242,242,0.9);
 }

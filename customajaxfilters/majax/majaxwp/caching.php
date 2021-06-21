@@ -107,8 +107,6 @@ Class Caching {
         }
         else $rows=MikDb::getRows($query);
         Caching::addCache($query,$rows);
-        if (is_array(Caching::$cacheMap)) {
-        }
         Caching::logWrite("$query added to cache");
         return $rows;
        }

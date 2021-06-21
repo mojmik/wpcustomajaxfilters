@@ -115,7 +115,7 @@ class CJtools {
     }
    
     private function removePriceFormat($val) {
-        if (substr($val,-3)==".00") $val=substr($val,0,strlen($val)-3);
+        if (substr($val,-3)===".00") $val=substr($val,0,strlen($val)-3);
         //if (substr($val,-3,1)==".") $val=substr($val,0,strlen($val)-3)."#".substr($val,strlen($val)-2);
         return $val;
     }
@@ -180,7 +180,13 @@ class CJtools {
             $r["price"] = str_replace(" USD", "", $r["price"]);
             
             $randDiscount=rand(120,160);
-            $r["priceDiscount"]=ceil(($r["price"]/100)*$randDiscount);
+            $price=intval($r["price"]);
+            $priceDisc=0;
+            if ($price>0) {
+                $priceDisc=intval(ceil(($price/100)*$randDiscount));
+            }             
+            $r["priceDiscount"]=$priceDisc;
+            
 
             $postArr = [];
             $postArr["post_title"] = $r["title"];
@@ -227,7 +233,9 @@ class CJtools {
                     if ($dedicatedTable) $row[$name]=$metaValue;
                 }
             }
-            if ($dedicatedTable) $ded->insertRow($row);
+            if ($dedicatedTable) { 
+                $ded->insertRow($row);                
+            } 
 
         }
 

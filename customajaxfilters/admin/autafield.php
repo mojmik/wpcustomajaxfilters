@@ -142,14 +142,8 @@ class AutaField {
 	WHERE pm.meta_key like '{$this->name}' AND po.post_status = 'publish' 
 	AND po.post_type = '{$this->customPostType}'";
 	
-	/*
-	$query="SELECT MIN(`meta_value`) AS min FROM ".$wpdb->prefix."postmeta AS pm 
-	WHERE pm.meta_key like '{$this->name}'";
-	*/
-	
 	$min = $wpdb->get_var($query);	 
 	$this->valMin=$min;
-	//echo "<br />".$query;
 	return $this->valMin;
  }
   public function initValMax() {
