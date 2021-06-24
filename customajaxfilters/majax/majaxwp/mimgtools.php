@@ -13,6 +13,7 @@ Class MimgTools {
 	public static function handleRequest() {
 		$url=$_SERVER['REQUEST_URI'];
 		$p=strpos($url,"mimgtools/");
+		
 		if ($p!==false) {
 			$url=substr($url,$p+strlen("mimgtools/"),-1);
 			MimgTools::prepImage($url);	
@@ -25,7 +26,12 @@ Class MimgTools {
 		readfile($fileName);		
 	}
 	static function prepImage($postId="") {
-		$uploadsPath="./wp-content/uploads";
+		//no htaccess or mimgmain in root dir
+		//$uploadsPath="./wp-content/uploads";
+
+		//mimgmain in plugin dir
+		$uploadsPath="../../../../../uploads/";		
+		
 		if (!$postId) return "";
 		$filenameNfo = "$uploadsPath/mimgnfo-$postId";
 		$filenameImg = "$uploadsPath/mimg2-$postId.jpg";		
