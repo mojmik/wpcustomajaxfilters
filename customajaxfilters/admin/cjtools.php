@@ -9,6 +9,7 @@ class CJtools {
     private $language;
     private $currentCat;
     private $categorySeparator;
+    private $replacements;
     public function __construct($customPostType) {
         $this->setPostType($customPostType);
         if (empty($this->language)) $this->language=Settings::loadSetting("language","site");
@@ -16,6 +17,7 @@ class CJtools {
         $this->categorySeparator=">";
         $this->separatorVariations=[ "|"," > ","&gt;", "> "," >"];
         $this->bannedCategories=["Heureka.cz","NÁBYTEK","Nábytek"];      
+        $this->replacements=[];
     }
     private function getDedicatedTable() {
         if (array_key_exists("dedicatedTable",$this->params)) $this->dedicatedTable=$this->params["dedicatedTable"];
@@ -51,48 +53,23 @@ class CJtools {
         return $c;
     }
     function mReplText($description) {
-        $repl = [
-            "krmivo"=> "žrádlo",
-            "krmiva"=> "žrádlo",
-            "pes "=> "pejsek ",
-            "psy "=> "pejsky ",
-            "psi "=> "pejsci ",
-            "Psy"=> "Pejsky",
-            "Pes"=> "Pejsek",
-            "Psi"=> "Pejsci",
-            "kočka "=> "kočička ",
-            "kočky "=> "kočičky ",
-            "Kočka"=> "Kočička",
-            "Kočky"=> "Kočičky",
-            "kočce "=> "kočičce ",
-            "koťata "=> "koťátka ",
-            "Koťáta "=> "Koťátka ",
-            "malá plemena"=> "malé rasy",
-            "plemen "=> "ras ",
-            "mohou "=> "můžou ",
-            "surovin "=> "látek ",
-            "surovin."=> "látek.",
-            "jídlo "=> "krmivo ",
-            "procento "=> "% ",
-            "procento "=> "% ",
-            ".S"=> ". S",
-            " A "=> " a ",
-            ".P"=> ". P",
-            ".O"=> ". O",
-            ".U"=> ". U",
-            ".N"=> ". N",
-            ".C"=> ". C",
-            ".R"=> ". R",
-            ",s"=> ", s",
-            ",p"=> ", p",
-            ",o"=> ", o",
-            ",u"=> ", u",
-            ",n"=> ", n",
-            ",c"=> ", c",
-            ",r"=> ", r"
-        ];
-        foreach($repl as $s => $r) {
+        if (!array_key_exists("loaded",$this->replacements)) {
+            $txt = Settings:: loadSetting("replacements", "cj");
+            if ($txt) {
+               $rowsOut=[];
+               $rows=explode("\n",$txt);
+               foreach ($rows as $r) {                   
+                   $r=explode("|",str_replace("\"","",$r));
+                   $rowsOut[$r[0]]=$r[1];
+               }
+            }
+            $this->replacements["replacements"]=$rowsOut;
+            $this->replacements["loaded"]=true;
+        }
+        $oriDesc=$description;
+        foreach($this->replacements["replacements"] as $s => $r) {
             $description = str_replace($s, $r, $description);
+            if ($description!=$oriDesc) break;
         }
         return $description;
     }

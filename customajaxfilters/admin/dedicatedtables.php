@@ -29,14 +29,7 @@ class DedicatedTables {
         }
         return $allFields;
     }
-    public function repairNames() {
-        global $wpdb;
-        $query="SELECT `id`,`post_title` FROM ".$this->getTableName();
-        $rows= $wpdb->get_results( $query, ARRAY_A );  
-        foreach ($rows as $r) {
-            MajaxWP\MikDb::wpdbUpdateRows($this->getTableName(),[["name" => "post_name", "value" => sanitize_title($r["post_title"])]],[["name" => "id", "value" => $r["id"]]]);
-        }
-    }
+    
     public function initTable($clear=true) {
         $fieldsDef=$this->initFields($this->postType);
         MajaxWP\MikDb::createTableIfNotExists($this->getTableName(),$fieldsDef);

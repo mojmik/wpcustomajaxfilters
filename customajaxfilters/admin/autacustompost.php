@@ -278,9 +278,8 @@ class AutaCustomPost {
 			$dedTable=new DedicatedTables($this->customPostType);
 			$dedTable->createFromPosts(0,10);
 		  }
-		  if ($do=="dednames") {
-			$dedTable=new DedicatedTables($this->customPostType);
-			$dedTable->repairNames();
+		  if ($do=="dotest") {
+			echo $this->cj->getCJtools()->mReplText("Pes");
 		  }
 	}
 	function csvMenu() {
@@ -291,7 +290,7 @@ class AutaCustomPost {
 			["prefill thumbnails",add_query_arg( 'do', 'genthumbs'),"prefill thumbnails"],
 			["remove all",add_query_arg( 'do', 'removeall'),"remove all posts of this type"],						
 			["dedicated tables ajax",add_query_arg( 'do', 'creatededicatedtable'),"create dedicated table from posts (for huge sites)", "posts2ded"],
-			["repair post names",add_query_arg( 'do', 'dednames'),"repair post names in dedicated table"]
+			["test",add_query_arg( 'do', 'dotest'),"temp debug"]
 		];
 		//$setUrl[]=["dedicated tables debug",add_query_arg( 'do', 'creatededicatedtable'),"create dedicated table from posts debug (for huge sites)"],			
 		if ($this->isCj) {
@@ -359,9 +358,11 @@ class AutaCustomPost {
 		$menu_slug  = $this->customPostType.'-plugin-settings';   
 		$function   =  [$this,'caf_cpt_fields_page'];   
 		add_submenu_page($parent_slug, $page_title, $menu_title, $capability, $menu_slug, $function);
-
-		$attachments=new Attachments($this->customPostType); 
-		$attachments->addToAdminMenu($parent_slug,$capability);
+		if (CAF_ALLOW_ATTACHMENTS) {
+			$attachments=new Attachments($this->customPostType); 
+			$attachments->addToAdminMenu($parent_slug,$capability);
+		}
+		
 		
 	} 
 	static function sendMessageToMajax($message) {
