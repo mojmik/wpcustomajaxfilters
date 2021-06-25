@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: wpcustomajaxfilters\n"
-"POT-Creation-Date: 2021-06-25 17:03+0200\n"
-"PO-Revision-Date: 2021-06-25 17:03+0200\n"
+"POT-Creation-Date: 2021-06-25 19:03+0200\n"
+"PO-Revision-Date: 2021-06-25 19:07+0200\n"
 "Last-Translator: \n"
 "Language-Team: m@ttj.cz\n"
 "Language: cs_CZ\n"
@@ -24,43 +24,43 @@ msgstr ""
 
 #: admin/autacustompost.php:61
 msgid "Parent"
-msgstr ""
+msgstr "Rodič"
 
 #: admin/autacustompost.php:62
 msgid "All"
-msgstr ""
+msgstr "Vše"
 
 #: admin/autacustompost.php:63
 msgid "Show"
-msgstr ""
+msgstr "Zobrazit"
 
 #: admin/autacustompost.php:64 admin/autacustompost.php:65
 msgid "Add"
-msgstr ""
+msgstr "Přidat"
 
 #: admin/autacustompost.php:66
 msgid "Edit"
-msgstr ""
+msgstr "Upravit"
 
 #: admin/autacustompost.php:67
 msgid "Update"
-msgstr ""
+msgstr "Aktualizovat"
 
-#: admin/autacustompost.php:68
+#: admin/autacustompost.php:68 admin/cjtools.php:544
 msgid "Find"
-msgstr ""
+msgstr "Najít"
 
 #: admin/autacustompost.php:69
 msgid "Not found"
-msgstr ""
+msgstr "Nenalezeno"
 
 #: admin/autacustompost.php:70
 msgid "Not found in trash"
-msgstr ""
+msgstr "Nenalezeno v koši"
 
 #: admin/autacustompost.php:77
 msgid "in stock"
-msgstr ""
+msgstr "skladem"
 
 #: admin/autacustompost.php:291
 msgid "remove all"
@@ -68,8 +68,60 @@ msgstr "odstranit vše"
 
 #: admin/autafields.php:156
 msgid "Add another"
-msgstr ""
+msgstr "Přidat další"
 
-#: admin/cjtools.php:733
-msgid "all brands"
-msgstr ""
+#: admin/cjtools.php:499
+msgid "Also"
+msgstr "Dále třeba"
+
+#: admin/cjtools.php:544
+msgid "Enjoy"
+msgstr "Užijte si"
+
+#: admin/cjtools.php:544
+msgid "Choose- "
+msgstr "Vyberte si- "
+
+#: admin/cjtools.php:544
+msgid "Shop- "
+msgstr "Nakupujte- "
+
+#: admin/cjtools.php:544
+msgid "Eshops with"
+msgstr "Eshopy nabízející"
+
+#: admin/cjtools.php:544
+msgid "Shops with"
+msgstr "Obchody, kde najdete"
+
+#: admin/cjtools.php:549
+msgid "more than"
+msgstr "více než"
+
+#: admin/cjtools.php:549
+msgid "over"
+msgstr "víc jak"
+
+#: admin/cjtools.php:550
+msgid "products"
+msgstr "produktů"
+
+#: admin/cjtools.php:550
+msgid "offers"
+msgstr "nabídek"
+
+#: admin/cjtools.php:550
+msgid "sales"
+msgstr "zlevněných položek"
+
+#: admin/cjtools.php:569
+msgid "and other brands"
+msgstr "a dalších značek"
+
+#: admin/cjtools.php:569
+msgid "and other producers"
+msgstr "a dalších výrobců"
+
+#: admin/cjtools.php:570
+msgid "by"
+msgstr "od"
