@@ -174,8 +174,9 @@ class ComissionJunction {
     $pageId="page_id={$this->basePage["id"]}&";
     //$page="";
     $phpScript="index.php"; //always index.php for wp
-    //add_rewrite_rule( "^$page"."mimgtools/([^/]*)/([^/]*)/?", "$pluginRelativeDir/wpcustomajaxfilters/mimgtools.php".'?mimgtools=$matches[1]&mikorder=$matches[2]','top' );
-    add_rewrite_rule( "^$page"."mimgtools/([^/]*)/?", $phpScript.'?'.$pageId.'mimgtools=$matches[1]','top' );
+
+    //tohle se resi primo v htaccess mimo wp
+    //add_rewrite_rule( "^$page"."mimgtools/([^/]*)/?", $phpScript.'?'.$pageId.'mimgtools=$matches[1]','top' );
     
     add_rewrite_rule( "^$page"."$mikBrandy/([^/]*)/([^/]*)/?", $phpScript.'?'.$pageId.'mikbrand=$matches[1]&mikorder=$matches[2]','top' );
     add_rewrite_rule( "^$page"."$mikBrandy/([^/]*)/?", $phpScript.'?'.$pageId.'mikbrand=$matches[1]','top' );

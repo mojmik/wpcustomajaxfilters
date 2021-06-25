@@ -1,6 +1,7 @@
 <?php 
 namespace CustomAjaxFilters\Majax\MajaxWP;
 
-require "mimgtools.php";
+
 //echo $_GET["url"];
+require "mimgtools.php";
 MimgTools::handleRequest();

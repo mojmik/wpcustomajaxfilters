@@ -20,6 +20,7 @@ define('CAF_PLUGIN_FILE_URL', __FILE__);
 define('CAF_SHORT_TITLE', 'CAF' );
 define('CAF_TAB_PREFIX','mauta_');
 define('CAF_ALLOW_ATTACHMENTS',false);
+define('CAF_TEXTDOMAIN',"wpcustomajaxfilters");
 
 
 require_once CAF_PLUGIN_PATH . '/customajaxfilters/loader.php';

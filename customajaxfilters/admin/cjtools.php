@@ -18,6 +18,7 @@ class CJtools {
         $this->separatorVariations=[ "|"," > ","&gt;", "> "," >"];
         $this->bannedCategories=["Heureka.cz","NÁBYTEK","Nábytek"];      
         $this->replacements=[];
+        $this->dedicatedTable=false;
     }
     private function getDedicatedTable() {
         if (array_key_exists("dedicatedTable",$this->params)) $this->dedicatedTable=$this->params["dedicatedTable"];
@@ -47,11 +48,7 @@ class CJtools {
         file_put_contents($fn, $imgSrc);
         return $content;
     }
-    private function removeExtraSpaces($c) {
-        $c = preg_replace('!\s+!', ' ', $c);
-        $c = trim($c);
-        return $c;
-    }
+   
     function mReplText($description) {
         if (!array_key_exists("loaded",$this->replacements)) {
             $txt = Settings:: loadSetting("replacements", "cj");
@@ -66,6 +63,7 @@ class CJtools {
             $this->replacements["replacements"]=$rowsOut;
             $this->replacements["loaded"]=true;
         }
+        if (empty($this->replacements["replacements"])) return $description;
         $oriDesc=$description;
         foreach($this->replacements["replacements"] as $s => $r) {
             $description = str_replace($s, $r, $description);
@@ -73,29 +71,39 @@ class CJtools {
         }
         return $description;
     }
-    function ms_escape_string($data) {
-        if (!isset($data) or empty($data) ) return '';
-        if (is_numeric($data)) return $data;
-
-        $non_displayables = array(
-            '/%0[0-8bcef]/',            // url encoded 00-08, 11, 12, 14, 15
-            '/%1[0-9a-f]/',             // url encoded 16-31
-            '/[\x00-\x08]/',            // 00-08
-            '/\x0b/',                   // 11
-            '/\x0c/',                   // 12
-            '/[\x0e-\x1f]/'             // 14-31
-        );
-        foreach($non_displayables as $regex)
-        $data = preg_replace($regex, '', $data);
-        $data = str_replace("'", "''", $data);
-        return $data;
+    
+    
+    private function stripCategories($str,$params=[]) {
+        $startCat=(array_key_exists("startCat",$params)) ? $params["startCat"] : 0;
+        $maxCatDepth=(array_key_exists("maxCatDepth",$params)) ? $params["maxCatDepth"] : 9;        
+        $types=explode($this->categorySeparator,$str);
+        $female=array("dámská","dámské","dámský","dámy","ona","ženy","žena","female","ladies","lady","woman","women","women''s","dívka");
+        $male=array("pánská","pánské","pánský","páni","on","muž","muži","male","gentlemen","men","men''s","man","chlapec");
+        $catDepth=0;
+        $out="";
+        $prevType="";
+        foreach ($types as $type) {  	  	   
+                $lower=mb_strtolower($type,'UTF-8');
+                if (Mutils::containsWord($lower,$female)) {
+                    $catGender=$type;
+                }
+                else if (Mutils::containsWord($lower,$male)) {
+                    $catGender=$type;  
+                }
+                else if ($catDepth>=$startCat && $catDepth<$maxCatDepth) {
+                $type=Mutils::titleCase($type);  
+                //if ($debug) echo "<br />$lower not catch";
+                if ($prevType!=$type) {
+                    if ($out) $out.=">";
+                    $out.=$type;			
+                }		
+                $prevType=$type;		   
+                }
+                $catDepth++;		
+        }
+        return $out;
     }
-   
-    private function removePriceFormat($val) {
-        if (substr($val,-3)===".00") $val=substr($val,0,strlen($val)-3);
-        //if (substr($val,-3,1)==".") $val=substr($val,0,strlen($val)-3)."#".substr($val,strlen($val)-2);
-        return $val;
-    }
+    
     public function createPostsFromTable($fields, $from = null, $to = null, $extras = []) {
         global $wpdb;
         $table = $this->params["tableName"];
@@ -131,7 +139,7 @@ class CJtools {
             $r[$key] = str_replace("<br />", "&nbsp;", $r[$key]);
             $r[$key] = str_replace("<br>", "&nbsp;", $r[$key]);
             $r[$key] = strip_tags($r[$key]);
-            $r[$key] = $this->ms_escape_string($r[$key]);
+            $r[$key] = Mutils::ms_escape_string($r[$key]);
             $r[$key] = str_replace(", ", ",", $r[$key]); //oprava carek
             $r[$key] = str_replace(",", ", ", $r[$key]); //oprava carek  
             //osetreni qoutes
@@ -192,11 +200,12 @@ class CJtools {
                 if (!$f->filterorder && !$f->displayorder) continue;
 
                 //extras-apply filters like trim to all values
-                if (!empty($extras[$name]["removeExtraSpaces"])) $metaValue = $this->removeExtraSpaces($metaValue);
-                if (!empty($extras[$name]["removePriceFormat"])) $metaValue = $this->removePriceFormat($metaValue);
+                if (!empty($extras[$name]["removeExtraSpaces"])) $metaValue = Mutils::removeExtraSpaces($metaValue);
+                if (!empty($extras[$name]["removePriceFormat"])) $metaValue = Mutils::removePriceFormat($metaValue);
                 
-                if (!empty($extras[$name]["createSlug"])) {
+                if (!empty($extras[$name]["createSlug"])) {                    
                     $metaValue = $this->sanitizePath($metaValue);
+                    $metaValue=$this->stripCategories($metaValue);
                     $metaValueSlug = $this->sanitizeSlug($metaValue);
                     add_post_meta($postId, $name, $metaValueSlug);
                     if ($dedicatedTable) $row[$name]=$metaValueSlug;
@@ -444,7 +453,7 @@ class CJtools {
     }
     function sanitizePath($path) {
         $sep=$this->categorySeparator;
-        $path=$this->removeExtraSpaces($path);
+        $path=Mutils::removeExtraSpaces($path);
         foreach ($this->separatorVariations as $v)  {
             if (strlen($v)>=strlen($sep)) $path=str_replace($v,$sep,$path);
         }
@@ -463,10 +472,7 @@ class CJtools {
         return sanitize_title(str_replace($sep, "-", $path));
     }
     
-    function getImageFromImageUrl($html) {
-        preg_match_all('/<img.*?src=[\'"](.*?)[\'"].*?>/i', $html, $matches);
-        return (empty($matches[0][0])) ? false : $matches[0][0];
-    }
+    
     function prepareCatDescription($cat,$dedTable=false) {
         $desc = "#catTitle#enjoymorethan#cntPosts#txtproducts#cats#txtby#brands.#prods#txtAlso#subcats.";        
         $txtproducts = "";
@@ -519,7 +525,7 @@ class CJtools {
             }
             
             $prodName = $mPost["post_title"];
-            $prodImage = $this->getImageFromImageUrl($images[0]);
+            $prodImage = Mutils::getImageFromImageUrl($images[0]);
             if (!in_array($brand[0], $brandyArr)) array_push($brandyArr, $brand[0]);
             if (!in_array($prodName, $prodNames)) array_push($prodNames, $prodName);
             if (!in_array($prodImage, $prodImages)) array_push($prodImages, $prodImage);

@@ -80,7 +80,8 @@ Class Majax {
 		return $title;		
 	}
 	function initHook() {
-		MimgTools::handleRequest();		
+		//tohle se resi primo bez wp
+		//MimgTools::handleRequest();		
 	}
 	function wpHead() {
 		//pokud prislo v get, tak natahneme CPT, jinak bereme default

@@ -288,7 +288,7 @@ class AutaCustomPost {
 			["csv bulk import",add_query_arg( 'do', 'csvbulkimport'),"import csv files uploaded by ftp"],			
 			["csv remove",add_query_arg( 'do', 'removecsv'),"remove csv imports"],
 			["prefill thumbnails",add_query_arg( 'do', 'genthumbs'),"prefill thumbnails"],
-			["remove all",add_query_arg( 'do', 'removeall'),"remove all posts of this type"],						
+			[__("remove all",CAF_TEXTDOMAIN),add_query_arg( 'do', 'removeall'),"remove all posts of this type"],						
 			["dedicated tables ajax",add_query_arg( 'do', 'creatededicatedtable'),"create dedicated table from posts (for huge sites)", "posts2ded"],
 			["test",add_query_arg( 'do', 'dotest'),"temp debug"]
 		];
