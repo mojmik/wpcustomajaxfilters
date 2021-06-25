@@ -380,7 +380,8 @@ class CJtools {
         else return $txt;
     }
     function mRndTxt($texts) {
-        return $this->getLngText($texts[array_rand($texts)]);
+        if (is_array($texts)) return $texts[array_rand($texts)];
+        return $texts;
     }
     function countPosts($c,$dedTable) {
             global $wpdb;
@@ -495,7 +496,7 @@ class CJtools {
         }
         unset($subcats);
         if ($subCatStr) {
-            $txtAlso = " ".$this->getLngText("Also");
+            $txtAlso = " ".__("Also",CAF_TEXTDOMAIN);
             $subCatStr = " ".$subCatStr;
         }
         else {
@@ -540,13 +541,13 @@ class CJtools {
         unset($termPosts);
 
         $enjoy = "";
-        $enjoy = $this->mRndTxt(array("Enjoy", "Find", "Choose- ", "Shop- ", "Eshops with", "Shops with"));
+        $enjoy = $this->mRndTxt(array(__("Enjoy"), __("Find"), __("Choose- "), __("Shop- "), __("Eshops with"), __("Shops with")));
 
         if ($cntPosts > 19) {
             if (strlen($cntPosts) > 1) $cntPosts = str_pad(substr($cntPosts, 0, 1), strlen($cntPosts), "0");
             $cntPosts = " ".$cntPosts;
-            $enjoy.= " ".$this->mRndTxt(array("more than", "over"));
-            $txtproducts = " ".$this->mRndTxt(array("products", "offers", "sales"));
+            $enjoy.= " ".$this->mRndTxt(array(__("more than"), __("over")));
+            $txtproducts = " ".$this->mRndTxt(array(__("products"), __("offers"), __("sales")));
         }
         else {
             $cntPosts = "";
@@ -565,8 +566,8 @@ class CJtools {
             $brandyStr.= $brandyArr[$n];
         }
         if ($brandyStr) {
-            $brandyStr = " ".$brandyStr." ".$this->mRndTxt(array("and other brands", "and other producers"));
-            $txtby = ", ".$this->getLngText("by");
+            $brandyStr = " ".$brandyStr." ".$this->mRndTxt(array(__("and other brands"), __("and other producers")));
+            $txtby = ", ".__("by",CAF_TEXTDOMAIN);
         }
         else {
             $txtby = "";
