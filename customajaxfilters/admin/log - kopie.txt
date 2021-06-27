@@ -1,0 +1,12 @@
+26-06-2021 02:17:02 about to load csv C:\wamp64\www\ukeacz\wp-content\plugins\wpcustomajaxfilters/ASKO_NABYTEK_CZ-Asko_nabytekCZ_google_all-shopping.txt into wp_mauta_cj_cj_import
+26-06-2021 02:17:02 about to load csv C:\wamp64\www\ukeacz\wp-content\plugins\wpcustomajaxfilters/ASKO_NABYTEK_CZ-Asko_nabytekCZ_google_all-shopping.txt into wp_mauta_cj_cj_import
+26-06-2021 02:17:02 csv loaded C:\wamp64\www\ukeacz\wp-content\plugins\wpcustomajaxfilters/ASKO_NABYTEK_CZ-Asko_nabytekCZ_google_all-shopping.txt into wp_mauta_cj_cj_import from: 0 total: 500
+26-06-2021 02:17:02 csv loaded C:\wamp64\www\ukeacz\wp-content\plugins\wpcustomajaxfilters/ASKO_NABYTEK_CZ-Asko_nabytekCZ_google_all-shopping.txt into wp_mauta_cj_cj_import from: 500 total: 1000
+26-06-2021 02:17:03 about to load csv C:\wamp64\www\ukeacz\wp-content\plugins\wpcustomajaxfilters/ASKO_NABYTEK_CZ-Asko_nabytekCZ_google_all-shopping.txt into wp_mauta_cj_cj_import
+26-06-2021 02:17:03 about to load csv C:\wamp64\www\ukeacz\wp-content\plugins\wpcustomajaxfilters/ASKO_NABYTEK_CZ-Asko_nabytekCZ_google_all-shopping.txt into wp_mauta_cj_cj_import
+26-06-2021 02:17:03 csv loaded C:\wamp64\www\ukeacz\wp-content\plugins\wpcustomajaxfilters/ASKO_NABYTEK_CZ-Asko_nabytekCZ_google_all-shopping.txt into wp_mauta_cj_cj_import from: 1500 total: 2000
+26-06-2021 02:17:03 csv loaded C:\wamp64\www\ukeacz\wp-content\plugins\wpcustomajaxfilters/ASKO_NABYTEK_CZ-Asko_nabytekCZ_google_all-shopping.txt into wp_mauta_cj_cj_import from: 1000 total: 1500
+26-06-2021 02:17:04 about to load csv C:\wamp64\www\ukeacz\wp-content\plugins\wpcustomajaxfilters/ASKO_NABYTEK_CZ-Asko_nabytekCZ_google_all-shopping.txt into wp_mauta_cj_cj_import
+26-06-2021 02:17:04 about to load csv C:\wamp64\www\ukeacz\wp-content\plugins\wpcustomajaxfilters/ASKO_NABYTEK_CZ-Asko_nabytekCZ_google_all-shopping.txt into wp_mauta_cj_cj_import
+26-06-2021 02:17:04 csv loaded C:\wamp64\www\ukeacz\wp-content\plugins\wpcustomajaxfilters/ASKO_NABYTEK_CZ-Asko_nabytekCZ_google_all-shopping.txt into wp_mauta_cj_cj_import from: 2500 total: 2945
+26-06-2021 02:17:05 csv loaded C:\wamp64\www\ukeacz\wp-content\plugins\wpcustomajaxfilters/ASKO_NABYTEK_CZ-Asko_nabytekCZ_google_all-shopping.txt into wp_mauta_cj_cj_import from: 2000 total: 2500
