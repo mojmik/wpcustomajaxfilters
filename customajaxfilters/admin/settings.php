@@ -28,7 +28,9 @@ class Settings {
         if (!array_key_exists($key,Settings::$settings)) {
             Settings::$settings[$key]=@file_get_contents(Settings::getPath("$key.txt"));       
         }
-
+        if (empty(Settings::$settings[$key])) {
+            if (!empty(Settings::$settingsMap[$type][$file]["default"])) Settings::$settings[$key]=Settings::$settingsMap[$type][$file]["default"];
+        }
 		if (!$isArray) return Settings::$settings[$key];
 		else return explode(";",Settings::$settings[$key]);
 	}
@@ -90,12 +92,13 @@ class Settings {
             <?php
             foreach ($settingsSet as $key => $setting) {
                 $desc="";
-                if (!empty($setting["desc"])) $desc="<br /><span style='font-size:smaller;'>".$setting["desc"]."</span>";
+                if (!empty($setting["desc"])) $desc.="<li>".$setting["desc"]."</li>";
+                if (!empty($setting["default"])) $desc.="<li>(default: ".$setting["desc"].")</li>";
                 if (is_array($setting)) $setting=$key;
                 $settingKey=Settings::getSettingKey($settingsType,$setting);	
                 $settingValue=(empty(Settings::$settings[$settingKey]) ? "" : Settings::$settings[$settingKey]);
                 ?>
-                    <div><div><label><?= $setting.$desc?></label></div><input type='text' name='<?= $settingKey?>' value='<?= $settingValue?>' /></div>	
+                    <div><div><label><?= $setting?><br /><ul style='font-size:smaller;'><?= $desc?></ul></label></div><input type='text' name='<?= $settingKey?>' value='<?= $settingValue?>' /></div>	
                 <?php
             }
             ?>
