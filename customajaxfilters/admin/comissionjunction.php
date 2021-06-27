@@ -11,6 +11,7 @@ class ComissionJunction {
  private $postType;
  private $cjTools;
  private $currentCat;
+ private $currencyFormat;
  public function __construct($args=[]) {          
      $this->brandsSlug="brands";
      $this->categorySlug="category";
@@ -40,7 +41,7 @@ class ComissionJunction {
          $this->cjTools->setParam("catSlugMetaName",$this->getTypeSlug());
          $this->cjTools->setParam("catSlug",$this->categorySlug);		
          $this->cjTools->setParam("brandSlug",$this->brandsSlug);	
-                  
+         $this->cjTools->setParam("currencyFormat",$this->currencyFormat);	        
      }
      return $this->cjTools;
  }
@@ -58,6 +59,7 @@ class ComissionJunction {
     add_shortcode('cjcategories', [$this,'outCategoriesTreeShortCode'] );    
  }
  private function initCJcols() {
+   $this->currencyFormat=Settings::loadSetting("currencyFormat","site");
    $this->cjCols=[
        "id" => ["sql" => "int(11) NOT NULL AUTO_INCREMENT", "primary" => true,
         "extra" => ["noImport" => true] 
@@ -74,10 +76,10 @@ class ComissionJunction {
         ],
        "availability" => ["sql" => "TEXT NOT NULL", "csvPos" => "AVAILABILITY"],
        "description" => ["sql" => "TEXT NOT NULL", "csvPos" => "DESCRIPTION" ],
-       "price" => ["sql" => "TEXT NOT NULL", "csvPos" => "PRICE",  "type" => "NUMERIC", "fieldformat" => "%1,- Kč", "compare" => ">", "displayorder" => "51",
+       "price" => ["sql" => "TEXT NOT NULL", "csvPos" => "PRICE",  "type" => "NUMERIC", "fieldformat" => $this->currencyFormat, "compare" => ">", "displayorder" => "51",
             "extra" => ["removePriceFormat" => true]
         ],
-        "priceDiscount" => ["sql" => "TEXT NOT NULL", "csvPos" => "PRICEDISCOUNT",  "type" => "NUMERIC", "fieldformat" => "%1,- Kč", "compare" => ">", "displayorder" => "51",
+        "priceDiscount" => ["sql" => "TEXT NOT NULL", "csvPos" => "PRICEDISCOUNT",  "type" => "NUMERIC", "fieldformat" => $this->currencyFormat, "compare" => ">", "displayorder" => "51",
             "extra" => ["removePriceFormat" => true]
         ],
        "views" => ["sql" => "int(11) NOT NULL"],

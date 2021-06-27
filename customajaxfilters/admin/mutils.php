@@ -67,4 +67,10 @@ class Mutils {
         preg_match_all('/<img.*?src=[\'"](.*?)[\'"].*?>/i', $html, $matches);
         return (empty($matches[0][0])) ? false : $matches[0][0];
     }
+    public static function simpleFormat($val,$format,$params=[]) {
+        if (array_key_exists("floatingPointFormat",$params)) {
+            $val=str_replace(".",",",$val);
+        }
+        return str_replace("%1",$val,$format);
+    }
 }

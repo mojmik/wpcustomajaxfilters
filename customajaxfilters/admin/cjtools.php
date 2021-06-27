@@ -350,35 +350,7 @@ class CJtools {
         
         return $wpdb->get_results($query, ARRAY_A);
     }
-    function getLngText($txt) {
-        $isCZ = (Settings:: loadSetting("language", "site") == "cs");
 
-        if ($isCZ) {
-            if ($txt == "Search") return "Hledat";
-            if ($txt == "GET SPECIAL DISCOUNT »") return "KOUPIT SE SLEVOU »";
-            if ($txt == "More than") return "Více než";
-            if ($txt == "great offers in category") return "skvělých nabídek v kategorii";
-            if ($txt == "products") return "položek";
-            if ($txt == "Enjoy") return "Užijte si";
-            if ($txt == "Find") return "Najděte";
-            if ($txt == "Choose- ") return "Vyberte si- ";
-            if ($txt == "Shop- ") return "Nakupujte- ";
-            if ($txt == "Eshops with") return "Eshopy nabízející";
-            if ($txt == "Shops with") return "Obchody, kde najdete ";
-            if ($txt == "more than") return "více než";
-            if ($txt == "over") return "víc jak";
-            if ($txt == "products") return "produktů";
-            if ($txt == "offers") return "nabídek";
-            if ($txt == "sales") return "zlevněných položek";
-            if ($txt == "in") return "v";
-            if ($txt == "by") return "od";
-            if ($txt == "Also") return "Dále třeba";
-            if ($txt == "and other brands") return "a dalších značek";
-            if ($txt == "and other producers") return "a dalších výrobců";
-
-        }
-        else return $txt;
-    }
     function mRndTxt($texts) {
         if (is_array($texts)) return $texts[array_rand($texts)];
         return $texts;
@@ -541,13 +513,13 @@ class CJtools {
         unset($termPosts);
 
         $enjoy = "";
-        $enjoy = $this->mRndTxt(array(__("Enjoy"), __("Find"), __("Choose- "), __("Shop- "), __("Eshops with"), __("Shops with")));
+        $enjoy = $this->mRndTxt(array(__("Enjoy",CAF_TEXTDOMAIN), __("Find",CAF_TEXTDOMAIN), __("Choose- ",CAF_TEXTDOMAIN), __("Shop- ",CAF_TEXTDOMAIN), __("Eshops with",CAF_TEXTDOMAIN), __("Shops with",CAF_TEXTDOMAIN)));
 
         if ($cntPosts > 19) {
             if (strlen($cntPosts) > 1) $cntPosts = str_pad(substr($cntPosts, 0, 1), strlen($cntPosts), "0");
             $cntPosts = " ".$cntPosts;
-            $enjoy.= " ".$this->mRndTxt(array(__("more than"), __("over")));
-            $txtproducts = " ".$this->mRndTxt(array(__("products"), __("offers"), __("sales")));
+            $enjoy.= " ".$this->mRndTxt(array(__("more than",CAF_TEXTDOMAIN), __("over",CAF_TEXTDOMAIN)));
+            $txtproducts = " ".$this->mRndTxt(array(__("products",CAF_TEXTDOMAIN), __("offers",CAF_TEXTDOMAIN), __("sales",CAF_TEXTDOMAIN)));
         }
         else {
             $cntPosts = "";
@@ -566,7 +538,7 @@ class CJtools {
             $brandyStr.= $brandyArr[$n];
         }
         if ($brandyStr) {
-            $brandyStr = " ".$brandyStr." ".$this->mRndTxt(array(__("and other brands"), __("and other producers")));
+            $brandyStr = " ".$brandyStr." ".$this->mRndTxt(array(__("and other brands",CAF_TEXTDOMAIN), __("and other producers",CAF_TEXTDOMAIN)));
             $txtby = ", ".__("by",CAF_TEXTDOMAIN);
         }
         else {

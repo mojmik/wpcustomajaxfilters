@@ -16,6 +16,7 @@ jQuery(function($){
 	const mAutaAjax = {
 		ajaxSeq:0,
 		nonce:"mauta",
+		statusSpan:null,
 		fullResponse: {
             thisId:0,
             fullResp:"",  
@@ -54,19 +55,19 @@ jQuery(function($){
 				this.successFuncArr.push(successFunc);
 				
 			},
-			toString: function(stackelement) {
-				console.log(stackelement.data.doajax + " "+stackelement.data.from);
+			toConsole: function(stackelement) {
+				console.log(stackelement.data.doajax + " "+stackelement.data.from+" "+stackelement.data.to);
 				//if (this.dataArr.length>0) mAutaAjax.requestStack.popStack();
 			},
 			popStack: function() {
-				let popstack={};
+				let popstackItem={};
 				if (this.dataArr.length<1) return false;
 				
 				this.doingAjax=true;
-				popstack.data=this.dataArr.shift();
-				popstack.func=this.successFuncArr.shift();
-				this.toString(popstack);
-				mAutaAjax.runAjax(popstack.data,popstack.func);				
+				popstackItem.data=this.dataArr.shift();
+				popstackItem.func=this.successFuncArr.shift();
+				this.toConsole(popstackItem);
+				mAutaAjax.runAjax(popstackItem.data,popstackItem.func);				
 				this.currentRequest++;
 				this.updateProgress();
 			},
@@ -119,7 +120,7 @@ jQuery(function($){
 				},
 				xhrFields: {
 					onprogress: function(e)	{
-						//if (seqNumber === mAutaAjax.ajaxSeq) { //check we are processing correct response
+						if (seqNumber === mAutaAjax.ajaxSeq) { //check we are processing correct response
 							var this_response, response = e.currentTarget.response;
 							if(last_response_len === false)	{
 								//first response in stream
@@ -136,10 +137,10 @@ jQuery(function($){
 								//we have a response
 								mAutaAjax.fullResponse.addResp(this_response);					
 							}
-						//}
-						//else {
+						}
+						else {
 							//ignore this seq
-						//}
+						}
 					}
 				}
 				
@@ -250,45 +251,87 @@ jQuery(function($){
 		mAutaAjax.requestStack.go();
 	 }
 
+	 
+	 var loadPostsFromCSV = function(data) {
+		var doajax = "makeposts";
+		var csvtype = "cjcsv";
+		var table="wp_mauta_cj_cj_import";
+		mAutaAjax.statusSpan.text("csv imported");
+		console.log("total res:"+data.result);
+		var totalRecords = data.result;
+		let doneFn=null;
+		for (let n=0;n<Math.ceil(totalRecords/100);n++) {				
+			if (n>=Math.ceil(totalRecords/100)-1) {
+				//last posts chunk
+				doneFn=function() {
+					mAutaAjax.statusSpan.text("creating cats");  
+					
+					runProcess("createCats",table,csvtype,0,0,function(data) {
+						mAutaAjax.statusSpan.text("cats created");  							
+					});										
+					mAutaAjax.requestStack.go();										
+				}	
+			} else {
+				doneFn=function(data) {
+					mAutaAjax.statusSpan.text("creating posts");  
+					
+				}
+			}
+			runProcess(doajax,table,csvtype,n*100,(n+1)*100,doneFn);			
+		}
+		mAutaAjax.requestStack.go();			
+	 }
+
+	 var createPostsForInputChunky = function(name,fn) {
+		mAutaAjax.requestStack.reset();
+		//go through all files big csv
+		
+		var doajax = "makeposts";
+		var csvtype = "cjcsv";
+		var table="wp_mauta_cj_cj_import";
+		
+		mAutaAjax.statusSpan=$("span[data-fn='statuscsvbulk-"+name+"']");
+		mAutaAjax.statusSpan.text("processing");
+		runProcess("countcsvlines",table,csvtype,fn,0,function(data) {
+			var totalLines = data.result;
+			console.log(totalLines + " lines in "+fn);
+			var doneCSVfn=null;
+			for (l=0;l<Math.ceil(totalLines/500);l++) {				
+				if (l>=Math.ceil(totalLines/500)-1) {
+					doneCSVfn=loadPostsFromCSV;			
+				} else {
+					doneCSVfn=function() {
+						mAutaAjax.statusSpan.text("importing csv");  							
+					}
+				}
+				runProcess("ajaximportcsv",table,csvtype,fn,l*500,doneCSVfn);
+			}
+			mAutaAjax.requestStack.go();
+		});
+		mAutaAjax.requestStack.go();
+	 }
+	 
+
 	 var createPostsForInput = function(name,fn) {
 		mAutaAjax.requestStack.reset();
-		//go through all files
+		//go through all files small csv load at once
 		
 		var doajax = "makeposts";
 		var csvtype = "cjcsv";
 		var table="wp_mauta_cj_cj_import";
 			
-		var statusSpan=$("span[data-fn='statuscsvbulk-"+name+"']");
-		statusSpan.text("processing");
+		mAutaAjax.statusSpan=$("span[data-fn='statuscsvbulk-"+name+"']");
+		mAutaAjax.statusSpan.text("processing");
 		runProcess("ajaximportcsv",table,csvtype,fn,0,function(data) {
-			statusSpan.text("csv imported");
+			mAutaAjax.statusSpan.text("csv imported");
 			//make posts
-			var totalRecords = data.result;
-			let doneFn=null;
-			for (n=0;n<Math.ceil(totalRecords/100);n++) {				
-				if (n>=Math.ceil(totalRecords/100)-1) {
-				  	//last posts chunk
-				  	doneFn=function() {
-						statusSpan.text("creating cats");  
-						runProcess("createCats",table,csvtype,0,0,function(data) {
-							statusSpan.text("cats created");  							
-						});
-						mAutaAjax.requestStack.go();
-					}	
-				} else {
-					doneFn=function() {
-						statusSpan.text("creating posts");  							
-					}
-				}
-				runProcess(doajax,table,csvtype,n*100,(n+1)*100,doneFn);			
-			}
-			mAutaAjax.requestStack.go();
+			loadPostsFromCSV(data);
 		});			
 		mAutaAjax.requestStack.go();
 	 }
 
-	 jQuery("input[data-fn='csvbulkfn']").click(function(obj) {	
-		createPostsForInput(obj.target.name,obj.target.value);
+	jQuery("input[data-fn='csvbulkfn']").click(function(obj) {	
+		createPostsForInputChunky(obj.target.name,obj.target.value);
 		return false;
  	});
 	 

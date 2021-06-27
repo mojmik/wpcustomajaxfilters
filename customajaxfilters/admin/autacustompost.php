@@ -111,6 +111,8 @@ class AutaCustomPost {
 			$result = $wpdb->get_results($query);  
 		if ($this->isCj) {						
 			MajaxWP\MikDb::clearTable($this->cj->getCatsTabName());
+			MajaxWP\MikDb::clearTable($this->cj->getMainTabName());
+			
 		}	
 		
 		$dedicatedTable=Settings::loadSetting("dedicatedTables-".$this->customPostType,"cptsettings");
@@ -157,9 +159,20 @@ class AutaCustomPost {
 			echo json_encode(["result"=>count($rows)]).PHP_EOL;
 			wp_die();
 		}
-		if ($do=="ajaximportcsv") {
+		if ($do=="countcsvlines") {
 			$fn=$from;
 			$this->cj->createCjTables();	
+			$importCSV=new ImportCSV($this->customPostType);							
+			$result=$importCSV->countLines($fn);
+			$importCSV->setParam("tableName",$tabName);
+			//$importCSV->clearImportTable();
+			echo json_encode(["result"=>$result]).PHP_EOL;
+			wp_die();
+		}
+		if ($do=="ajaximportcsv") {
+			$fn=$from;
+			//ty uz se vytvori v countcsvlines
+			//$this->cj->createCjTables();	
 			$importCSV=new ImportCSV($this->customPostType);				
 			$importCSV
 			->setParam("separator",",")
@@ -169,7 +182,7 @@ class AutaCustomPost {
 			->setParam("emptyFirst","true")
 			->setParam("cj",$this->cj)
 			->setParam("createTable",false);
-			$result=$importCSV->doImportCSVfromWP($fn);
+			$result=$importCSV->doImportCSVfromWP($fn,intval($to),intval($to)+500);
 			if ($result) {					
 				$this->autaFields->makeTable("fields");
 				$this->autaFields->addFields($this->cj->getMautaFields());										
@@ -279,7 +292,27 @@ class AutaCustomPost {
 			$dedTable->createFromPosts(0,10);
 		  }
 		  if ($do=="dotest") {
-			echo $this->cj->getCJtools()->mReplText("Pes");
+				//$fn="/home/dogfoodp/public_html/81gr.com/wp-content/plugins/wpcustomajaxfilters/EricDress_com-Ericdress_CJ_Datafeed-shopping.txt";
+				$fn="C:\wamp64\www\ukeacz\wp-content\plugins\wpcustomajaxfilters/EricDress_com-Ericdress_CJ_Datafeed-shopping.txt";
+				$this->cj->createCjTables();	
+				$tabName="wp_mauta_cj_cj_import";	
+				$importCSV=new ImportCSV($this->customPostType);				
+				$importCSV
+				->setParam("separator",",")
+				->setParam("tableName",$tabName)
+				->setParam("encoding","UTF-8")
+				->setParam("enclosure","\"")
+				->setParam("emptyFirst","true")
+				->setParam("cj",$this->cj)
+				->setParam("createTable",false);
+				$result=$importCSV->doImportCSVfromWP($fn);
+				echo "test finished";
+				/*
+				if ($result) {					
+					$this->autaFields->makeTable("fields");
+					$this->autaFields->addFields($this->cj->getMautaFields());										
+				}
+				*/
 		  }
 	}
 	function csvMenu() {

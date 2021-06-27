@@ -72,6 +72,7 @@ Class MajaxLoader {
     }
     public function initFromShortCode() {
         global $post;
+        if (!isset($post->post_content)) return false;
         $pattern = get_shortcode_regex();
         $this->shortCodes=[];
         if (   preg_match_all( '/'. $pattern .'/s', $post->post_content, $matches ) )   {
