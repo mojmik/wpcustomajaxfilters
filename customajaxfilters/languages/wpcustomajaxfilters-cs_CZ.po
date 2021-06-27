@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: wpcustomajaxfilters\n"
-"POT-Creation-Date: 2021-06-25 19:03+0200\n"
-"PO-Revision-Date: 2021-06-25 19:07+0200\n"
+"POT-Creation-Date: 2021-06-27 22:26+0200\n"
+"PO-Revision-Date: 2021-06-27 22:27+0200\n"
 "Last-Translator: \n"
 "Language-Team: m@ttj.cz\n"
 "Language: cs_CZ\n"
@@ -20,7 +20,7 @@ msgstr ""
 
 #: admin/autacustompost.php:60
 msgid " - "
-msgstr ""
+msgstr " - "
 
 #: admin/autacustompost.php:61
 msgid "Parent"
@@ -46,7 +46,7 @@ msgstr "Upravit"
 msgid "Update"
 msgstr "Aktualizovat"
 
-#: admin/autacustompost.php:68 admin/cjtools.php:544
+#: admin/autacustompost.php:68 admin/cjtools.php:516
 msgid "Find"
 msgstr "Najít"
 
@@ -62,7 +62,7 @@ msgstr "Nenalezeno v koši"
 msgid "in stock"
 msgstr "skladem"
 
-#: admin/autacustompost.php:291
+#: admin/autacustompost.php:324
 msgid "remove all"
 msgstr "odstranit vše"
 
@@ -70,58 +70,82 @@ msgstr "odstranit vše"
 msgid "Add another"
 msgstr "Přidat další"
 
-#: admin/cjtools.php:499
+#: admin/cjpages.php:41
+msgid "Online shopping for"
+msgstr "Nakupujte online"
+
+#: admin/cjpages.php:42
+msgid "with great number of products and special prices"
+msgstr "s obrovským výběrem produktů a neuvěřitelnými cenami"
+
+#: admin/cjpages.php:43
+msgid "Offered by famous brands like"
+msgstr "Od známých značek jako třeba"
+
+#: admin/cjpages.php:44
+msgid "and many more products"
+msgstr "a mnoho dalších položek"
+
+#: admin/cjpages.php:45
+msgid "such as"
+msgstr "jako například"
+
+#: admin/cjpages.php:46
+msgid "under "
+msgstr "za méně než "
+
+#: admin/cjtools.php:471
 msgid "Also"
 msgstr "Dále třeba"
 
-#: admin/cjtools.php:544
+#: admin/cjtools.php:516
 msgid "Enjoy"
 msgstr "Užijte si"
 
-#: admin/cjtools.php:544
+#: admin/cjtools.php:516
 msgid "Choose- "
 msgstr "Vyberte si- "
 
-#: admin/cjtools.php:544
+#: admin/cjtools.php:516
 msgid "Shop- "
 msgstr "Nakupujte- "
 
-#: admin/cjtools.php:544
+#: admin/cjtools.php:516
 msgid "Eshops with"
 msgstr "Eshopy nabízející"
 
-#: admin/cjtools.php:544
+#: admin/cjtools.php:516
 msgid "Shops with"
 msgstr "Obchody, kde najdete"
 
-#: admin/cjtools.php:549
+#: admin/cjtools.php:521
 msgid "more than"
 msgstr "více než"
 
-#: admin/cjtools.php:549
+#: admin/cjtools.php:521
 msgid "over"
 msgstr "víc jak"
 
-#: admin/cjtools.php:550
+#: admin/cjtools.php:522
 msgid "products"
 msgstr "produktů"
 
-#: admin/cjtools.php:550
+#: admin/cjtools.php:522
 msgid "offers"
 msgstr "nabídek"
 
-#: admin/cjtools.php:550
+#: admin/cjtools.php:522
 msgid "sales"
 msgstr "zlevněných položek"
 
-#: admin/cjtools.php:569
+#: admin/cjtools.php:541
 msgid "and other brands"
 msgstr "a dalších značek"
 
-#: admin/cjtools.php:569
+#: admin/cjtools.php:541
 msgid "and other producers"
 msgstr "a dalších výrobců"
 
-#: admin/cjtools.php:570
+#: admin/cjtools.php:542
 msgid "by"
 msgstr "od"
