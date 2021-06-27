@@ -5,8 +5,9 @@ use \CustomAjaxFilters\Majax\MajaxWP as MajaxWP;
 class Settings {	
     static private $settings=[];	
     static private $settingsMap=[    
-      "site"  => 
-        ["language", 
+      "site"  => [
+            "language", 
+            "currencyFormat" => ["default" => "$%1", "desc" => "currency format used for prices"], 
             "clickAction" => ["desc" => "link action- form for form, any other value for standard"],
             "buildCounts" => ["desc" => "set when form with items counts are to be displayed (not recommended for big sites with many items)"],
             "cpt" => ["desc" => "default custom post type. We need this for page titles (shortcodes too late for this)"]

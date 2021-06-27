@@ -19,4 +19,5 @@ Sorry, no results found.^Bohužel, žádné výsledky nenalezeny.^Bohužiaľ, ž
 GET SPECIAL DISCOUNT^KOUPIT SE SLEVOU^KÚPIŤ SO ZĽAVOU
 Price^Cena^Cena
 Related items^Příbuzné položky^Súvisiace položky
+by^od^od
 More^Více^Viac

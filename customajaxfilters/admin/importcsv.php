@@ -2,6 +2,7 @@
 namespace CustomAjaxFilters\Admin;
 use \CustomAjaxFilters\Majax\MajaxWP as MajaxWP;
 
+
 class ImportCSV {
 	public $fieldsList=array();
 	private $postCustomFields;	
@@ -215,6 +216,16 @@ class ImportCSV {
 		}
 		
 	}
+	private function getcsvUTF8($str) {
+		$separator=$this->params["separator"];
+		$encoding=$this->params["encoding"];
+		$enclosure=$this->params["enclosure"];
+		if ($str !== false)  {
+			$str = $this->autoUTF($str,$encoding);			
+			return str_getcsv($str, $separator,$enclosure,"\\");
+		}
+		return false;	
+	}
 	private function fgetcsvUTF8(&$handle, $length) {
 		$separator=$this->params["separator"];
 		$encoding=$this->params["encoding"];
@@ -267,7 +278,21 @@ class ImportCSV {
 		}		
 		return $out;
 	}
-	public function loadCsvFile($file) {
+	public function countLines($file) {
+		$linecount = 0;
+		$handle = fopen($file, "r");
+		while(!feof($handle)){
+		$line = fgets($handle);
+		$linecount++;
+		}
+		fclose($handle);
+		return $linecount;
+	}
+	public function clearImportTable() {
+		$table=$this->params["tableName"];
+		MajaxWP\MikDb::clearTable($table);
+	}
+	public function loadCsvFile($file,$lineFrom=0,$lineTo=0) {
 		global $wpdb;		
 		$table=$this->params["tableName"];
 		$emptyFirst=$this->params["emptyFirst"];
@@ -303,6 +328,61 @@ class ImportCSV {
 				 
 		}
 		return $mInserted;		
+	}
+	public function loadCsvFileChunky($file,$lineFrom=0,$lineTo=0) {
+		$table=$this->params["tableName"];
+		$emptyFirst=$this->params["emptyFirst"];
+		$skipCols=$this->params["skipCols"];
+		$createTable=$this->params["createTable"];
+		$colsOnFirstLine=$this->params["colsOnFirstLine"];
+		$mCols=$this->params["mColNames"];
+		$cj=$this->params["cj"];
+		
+		$fh = fopen($file, "r"); 
+		$lineNum=0;
+		$mInserted=0;		
+		AutaPlugin::logWrite("about to load csv ".$file." into ".$table);
+		//if ($emptyFirst) MajaxWP\MikDb::clearTable($table);
+		while ($line = fgets($fh)) {		
+			$lineNum++;	
+			if ($colsOnFirstLine && ($lineNum)===1) {		
+				$mCols=$this->getcsvUTF8($line);
+				if ($createTable) $this->createTable($line);
+			}
+
+			if ($lineFrom>0 && $lineNum<=$lineFrom) { 
+				continue;
+			}
+			if ($lineTo>0 && $lineNum>$lineTo) { 
+				break;								
+			}
+			$line = $this->getcsvUTF8($line);
+			
+			if ($colsOnFirstLine && ($lineNum)===1) {		
+			 $mCols=$line;
+			 if ($createTable) $this->createTable($line);
+			}
+			else {			 			
+				$n=0;
+				foreach ($line as $mVal) {
+					$colName=$mCols[$n];
+					$mVal = str_replace("\\'", "'", $mVal); 
+					$mVal = str_replace("''", "^^^", $mVal); 
+            		$mVal = str_replace("^^^", "'", $mVal); 
+            		$mVal = str_replace("'", "''", $mVal); 
+					$mRow[$colName]=$mVal;
+					$n++;
+				}		
+				if (!empty($cj)) $mRow=$cj->produceRecord($mRow);			
+				MajaxWP\MikDb::insertRow($table,$mRow,$skipCols);	
+				$mInserted++;			 
+			}			
+				 
+		}
+		fclose($fh);				
+		$total=($colsOnFirstLine) ? ($lineNum-1) : $lineNum;
+		AutaPlugin::logWrite("csv loaded ".$file." into ".$table." from: ".$lineFrom." total: ".$total);
+		return $total;		
 	}
 	function createTable($mCols) {	
 		global $wpdb;	
@@ -342,15 +422,17 @@ class ImportCSV {
 		if(isset($_FILES['mfilecsv']) && ($_FILES['mfilecsv']['size'] > 0)) return true;
 		return false;
 	}
-	public function doImportCSVfromWP($fn="") {
+	public function doImportCSVfromWP($fn="",$from=0,$to=0) {
 		if ($fn) {
-			return $this->loadCsvFile($fn);					  	  																				
+			if ($to>0) return $this->loadCsvFileChunky($fn,$from,$to);					  	  																				
+			else return $this->loadCsvFile($fn,$from,$to);					  	  																				
 		} else {
 			$upload_overrides = array( 'test_form' => false ); 
 			$uploaded_file = wp_handle_upload($_FILES['mfilecsv'], $upload_overrides);
 			$fn = $uploaded_file['file'];
 			if(isset($fn) && wp_check_filetype($uploaded_file['file'],["text/csv"])) {									
-					$this->loadCsvFile($fn);		  	  																	
+					if ($to>0) $this->loadCsvFileChunky($fn,$from,$to);		  	  																	
+					else $this->loadCsvFile($fn,$from,$to);		  	  																	
 					return "imported";
 			}
 		}				

@@ -6,6 +6,8 @@ class Loader {
     public function __construct() {	        
         spl_autoload_register([$this,"mLoadClass"]);        
         define('CAF_MAJAX_PATH',plugin_dir_path( __FILE__ ). "majax/");  
+        //translations
+        add_action('init', [$this,"globalInit"]);
 
         $cjActive=true;
 		if ($cjActive)	{
@@ -19,6 +21,9 @@ class Loader {
             $cj->handleRewriteRules($page); 
             $cj->addShortCodes();                
 		}
+    }
+    public function globalInit() {
+        load_plugin_textdomain( CAF_TEXTDOMAIN, false, 'wpcustomajaxfilters/customajaxfilters/languages' );
     }
     public function initAdmin() {
         $mautawp=new Admin\AutaPlugin(); 

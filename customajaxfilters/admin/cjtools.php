@@ -18,6 +18,7 @@ class CJtools {
         $this->separatorVariations=[ "|"," > ","&gt;", "> "," >"];
         $this->bannedCategories=["Heureka.cz","NÁBYTEK","Nábytek"];      
         $this->replacements=[];
+        $this->dedicatedTable=false;
     }
     private function getDedicatedTable() {
         if (array_key_exists("dedicatedTable",$this->params)) $this->dedicatedTable=$this->params["dedicatedTable"];
@@ -47,11 +48,7 @@ class CJtools {
         file_put_contents($fn, $imgSrc);
         return $content;
     }
-    private function removeExtraSpaces($c) {
-        $c = preg_replace('!\s+!', ' ', $c);
-        $c = trim($c);
-        return $c;
-    }
+   
     function mReplText($description) {
         if (!array_key_exists("loaded",$this->replacements)) {
             $txt = Settings:: loadSetting("replacements", "cj");
@@ -66,6 +63,7 @@ class CJtools {
             $this->replacements["replacements"]=$rowsOut;
             $this->replacements["loaded"]=true;
         }
+        if (empty($this->replacements["replacements"])) return $description;
         $oriDesc=$description;
         foreach($this->replacements["replacements"] as $s => $r) {
             $description = str_replace($s, $r, $description);
@@ -73,29 +71,39 @@ class CJtools {
         }
         return $description;
     }
-    function ms_escape_string($data) {
-        if (!isset($data) or empty($data) ) return '';
-        if (is_numeric($data)) return $data;
-
-        $non_displayables = array(
-            '/%0[0-8bcef]/',            // url encoded 00-08, 11, 12, 14, 15
-            '/%1[0-9a-f]/',             // url encoded 16-31
-            '/[\x00-\x08]/',            // 00-08
-            '/\x0b/',                   // 11
-            '/\x0c/',                   // 12
-            '/[\x0e-\x1f]/'             // 14-31
-        );
-        foreach($non_displayables as $regex)
-        $data = preg_replace($regex, '', $data);
-        $data = str_replace("'", "''", $data);
-        return $data;
+    
+    
+    private function stripCategories($str,$params=[]) {
+        $startCat=(array_key_exists("startCat",$params)) ? $params["startCat"] : 0;
+        $maxCatDepth=(array_key_exists("maxCatDepth",$params)) ? $params["maxCatDepth"] : 9;        
+        $types=explode($this->categorySeparator,$str);
+        $female=array("dámská","dámské","dámský","dámy","ona","ženy","žena","female","ladies","lady","woman","women","women''s","dívka");
+        $male=array("pánská","pánské","pánský","páni","on","muž","muži","male","gentlemen","men","men''s","man","chlapec");
+        $catDepth=0;
+        $out="";
+        $prevType="";
+        foreach ($types as $type) {  	  	   
+                $lower=mb_strtolower($type,'UTF-8');
+                if (Mutils::containsWord($lower,$female)) {
+                    $catGender=$type;
+                }
+                else if (Mutils::containsWord($lower,$male)) {
+                    $catGender=$type;  
+                }
+                else if ($catDepth>=$startCat && $catDepth<$maxCatDepth) {
+                $type=Mutils::titleCase($type);  
+                //if ($debug) echo "<br />$lower not catch";
+                if ($prevType!=$type) {
+                    if ($out) $out.=">";
+                    $out.=$type;			
+                }		
+                $prevType=$type;		   
+                }
+                $catDepth++;		
+        }
+        return $out;
     }
-   
-    private function removePriceFormat($val) {
-        if (substr($val,-3)===".00") $val=substr($val,0,strlen($val)-3);
-        //if (substr($val,-3,1)==".") $val=substr($val,0,strlen($val)-3)."#".substr($val,strlen($val)-2);
-        return $val;
-    }
+    
     public function createPostsFromTable($fields, $from = null, $to = null, $extras = []) {
         global $wpdb;
         $table = $this->params["tableName"];
@@ -131,7 +139,7 @@ class CJtools {
             $r[$key] = str_replace("<br />", "&nbsp;", $r[$key]);
             $r[$key] = str_replace("<br>", "&nbsp;", $r[$key]);
             $r[$key] = strip_tags($r[$key]);
-            $r[$key] = $this->ms_escape_string($r[$key]);
+            $r[$key] = Mutils::ms_escape_string($r[$key]);
             $r[$key] = str_replace(", ", ",", $r[$key]); //oprava carek
             $r[$key] = str_replace(",", ", ", $r[$key]); //oprava carek  
             //osetreni qoutes
@@ -192,11 +200,12 @@ class CJtools {
                 if (!$f->filterorder && !$f->displayorder) continue;
 
                 //extras-apply filters like trim to all values
-                if (!empty($extras[$name]["removeExtraSpaces"])) $metaValue = $this->removeExtraSpaces($metaValue);
-                if (!empty($extras[$name]["removePriceFormat"])) $metaValue = $this->removePriceFormat($metaValue);
+                if (!empty($extras[$name]["removeExtraSpaces"])) $metaValue = Mutils::removeExtraSpaces($metaValue);
+                if (!empty($extras[$name]["removePriceFormat"])) $metaValue = Mutils::removePriceFormat($metaValue);
                 
-                if (!empty($extras[$name]["createSlug"])) {
+                if (!empty($extras[$name]["createSlug"])) {                    
                     $metaValue = $this->sanitizePath($metaValue);
+                    $metaValue=$this->stripCategories($metaValue);
                     $metaValueSlug = $this->sanitizeSlug($metaValue);
                     add_post_meta($postId, $name, $metaValueSlug);
                     if ($dedicatedTable) $row[$name]=$metaValueSlug;
@@ -341,37 +350,10 @@ class CJtools {
         
         return $wpdb->get_results($query, ARRAY_A);
     }
-    function getLngText($txt) {
-        $isCZ = (Settings:: loadSetting("language", "site") == "cs");
 
-        if ($isCZ) {
-            if ($txt == "Search") return "Hledat";
-            if ($txt == "GET SPECIAL DISCOUNT »") return "KOUPIT SE SLEVOU »";
-            if ($txt == "More than") return "Více než";
-            if ($txt == "great offers in category") return "skvělých nabídek v kategorii";
-            if ($txt == "products") return "položek";
-            if ($txt == "Enjoy") return "Užijte si";
-            if ($txt == "Find") return "Najděte";
-            if ($txt == "Choose- ") return "Vyberte si- ";
-            if ($txt == "Shop- ") return "Nakupujte- ";
-            if ($txt == "Eshops with") return "Eshopy nabízející";
-            if ($txt == "Shops with") return "Obchody, kde najdete ";
-            if ($txt == "more than") return "více než";
-            if ($txt == "over") return "víc jak";
-            if ($txt == "products") return "produktů";
-            if ($txt == "offers") return "nabídek";
-            if ($txt == "sales") return "zlevněných položek";
-            if ($txt == "in") return "v";
-            if ($txt == "by") return "od";
-            if ($txt == "Also") return "Dále třeba";
-            if ($txt == "and other brands") return "a dalších značek";
-            if ($txt == "and other producers") return "a dalších výrobců";
-
-        }
-        else return $txt;
-    }
     function mRndTxt($texts) {
-        return $this->getLngText($texts[array_rand($texts)]);
+        if (is_array($texts)) return $texts[array_rand($texts)];
+        return $texts;
     }
     function countPosts($c,$dedTable) {
             global $wpdb;
@@ -444,7 +426,7 @@ class CJtools {
     }
     function sanitizePath($path) {
         $sep=$this->categorySeparator;
-        $path=$this->removeExtraSpaces($path);
+        $path=Mutils::removeExtraSpaces($path);
         foreach ($this->separatorVariations as $v)  {
             if (strlen($v)>=strlen($sep)) $path=str_replace($v,$sep,$path);
         }
@@ -463,10 +445,7 @@ class CJtools {
         return sanitize_title(str_replace($sep, "-", $path));
     }
     
-    function getImageFromImageUrl($html) {
-        preg_match_all('/<img.*?src=[\'"](.*?)[\'"].*?>/i', $html, $matches);
-        return (empty($matches[0][0])) ? false : $matches[0][0];
-    }
+    
     function prepareCatDescription($cat,$dedTable=false) {
         $desc = "#catTitle#enjoymorethan#cntPosts#txtproducts#cats#txtby#brands.#prods#txtAlso#subcats.";        
         $txtproducts = "";
@@ -489,7 +468,7 @@ class CJtools {
         }
         unset($subcats);
         if ($subCatStr) {
-            $txtAlso = " ".$this->getLngText("Also");
+            $txtAlso = " ".__("Also",CAF_TEXTDOMAIN);
             $subCatStr = " ".$subCatStr;
         }
         else {
@@ -519,7 +498,7 @@ class CJtools {
             }
             
             $prodName = $mPost["post_title"];
-            $prodImage = $this->getImageFromImageUrl($images[0]);
+            $prodImage = Mutils::getImageFromImageUrl($images[0]);
             if (!in_array($brand[0], $brandyArr)) array_push($brandyArr, $brand[0]);
             if (!in_array($prodName, $prodNames)) array_push($prodNames, $prodName);
             if (!in_array($prodImage, $prodImages)) array_push($prodImages, $prodImage);
@@ -534,13 +513,13 @@ class CJtools {
         unset($termPosts);
 
         $enjoy = "";
-        $enjoy = $this->mRndTxt(array("Enjoy", "Find", "Choose- ", "Shop- ", "Eshops with", "Shops with"));
+        $enjoy = $this->mRndTxt(array(__("Enjoy",CAF_TEXTDOMAIN), __("Find",CAF_TEXTDOMAIN), __("Choose- ",CAF_TEXTDOMAIN), __("Shop- ",CAF_TEXTDOMAIN), __("Eshops with",CAF_TEXTDOMAIN), __("Shops with",CAF_TEXTDOMAIN)));
 
         if ($cntPosts > 19) {
             if (strlen($cntPosts) > 1) $cntPosts = str_pad(substr($cntPosts, 0, 1), strlen($cntPosts), "0");
             $cntPosts = " ".$cntPosts;
-            $enjoy.= " ".$this->mRndTxt(array("more than", "over"));
-            $txtproducts = " ".$this->mRndTxt(array("products", "offers", "sales"));
+            $enjoy.= " ".$this->mRndTxt(array(__("more than",CAF_TEXTDOMAIN), __("over",CAF_TEXTDOMAIN)));
+            $txtproducts = " ".$this->mRndTxt(array(__("products",CAF_TEXTDOMAIN), __("offers",CAF_TEXTDOMAIN), __("sales",CAF_TEXTDOMAIN)));
         }
         else {
             $cntPosts = "";
@@ -559,8 +538,8 @@ class CJtools {
             $brandyStr.= $brandyArr[$n];
         }
         if ($brandyStr) {
-            $brandyStr = " ".$brandyStr." ".$this->mRndTxt(array("and other brands", "and other producers"));
-            $txtby = ", ".$this->getLngText("by");
+            $brandyStr = " ".$brandyStr." ".$this->mRndTxt(array(__("and other brands",CAF_TEXTDOMAIN), __("and other producers",CAF_TEXTDOMAIN)));
+            $txtby = ", ".__("by",CAF_TEXTDOMAIN);
         }
         else {
             $txtby = "";

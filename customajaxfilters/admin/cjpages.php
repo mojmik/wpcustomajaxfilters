@@ -16,7 +16,7 @@ class CJpages {
         $mKeywords = $this->keywords;
         $dedTable=Settings::loadSetting("dedicatedTables-".$this->customPostType,"cptsettings");
         $childPages=[];
-        
+        /*
         if (Settings:: loadSetting("language", "site") == "cs") {
             $text[1] = "Nakupujte online";
             $text[2] = "s obrovským výběrem produktů a neuvěřitelnými cenami";
@@ -35,6 +35,16 @@ class CJpages {
             $text[6] = "under $";
             $text[7] = "";
         }
+        */
+        $currencyFormat=$this->cjTools->getParams("currencyFormat");
+
+        $text[1] = __("Online shopping for");
+        $text[2] = __("with great number of products and special prices");
+        $text[3] = __("Offered by famous brands like");
+        $text[4] = __("and many more products");
+        $text[5] = __("such as");
+        $text[6] = __("under ");        
+
         //vzit kategorie, ktery maji pres 100 postu
         $createdCatPages = 0;
         //$terms = $this->getCategories([["name"=>"counts","type" =>"%d", "value" => "100", "operator" => ">" ]]);
@@ -144,7 +154,7 @@ class CJpages {
                         $brandy.= $vendors[$c][$b];
                     }
                     if ($brandy) $brandy = ". ".$text[3]." $brandy.";
-                    $under = " ".$text[6].$cenaArrB[$c].$text[7];
+                    $under = " ".Mutils::simpleFormat($cenaArrB[$c],$currencyFormat);
                     $pageTitle = $terms[$n]["path"].$under;
                     $priceFrom = 0;
                     if ($c > 0) $priceFrom = $cenaArrB[$c - 1];
