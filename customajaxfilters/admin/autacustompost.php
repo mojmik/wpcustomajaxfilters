@@ -216,18 +216,20 @@ class AutaCustomPost {
 		} else {
 			$importCSV=new ImportCSV($this->customPostType);
 		}	
-		if ($do=="removecsv") {			
-			$importCSV->removePreviousPosts();	
-		}	
 		if ($do=="genthumbs") {			
 			$importCSV->preInsertThumbs();	
 		}			  
 		
 		if ($do=="csv") {			
 			$tabName=MajaxWP\MikDb::getTablePrefix()."csvtab";	
+			$separator=filter_input( INPUT_POST, "separator", FILTER_SANITIZE_STRING );
+			$encoding=filter_input( INPUT_POST, "encoding", FILTER_SANITIZE_STRING );
 			if ($importCSV->gotUploadedFile()) {
-				$importCSV->setParam("separator","^")
-						->setParam("encoding","cp852");
+				$importCSV
+						->setParam("separator",$separator)
+						->setParam("tableName",$tabName)
+						->setParam("createTable",true)
+						->setParam("encoding",$encoding);
 				if ($importCSV->doImportCSVfromWP()=="imported") {
 					
 				}
@@ -252,7 +254,7 @@ class AutaCustomPost {
 			} 
 		  }
 		  if ($do=="csv" || $do=="cjcsv") {
-			$importCSV->showImportCSV();	
+			$importCSV->showImportCSV($do);	
 			$countReadyCSV=MajaxWP\MikDb::wpdbTableCount($tabName);
 			if ($countReadyCSV>0) { 
 				echo "<br />$countReadyCSV csv rows ready";
@@ -262,21 +264,25 @@ class AutaCustomPost {
 		  if ($do=="csvbulkimport") {
 				$files = glob(CAF_PLUGIN_PATH."*.txt");
 				?>
-				<form id='csvBulkImport'>
+				
 				<?php
 				$n=0;
-				foreach($files as $fn) {					
+				foreach($files as $fn) {	
+
 					?>
-					<div class="row">
-						<input data-fn='csvbulkfn' style='width:650px;' name='file<?= $n?>' value='<?= $fn?>' />
-						<span data-fn='statuscsvbulk-file<?= $n?>' style='width:200px;'></span>
-					</div>
+					<form data-form='csvBulkImport'>
+						<div class="row">
+							<input style='width:100px;' type='submit' value='<?= __("Process",CAF_TEXTDOMAIN)?>' />
+							<span style="width:60%;"><?= basename($fn)?></span>
+							<input data-fn='csvbulkfn' type='hidden' name='file<?= $n?>' value='<?= $fn?>' />														
+							<span style='width:200px;' data-fn='statuscsvbulk-file<?= $n?>' ></span>
+						</div>
+					</form>
 					<?php
 					$n++;
 				}
 				?>
-				<input type='submit' value='process all' />
-				</form>
+
 				<?php
 		  }
 		  	 
@@ -287,53 +293,22 @@ class AutaCustomPost {
 		  if ($do=="cjcatdebug") {
 			echo $this->cj->getCJtools()->updateCatsDescription();
 		  }
-		  if ($do=="creatededicatedtable") {
-			$dedTable=new DedicatedTables($this->customPostType);
-			$dedTable->createFromPosts(0,10);
-		  }
-		  if ($do=="dotest") {
-				//$fn="/home/dogfoodp/public_html/81gr.com/wp-content/plugins/wpcustomajaxfilters/EricDress_com-Ericdress_CJ_Datafeed-shopping.txt";
-				$fn="C:\wamp64\www\ukeacz\wp-content\plugins\wpcustomajaxfilters/EricDress_com-Ericdress_CJ_Datafeed-shopping.txt";
-				$this->cj->createCjTables();	
-				$tabName="wp_mauta_cj_cj_import";	
-				$importCSV=new ImportCSV($this->customPostType);				
-				$importCSV
-				->setParam("separator",",")
-				->setParam("tableName",$tabName)
-				->setParam("encoding","UTF-8")
-				->setParam("enclosure","\"")
-				->setParam("emptyFirst","true")
-				->setParam("cj",$this->cj)
-				->setParam("createTable",false);
-				$result=$importCSV->doImportCSVfromWP($fn);
-				echo "test finished";
-				/*
-				if ($result) {					
-					$this->autaFields->makeTable("fields");
-					$this->autaFields->addFields($this->cj->getMautaFields());										
-				}
-				*/
-		  }
+		  		  
 	}
 	function csvMenu() {
 		$setUrl = [	
-			["csv import",add_query_arg( 'do', 'csv'),"import csv file"],			
-			["csv bulk import",add_query_arg( 'do', 'csvbulkimport'),"import csv files uploaded by ftp"],			
-			["csv remove",add_query_arg( 'do', 'removecsv'),"remove csv imports"],
-			["prefill thumbnails",add_query_arg( 'do', 'genthumbs'),"prefill thumbnails"],
-			[__("remove all",CAF_TEXTDOMAIN),add_query_arg( 'do', 'removeall'),"remove all posts of this type"],						
-			["dedicated tables ajax",add_query_arg( 'do', 'creatededicatedtable'),"create dedicated table from posts (for huge sites)", "posts2ded"],
-			["test",add_query_arg( 'do', 'dotest'),"temp debug"]
+			[__("csv import",CAF_TEXTDOMAIN),add_query_arg( 'do', 'csv'),__("import csv file",CAF_TEXTDOMAIN)],			
+			[__("csv bulk import",CAF_TEXTDOMAIN),add_query_arg( 'do', 'csvbulkimport'),__("import csv files uploaded by ftp",CAF_TEXTDOMAIN)],						
+			[__("remove all",CAF_TEXTDOMAIN),add_query_arg( 'do', 'removeall'),__("remove all posts of this type",CAF_TEXTDOMAIN)]												
 		];
 		//$setUrl[]=["dedicated tables debug",add_query_arg( 'do', 'creatededicatedtable'),"create dedicated table from posts debug (for huge sites)"],			
 		if ($this->isCj) {
 			array_push($setUrl,
-				["cj csv import",add_query_arg( 'do', 'cjcsv'),"import cj csv file"],
-				["remove mauta tables",add_query_arg( 'do', 'removeexttables'),"drop tables for fields and cats"],
-				["create pages",add_query_arg( 'do', 'createcatpages'),"create pages debug test"],
-				["cj cats description and counts",add_query_arg( 'do', ''),"create cats description and counts ajax", "catdescajax"]
-				);
-				//$setUrl[]=["cj cats debug",add_query_arg( 'do', 'cjcatdebug'),"cats debug"];
+				[__("cj csv import",CAF_TEXTDOMAIN),add_query_arg( 'do', 'cjcsv'),__("import cj csv file",CAF_TEXTDOMAIN)],
+				[__("remove cj tables",CAF_TEXTDOMAIN),add_query_arg( 'do', 'removeexttables'),__("drop tables for cj fields and categories",CAF_TEXTDOMAIN)],
+				[__("create pages",CAF_TEXTDOMAIN),add_query_arg( 'do', 'createcatpages'),__("create random pages from posts",CAF_TEXTDOMAIN)],
+				[__("cj cats description and counts",CAF_TEXTDOMAIN),add_query_arg( 'do', ''),__("create description and counts for categories",CAF_TEXTDOMAIN), "catdescajax"]
+				);				
 
 		} 
 		
@@ -414,7 +389,7 @@ class AutaCustomPost {
 					["recreate",add_query_arg( 'do', 'recreate'),"remove all"],
 					["export fields",add_query_arg( ['do'=>'exportfields','noheader'=>'1']),"export fields to csv"],				
 					["import fields",add_query_arg( 'do', 'importfields'),"import fields from csv"],
-					["init min max",add_query_arg( 'do', 'initminmax'),"load min-max from current posts"]
+					["init min max",add_query_arg( 'do', 'initminmax'),"load min-max from current posts (needed for filtering)"]
 				];
 	  ?>	  
 	  
@@ -427,7 +402,7 @@ class AutaCustomPost {
 	  }
 	  ?>
 	  </ul>
-	  displayorder 51..60 = you can use {metaOut[priceDiscount]} in templates for display<br />
+	  displayorder 51..60 = you can use {metaOut[field title]} in templates for display<br />
 	  displayorder 1..20 = you can use {metaOut[0]} in templates for display<br />
 	  displayorder 20..30 = you can use {metaOut[1]} in templates for display<br />
 	  displayorder 31..40 = you can use {metaOut[3]} in templates for display<br />
@@ -468,12 +443,13 @@ class AutaCustomPost {
 	  $this->autaFields->printFields();		 
 	}	
 	function editCptHtml() {
+		//checked='checked'
 		?>
 			<form id="mAutaEdit<?= $this->getCustomPostType();?>" method='post' class='caf-editFieldRow editCPT'>
 				<div><div><label>singular name</label></div><input type='text' name='singular' value='<?= $this->singular?>' /></div>	
 				<div><div><label>plural name</label></div><input type='text' name='plural' value='<?= $this->plural?>' /></div>
-				<div><div><label>special type</label></div><input name='specialType' type='text' value='<?= $this->specialType?>' /></div>
-				<div><div><label>table type (type dedicated for custom tables)</label></div><input name='tableType' type='text' value='<?= $this->tableType?>' /></div>
+				<div><div><label>is comission junction?</label></div><input name='specialType' type='checkbox' <?= ($this->specialType=="cj" ? "value='1' checked='checked'" : "")?> /></div>
+				<div><div><label>dedicated table?</label></div><input name='tableType' type='checkbox' <?= ($this->tableType=="dedicated" ? "value='1' checked='checked'" : "")?> /></div>				
 				<div><input name='cafActionEdit' type='submit' value='Edit' /></div>
 				<input name='slug' type='hidden' value='<?= $this->getCustomPostType();?>' />
 			</form>

@@ -33,7 +33,7 @@ Class Majax {
 		//$cptAdmin=new MajaxAdmin\AutaCustomPost("zajezd");
 		add_action( 'pre_get_posts', [$this,'addCptToQuery'] );	
 		add_filter( 'document_title_parts', [$this,'filter_pagetitle'] );		
-		add_action( 'wp', [$this,'wpHead'] );	
+		
 		add_action( 'plugins_loaded', [$this,'initHook'] );
 		//add_filter( 'the_title', 'wpse_alter_title', 20, 2 );
 	}
@@ -83,13 +83,7 @@ Class Majax {
 		//tohle se resi primo bez wp
 		//MimgTools::handleRequest();		
 	}
-	function wpHead() {
-		//pokud prislo v get, tak natahneme CPT, jinak bereme default
-		//potreba upravit v permalinks		
-		$cpt=get_query_var("cpt");
-		if (!$cpt) $cpt=MajaxAdmin\Settings::loadSetting("cpt","site");
-	}
-
+	
 	function addCptToQuery( $query ) {
 		/*
 		if (  $query->is_main_query() && is_home()  )			

@@ -5,7 +5,6 @@ use \CustomAjaxFilters\Majax\MajaxWP as MajaxWP;
 class CJtools {
     private $params;
     private $customPostType;
-    private $keywords;
     private $language;
     private $currentCat;
     private $categorySeparator;

@@ -5,10 +5,8 @@ use \CustomAjaxFilters\Majax\MajaxWP as MajaxWP;
 
 class ImportCSV {
 	public $fieldsList=array();
-	private $postCustomFields;	
 	private $customPostType;	
     private $settings=array();	 
-	private $separator;
 	
 	public function __construct($cpt="") {
 		$this->customPostType=$cpt;
@@ -309,7 +307,10 @@ class ImportCSV {
 			$lineNum++;			
 			if ($colsOnFirstLine && $lineNum===1) {		
 			 $mCols=$line;
-			 if ($createTable) $this->createTable($line);
+			 foreach ($mCols as $n => $c) {
+				 if (strtolower($c)=="id") $mCols[$n]="original_id_from_csv";				 
+			 }
+			 if ($createTable) $this->createTable($mCols);
 			}
 			else {			 			
 				$n=0;
@@ -405,7 +406,7 @@ class ImportCSV {
 	
 
 	public function loadFileLoadData($file,$sep="^",$enc='"') {
-		//tohle nepude, protoze to je zakazany kvuli securiyu
+		//tohle nepude, protoze to je zakazany kvuli security
 		global $wpdb;
 		$query="LOAD DATA LOCAL INFILE '{$file}' INTO TABLE sas FIELDS TERMINATED BY '{$sep}' ENCLOSED BY '{$enc}'
 						IGNORE 1 LINES (@category,@temple) SET category = @category, temple = @temple;";
@@ -437,11 +438,19 @@ class ImportCSV {
 			}
 		}				
 	}
-	public function showImportCSV() {							
+	public function showImportCSV($type="") {							
 			?>
 			<form method="post" enctype="multipart/form-data"> 
-				<input type="file" name="mfilecsv" id="mfilecsv" />
-				<input type="submit" name="html-upload" id="html-upload" class="button" value="Upload" />
+				<input type="file" name="mfilecsv" id="mfilecsv" />				
+			<?php
+				if ($type=="csv") {
+				 ?>
+					<input type="text" name="separator" value="^" />	 
+					<input type="text" name="encoding" value="cp852" />	 
+				 <?php
+				}
+			?>
+			<input type="submit" name="html-upload" id="html-upload" class="button" value="Upload" />
 			</form>
 			<?php					
 	}

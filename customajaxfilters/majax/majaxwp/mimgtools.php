@@ -1,13 +1,6 @@
 <?php 
 namespace CustomAjaxFilters\Majax\MajaxWP;
 
-//usage: /mimgtools.php?img=https://www.doruceni.cz/wp-content/uploads/kn95-300x300.jpg
-//usage: opt2 /mimgtools.php?id=31935
-//UPDATE wp_post SET post_content = REPLACE(post_content,'width="300" src=''http','width="300" src=''/mimgtools.php?img=http') WHERE ID=31935;
-//SELECT * FROM wp_posts  WHERE ID=31935
-//UPDATE wp_post SET post_content = REPLACE(post_content,'width="300" src=''http',CONCAT('width="300" src=''/mimgtools.php?img=',`post_id`) WHERE ID=31935;
-//todo: projet vsechny hp_listings, upravit img src, vygenerovat mimgnfo a je to; dalsi pokus by mohl byt vypisovat ten obrazek javascriptem
-
 Class MimgTools {
 	
 	public static function handleRequest() {

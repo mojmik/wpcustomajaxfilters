@@ -62,6 +62,9 @@ Class Caching {
     
     static function addCache($query,$rows,$fnId="") {
         //add query into cachemap and write rows        
+        if (!count($rows)) {
+            $fnId="empty";
+        } 
         if (!$fnId) {
             $fnId=date("d-m-y-h-i-s").rand(10000,99999).".txt";            
         }        
@@ -72,10 +75,15 @@ Class Caching {
     } 
     static function cacheWrite($name,$rows) {
         //add rows into cache        
+        if (!count($rows)) {
+            $name="empty";
+        } 
+        $path=Caching::getCachePath() . "$name.json";
+        if (file_exists($path)) return; //empty rows
         if (Caching::$compressJson) 
-         file_put_contents(Caching::getCachePath() . "$name.json",gzcompress(json_encode($rows)));
+         file_put_contents($path,gzcompress(json_encode($rows)));
         else 
-         file_put_contents(Caching::getCachePath() . "$name.json",json_encode($rows));
+         file_put_contents($path,json_encode($rows));
     }
     static function cacheRead($name) {
        if (Caching::$recreateCache) return false;

@@ -6,13 +6,17 @@ class Settings {
     static private $settings=[];	
     static private $settingsMap=[    
       "site"  => [
-            "language", 
+            "language" => ["desc" => "language of the site"], 
             "currencyFormat" => ["default" => "$%1", "desc" => "currency format used for prices"], 
-            "clickAction" => ["desc" => "link action- form for form, any other value for standard"],
-            "buildCounts" => ["desc" => "set when form with items counts are to be displayed (not recommended for big sites with many items)"],
-            "cpt" => ["desc" => "default custom post type. We need this for page titles (shortcodes too late for this)"]
+            "clickAction" => ["default" => "none","desc" => "link action- form for form, any other value for standard"],
+            "buildCounts" => ["desc" => "set when form with items counts are to be displayed (not recommended for big sites with many items)"]
         ],
-      "secret" => ["captchasecret","from","sitekey"]
+      "secret" => [          
+          "captchasecret" => ["desc" => "captcha secret key for antispam in forms"],
+          "sitekey"=> ["desc" => "captcha site key for antispam in forms"],
+          "from" => ["desc" => "email address used in from field"],          
+          "emailTo" => ["desc" => "email address for sending filled forms etc." ]
+        ]
     ];
 
     static function getPath($path="") {
@@ -55,7 +59,7 @@ class Settings {
 			return;
 		}		
 		foreach (Settings::$settingsMap as $settingsType => $settingsSet) {
-            foreach ($settingsSet as $aKey => $setting) { 
+            foreach ($settingsSet as $aKey => $setting) {
                 if (is_array($setting)) $setting=$aKey;               
                 $key=Settings::getSettingKey($settingsType,$setting);	 			
                 $val=filter_input( INPUT_POST, $key, FILTER_SANITIZE_STRING );  
@@ -92,8 +96,9 @@ class Settings {
             <?php
             foreach ($settingsSet as $key => $setting) {
                 $desc="";
+                if (!empty($setting["hide"])) continue;
                 if (!empty($setting["desc"])) $desc.="<li>".$setting["desc"]."</li>";
-                if (!empty($setting["default"])) $desc.="<li>(default: ".$setting["desc"].")</li>";
+                if (!empty($setting["default"])) $desc.="<li>(default: ".$setting["default"].")</li>";
                 if (is_array($setting)) $setting=$key;
                 $settingKey=Settings::getSettingKey($settingsType,$setting);	
                 $settingValue=(empty(Settings::$settings[$settingKey]) ? "" : Settings::$settings[$settingKey]);

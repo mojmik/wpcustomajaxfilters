@@ -221,15 +221,17 @@ jQuery(function($){
 		return false;
 	 });
 
+	 //todo: process all files in bulk
+	 /*
 	 jQuery("form#csvBulkImport").submit(function() {	
 		$("input[data-fn='csvbulkfn']").each(function (i,obj) {
 			var fn=obj.value;		
-			var name=obj.name;
-			//tohle je spatne, je potreba, aby jely jeden za druhym
+			var name=obj.name;			
 			createPostsForInput(name,fn);
 		});
 	    return false;
 	 });
+	 */
 
 	 var updateCatDesc = function() {
 		var csvtype = "cjcsv";
@@ -330,8 +332,9 @@ jQuery(function($){
 		mAutaAjax.requestStack.go();
 	 }
 
-	jQuery("input[data-fn='csvbulkfn']").click(function(obj) {	
-		createPostsForInputChunky(obj.target.name,obj.target.value);
+	jQuery("form[data-form='csvBulkImport']").submit(function(obj) {	
+		let inputFn = $("input[data-fn='csvbulkfn']",this)[0];
+		createPostsForInputChunky(inputFn.name,inputFn.value);
 		return false;
  	});
 	 
@@ -388,7 +391,7 @@ jQuery(function($){
 	 });
 
 	
-
+	/*
 	 jQuery("form.editCPT").submit(function() {	
 		var thisForm=$(this);
 		var formData={};
@@ -418,6 +421,7 @@ jQuery(function($){
 	   });
 	   return false;
 	 });
+	 */
 
 	 addRemoveListener();
 

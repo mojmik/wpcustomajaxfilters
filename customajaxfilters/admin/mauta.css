@@ -12,9 +12,10 @@
 .caf-editFieldRow:first-of-type {
  margin:0px;
 }    
-.caf-editFieldRow div {
+.caf-editFieldRow>div {
    width: 33%; 
    align-self: flex-end;
+   margin-bottom:10px;
 }
 .caf-editFieldRow input {
  width: 162px;

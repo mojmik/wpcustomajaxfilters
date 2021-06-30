@@ -129,7 +129,7 @@ class MajaxForm {
         }			
         $outHtml="<table>$outHtml</table>";			
         
-        $to = MajaxAdmin\Settings::loadSecret("emailydefault"); 
+        $to = MajaxAdmin\Settings::loadSecret("emailTo"); 
         $subject = 'objednavka z '.$_SERVER['SERVER_NAME'];
         $body = "<h1>Objednavka z webu</h1> <h3>Typ: {$this->postType}</h3> <br /><br />{$outHtml}";      	
         $headers = 'Content-Type: text/html; charset=UTF-8';	

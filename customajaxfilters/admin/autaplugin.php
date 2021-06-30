@@ -15,8 +15,9 @@ class AutaPlugin {
 		register_deactivation_hook( CAF_PLUGIN_FILE_URL, [$this,'caf_plugin_uninstall'] );
 		add_action('admin_menu' , [$this,'pluginSettingsMenu']); 			
 		add_action( 'wp_ajax_createCPT', [$this,'createCPTproc'] );
-		add_action( 'wp_ajax_editCPT', [$this,'editCPTproc'] );
+		//add_action( 'wp_ajax_editCPT', [$this,'editCPTproc'] );
 		$this->loadCustomPosts();
+		$this->editCPTproc();
 		//admin		
 	}
 	
@@ -150,12 +151,13 @@ class AutaPlugin {
 	}
 	function editCPTproc() {
 		global $wpdb;
+		if (empty($_POST["cafActionEdit"])) return "";
 		$cafAction=filter_input( INPUT_POST, "cafAction", FILTER_SANITIZE_STRING );  
 		$singular=filter_input( INPUT_POST, "singular", FILTER_SANITIZE_STRING );  
 		$plural=filter_input( INPUT_POST, "plural", FILTER_SANITIZE_STRING );  						 				
-		$slug=filter_input( INPUT_POST, "slug", FILTER_SANITIZE_STRING );  
-		$specialType=filter_input( INPUT_POST, "specialType", FILTER_SANITIZE_STRING );  
-		$tableType=filter_input( INPUT_POST, "tableType", FILTER_SANITIZE_STRING );  
+		$slug=filter_input( INPUT_POST, "slug", FILTER_SANITIZE_STRING );  		
+		$specialType=(isset($_POST["specialType"])) ? "cj" : "";		
+		$tableType=(isset($_POST["tableType"])) ? "dedicated" : "";
 		if (isset($_POST["cafActionEdit"])) {
 			$wpdb->update(AutaPlugin::getTable("main"), array('singular' => $singular, 'plural' => $plural, 'specialType' => $specialType, 'tableType' => $tableType), array('slug' => $slug) );
 			foreach ($this->customPost as $cpt ) {
